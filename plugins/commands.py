@@ -290,6 +290,23 @@ async def base_site_handler(client, m: Message):
         await update_user_info(user_id, {"base_site": base_site})
         await m.reply("<b>Base Site updated successfully</b>")
 
+async def show_clone_menu(client, message, user_id):
+    clones = await db.get_clone(user_id)
+    buttons = []
+
+    if clones:
+        for clone in clones:
+            bot_name = clone.get("name", "Your Clone")
+            buttons.append([InlineKeyboardButton(bot_name, callback_data=f'clone_{clone["bot_id"]}')])
+
+    buttons.append([InlineKeyboardButton("➕ Add Clone", callback_data="add_clone")])
+    buttons.append([InlineKeyboardButton("⬅️ Back", callback_data="start")])
+
+    await message.edit_text(
+        script.MANAGEC_TXT,
+        reply_markup=InlineKeyboardMarkup(buttons)
+    )
+
 @Client.on_callback_query()
 async def cb_handler(client: Client, query: CallbackQuery):
     try:
@@ -326,24 +343,54 @@ async def cb_handler(client: Client, query: CallbackQuery):
 
         # Clone Menu
         elif query.data == "clone":
-            clones = await db.get_clone(query.from_user.id)
-            if clones:
-                buttons = []
-                for clone in clones:
-                    bot_name = clone.get("name", "Your Clone")
-                    add_clone_text = f'{bot_name}' or "Unnamed Bot"
-                    add_clone_callback = f'clone_{clone["bot_id"]}'
-                    buttons.append([InlineKeyboardButton(add_clone_text, callback_data=add_clone_callback)])
-            else:
-                buttons = [[InlineKeyboardButton("➕ Add Clone", callback_data="add_clone")]]
+            await show_clone_menu(client, query.message, user_id)
 
-            # Always add Back button
-            buttons.append([InlineKeyboardButton('⬅️ Back', callback_data='start')])
-
+        # Add Clone Menu
+        elif query.data == "add_clone":
+            buttons = [[InlineKeyboardButton("❌ Cancel", callback_data="cancel_add_clone")]]
             await query.message.edit_text(
-                text=script.MANAGEC_TXT,
+                text=script.CLONE_TXT,
                 reply_markup=InlineKeyboardMarkup(buttons)
             )
+
+            try:
+                forwarded = await client.listen(
+                    filters=filters.forwarded & filters.user(user_id),
+                    timeout=120
+                )
+                text = forwarded.text or ""
+                try:
+                    bot_token = re.findall(r"\b(\d+:[A-Za-z0-9_-]+)\b", text)[0]
+                except IndexError:
+                    await query.message.edit_text("❌ Invalid token. Returning to clone menu...")
+                    await asyncio.sleep(3)
+                    return await show_clone_menu(client, query.message, user_id)
+
+                # Show progress inline
+                await query.message.edit_text("👨‍💻 Creating your bot, please wait...")
+
+                xd = Client(
+                    f"{bot_token}", API_ID, API_HASH,
+                    bot_token=bot_token,
+                    plugins={"root": "clone_plugins"}
+                )
+                await xd.start()
+                bot = await xd.get_me()
+                await db.add_clone_bot(bot.id, user_id, bot.first_name, bot.username, bot_token)
+                await xd.stop()
+
+                await query.message.edit_text(f"✅ Successfully cloned your bot: @{bot.username}")
+                await asyncio.sleep(3)  # short pause before returning
+                await show_clone_menu(client, query.message, user_id)
+
+            except asyncio.TimeoutError:
+                await query.message.edit_text("⌛ Timeout! Returning to clone menu...")
+                await asyncio.sleep(3)
+                await show_clone_menu(client, query.message, user_id)
+
+        # ---------- Cancel Add Clone ----------
+        elif query.data == "cancel_add_clone":
+            await show_clone_menu(client, query.message, user_id)
 
         # Close Menu
         elif query.data == "close":
