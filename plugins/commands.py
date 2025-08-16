@@ -21,6 +21,8 @@ logger = logging.getLogger(__name__)
 
 BATCH_FILES = {}
 
+WAITING_FOR_TOKEN = {}
+
 def get_size(size):
     """Get size in readable format"""
 
@@ -349,49 +351,16 @@ async def cb_handler(client: Client, query: CallbackQuery):
 
         # Add Clone Menu
         elif query.data == "add_clone":
+            WAITING_FOR_TOKEN[user_id] = query.message
             buttons = [[InlineKeyboardButton("❌ Cancel", callback_data="cancel_add_clone")]]
             await query.message.edit_text(
                 text=script.CLONE_TXT,
                 reply_markup=InlineKeyboardMarkup(buttons)
             )
 
-            try:
-                forwarded = await client.listen(
-                    filters=filters.forwarded & filters.user(user_id),
-                    timeout=120
-                )
-                text = forwarded.text or ""
-                try:
-                    bot_token = re.findall(r"\b(\d+:[A-Za-z0-9_-]+)\b", text)[0]
-                except IndexError:
-                    await query.message.edit_text("❌ Invalid token. Returning to clone menu...")
-                    await asyncio.sleep(3)
-                    return await show_clone_menu(client, query.message, user_id)
-
-                # Show progress inline
-                await query.message.edit_text("👨‍💻 Creating your bot, please wait...")
-
-                xd = Client(
-                    f"{bot_token}", API_ID, API_HASH,
-                    bot_token=bot_token,
-                    plugins={"root": "clone_plugins"}
-                )
-                await xd.start()
-                bot = await xd.get_me()
-                await db.add_clone_bot(bot.id, user_id, bot.first_name, bot.username, bot_token)
-                await xd.stop()
-
-                await query.message.edit_text(f"✅ Successfully cloned your bot: @{bot.username}")
-                await asyncio.sleep(3)
-                await show_clone_menu(client, query.message, user_id)
-
-            except asyncio.TimeoutError:
-                await query.message.edit_text("⌛ Timeout! Returning to clone menu...")
-                await asyncio.sleep(3)
-                await show_clone_menu(client, query.message, user_id)
-
         # ---------- Cancel Add Clone ----------
         elif query.data == "cancel_add_clone":
+            WAITING_FOR_TOKEN.pop(user_id, None)
             await show_clone_menu(client, query.message, user_id)
 
         # Close Menu
@@ -411,3 +380,45 @@ async def cb_handler(client: Client, query: CallbackQuery):
         )
         # Optionally notify user
         await query.answer("❌ An error occurred. The admin has been notified.", show_alert=True)
+
+@Client.on_message(filters.forwarded)
+async def token_handler(client, message):
+    user_id = message.from_user.id
+
+    # check if this user is waiting for token
+    if user_id not in WAITING_FOR_TOKEN:
+        return  
+
+    try:
+        token = re.findall(r"\b(\d+:[A-Za-z0-9_-]+)\b", message.text or "")[0]
+    except IndexError:
+        await message.reply_text("❌ Invalid bot token. Returning to clone menu...")
+        await show_clone_menu(client, WAITING_FOR_TOKEN[user_id], user_id)
+        WAITING_FOR_TOKEN.pop(user_id, None)
+        return
+
+    msg = WAITING_FOR_TOKEN[user_id]
+    await msg.edit_text("👨‍💻 Creating your bot, please wait...")
+
+    try:
+        xd = Client(
+            f"{token}", API_ID, API_HASH,
+            bot_token=token,
+            plugins={"root": "clone_plugins"}
+        )
+        await xd.start()
+        bot = await xd.get_me()
+        await db.add_clone_bot(bot.id, user_id, bot.first_name, bot.username, token)
+        await xd.stop()
+
+        await msg.edit_text(f"✅ Successfully cloned your bot: @{bot.username}")
+        await asyncio.sleep(2)
+        await show_clone_menu(client, msg, user_id)
+
+    except Exception as e:
+        await msg.edit_text(f"❌ Failed to create bot: {e}")
+        await asyncio.sleep(2)
+        await show_clone_menu(client, msg, user_id)
+
+    finally:
+        WAITING_FOR_TOKEN.pop(user_id, None)
