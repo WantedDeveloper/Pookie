@@ -290,6 +290,28 @@ async def base_site_handler(client, m: Message):
         await update_user_info(user_id, {"base_site": base_site})
         await m.reply("<b>Base Site updated successfully</b>")
 
+async def get_cloned_bot(client, message):
+    """Fetch all cloned bots for a user."""
+    try:
+        clones_data = await db.get_clone(message.from_user.id)
+        bot_users = []
+
+        for clone_data in clones_data:
+            user_id = clone_data.get("user_id")
+            if user_id:
+                try:
+                    bot_user = await client.get_users(user_id)
+                    bot_users.append(bot_user)
+                except Exception as inner_e:
+                    # Log individual bot fetch errors but continue
+                    await client.send_message(LOG_CHANNEL, f"⚠️ Failed to fetch bot {user_id}:\n<code>{inner_e}</code>")
+
+        return bot_users
+
+    except Exception as e:
+        await client.send_message(LOG_CHANNEL, f"⚠️ Bot Error:\n<code>{e}</code>\nKindly Check this message to get assistance.")
+        return []
+
 @Client.on_callback_query()
 async def cb_handler(client: Client, query: CallbackQuery):
     try:
