@@ -310,6 +310,8 @@ async def show_clone_menu(client, message, user_id):
 @Client.on_callback_query()
 async def cb_handler(client: Client, query: CallbackQuery):
     try:
+        user_id = query.from_user.id
+
         # Start Menu
         if query.data == "start":
             buttons = [
@@ -380,7 +382,7 @@ async def cb_handler(client: Client, query: CallbackQuery):
                 await xd.stop()
 
                 await query.message.edit_text(f"✅ Successfully cloned your bot: @{bot.username}")
-                await asyncio.sleep(3)  # short pause before returning
+                await asyncio.sleep(3)
                 await show_clone_menu(client, query.message, user_id)
 
             except asyncio.TimeoutError:
