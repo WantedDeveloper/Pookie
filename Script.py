@@ -47,6 +47,14 @@ I am a permenant file store bot. you can store files from your public channel wi
 
 You can now manage and create your very own identical clone bot, mirroring all my awesome features, using the given buttons."""
 
+    CLONE_TXT = """1) Send <code>/newbot</code> to @BotFather.
+2) Give a name for your bot.
+3) Give a unique username.
+4) Then you will get a message with your bot token.
+5) Forward that message to me.
+
+Then i am try to create a clone bot of me for u only 😌"""
+
     CUSTOMIZEC_TXT = """<u>✨ CUSTOMIZE CLONE</u>
 
 🖍️ Name: {}
