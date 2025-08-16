@@ -41,30 +41,40 @@ def formate_file_name(file_name):
 
 @Client.on_message(filters.command("start") & filters.incoming)
 async def start(client, message):
-    username = client.me.username
-    if not await db.is_user_exist(message.from_user.id):
-        await db.add_user(message.from_user.id, message.from_user.first_name)
-        await client.send_message(LOG_CHANNEL, script.LOG_TEXT.format(message.from_user.id, message.from_user.mention))
-    if len(message.command) != 2:
-        buttons = [[
-            InlineKeyboardButton('💝 sᴜʙsᴄʀɪʙᴇ ᴍʏ ʏᴏᴜᴛᴜʙᴇ ᴄʜᴀɴɴᴇʟ', url='https://youtube.com/@Tech_VJ')
-            ],[
-            InlineKeyboardButton('🔍 sᴜᴘᴘᴏʀᴛ ɢʀᴏᴜᴘ', url='https://t.me/vj_bot_disscussion'),
-            InlineKeyboardButton('🤖 ᴜᴘᴅᴀᴛᴇ ᴄʜᴀɴɴᴇʟ', url='https://t.me/vj_botz')
-            ],[
-            InlineKeyboardButton('💁‍♀️ ʜᴇʟᴘ', callback_data='help'),
-            InlineKeyboardButton('😊 ᴀʙᴏᴜᴛ', callback_data='about')
-        ]]
-        if CLONE_MODE == True:
-            buttons.append([InlineKeyboardButton('🤖 ᴄʀᴇᴀᴛᴇ ʏᴏᴜʀ ᴏᴡɴ ᴄʟᴏɴᴇ ʙᴏᴛ', callback_data='clone')])
-        reply_markup = InlineKeyboardMarkup(buttons)
-        me = client.me
-        await message.reply_photo(
-            photo=random.choice(PICS),
-            caption=script.START_TXT.format(message.from_user.mention, me.mention),
-            reply_markup=reply_markup
-        )
-        return
+    await message.delete()
+    try:
+        username = client.me.username
+
+        if not await db.is_user_exist(message.from_user.id):
+            await db.add_user(message.from_user.id, message.from_user.first_name)
+            await client.send_message(LOG_CHANNEL, script.LOG_TEXT.format(message.from_user.id, message.from_user.mention))
+
+        #await load_clone_settings(client.me.id)
+
+        if len(message.command) != 2:
+            buttons = [[
+                InlineKeyboardButton('💁‍♀️ Help', callback_data='help'),
+                InlineKeyboardButton('😊 About', callback_data='about')
+                ],[
+                InlineKeyboardButton('🤖 Create Your Own Clone', callback_data='clone')
+                ],[
+                InlineKeyboardButton('🔒 Close', callback_data='close')
+            ]]
+
+            if PICS:
+                return await message.reply_photo(
+                    photo=PICS,
+                    caption=script.START_TXT.format(message.from_user.mention, client.me.mention),
+                    reply_markup=InlineKeyboardMarkup(buttons)
+                )
+
+            await message.reply_text(
+                script.START_TXT.format(message.from_user.mention, client.me.mention),
+                reply_markup=InlineKeyboardMarkup(buttons)
+            )
+
+    except Exception as e:
+        await client.send_message(LOG_CHANNEL, f"⚠️ Bot Error:\n\n<code>{e}</code>\n\nKindly Check this message to get assistance.")
 
     data = message.command[1]
     try:
@@ -282,81 +292,52 @@ async def base_site_handler(client, m: Message):
 
 @Client.on_callback_query()
 async def cb_handler(client: Client, query: CallbackQuery):
-    if query.data == "close_data":
-        await query.message.delete()
-    elif query.data == "about":
-        buttons = [[
-            InlineKeyboardButton('Hᴏᴍᴇ', callback_data='start'),
-            InlineKeyboardButton('🔒 Cʟᴏsᴇ', callback_data='close_data')
-        ]]
-        await client.edit_message_media(
-            query.message.chat.id, 
-            query.message.id, 
-            InputMediaPhoto(random.choice(PICS))
-        )
-        reply_markup = InlineKeyboardMarkup(buttons)
-        me2 = (await client.get_me()).mention
-        await query.message.edit_text(
-            text=script.ABOUT_TXT.format(me2),
-            reply_markup=reply_markup,
-            parse_mode=enums.ParseMode.HTML
-        )
+    try:
+        # Start Menu
+        if query.data == "start":
+            buttons = [
+                [InlineKeyboardButton('💁‍♀️ Help', callback_data='help'),
+                 InlineKeyboardButton('😊 About', callback_data='about')],
+                [InlineKeyboardButton('🤖 Create Your Own Clone', callback_data='clone')],
+                [InlineKeyboardButton('🔒 Close', callback_data='close')]
+            ]
+            me = await client.get_me()
+            await query.message.edit_text(
+                text=script.START_TXT.format(query.from_user.mention, me.mention),
+                reply_markup=InlineKeyboardMarkup(buttons)
+            )
 
-    elif query.data == "start":
-        buttons = [[
-            InlineKeyboardButton('💝 sᴜʙsᴄʀɪʙᴇ ᴍʏ ʏᴏᴜᴛᴜʙᴇ ᴄʜᴀɴɴᴇʟ', url='https://youtube.com/@Tech_VJ')
-        ],[
-            InlineKeyboardButton('🔍 sᴜᴘᴘᴏʀᴛ ɢʀᴏᴜᴘ', url='https://t.me/vj_bot_disscussion'),
-            InlineKeyboardButton('🤖 ᴜᴘᴅᴀᴛᴇ ᴄʜᴀɴɴᴇʟ', url='https://t.me/vj_botz')
-        ],[
-            InlineKeyboardButton('💁‍♀️ ʜᴇʟᴘ', callback_data='help'),
-            InlineKeyboardButton('😊 ᴀʙᴏᴜᴛ', callback_data='about')
-        ]]
-        if CLONE_MODE == True:
-            buttons.append([InlineKeyboardButton('🤖 ᴄʀᴇᴀᴛᴇ ʏᴏᴜʀ ᴏᴡɴ ᴄʟᴏɴᴇ ʙᴏᴛ', callback_data='clone')])
-        reply_markup = InlineKeyboardMarkup(buttons)
-        await client.edit_message_media(
-            query.message.chat.id, 
-            query.message.id, 
-            InputMediaPhoto(random.choice(PICS))
-        )
-        me2 = (await client.get_me()).mention
-        await query.message.edit_text(
-            text=script.START_TXT.format(query.from_user.mention, me2),
-            reply_markup=reply_markup,
-            parse_mode=enums.ParseMode.HTML
-        )
+        # Help Menu
+        elif query.data == "help":
+            buttons = [[InlineKeyboardButton('⬅️ Back', callback_data='start')]]
+            await query.message.edit_text(
+                text=script.HELP_TXT,
+                reply_markup=InlineKeyboardMarkup(buttons)
+            )
 
-    elif query.data == "clone":
-        buttons = [[
-            InlineKeyboardButton('Hᴏᴍᴇ', callback_data='start'),
-            InlineKeyboardButton('🔒 Cʟᴏsᴇ', callback_data='close_data')
-        ]]
-        await client.edit_message_media(
-            query.message.chat.id, 
-            query.message.id, 
-            InputMediaPhoto(random.choice(PICS))
-        )
-        reply_markup = InlineKeyboardMarkup(buttons)
-        await query.message.edit_text(
-            text=script.CLONE_TXT.format(query.from_user.mention),
-            reply_markup=reply_markup,
-            parse_mode=enums.ParseMode.HTML
-        )          
+        # About Menu
+        elif query.data == "about":
+            buttons = [[InlineKeyboardButton('⬅️ Back', callback_data='start')]]
+            me = await client.get_me()
+            await query.message.edit_text(
+                text=script.ABOUT_TXT.format(me.mention),
+                reply_markup=InlineKeyboardMarkup(buttons)
+            )
 
-    elif query.data == "help":
-        buttons = [[
-            InlineKeyboardButton('Hᴏᴍᴇ', callback_data='start'),
-            InlineKeyboardButton('🔒 Cʟᴏsᴇ', callback_data='close_data')
-        ]]
-        await client.edit_message_media(
-            query.message.chat.id, 
-            query.message.id, 
-            InputMediaPhoto(random.choice(PICS))
+        # Close Menu
+        elif query.data == "close":
+            await query.message.delete()
+            await query.message.reply_text("❌ Menu closed. Send /start again.")
+
+        # Optional: Handle unknown callback
+        else:
+            await query.answer("⚠️ Unknown action.", show_alert=True)
+
+    except Exception as e:
+        # Send error to log channel
+        await client.send_message(
+            LOG_CHANNEL,
+            f"⚠️ Bot Error:\n\n<code>{e}</code>\n\nCheck this message for assistance."
         )
-        reply_markup = InlineKeyboardMarkup(buttons)
-        await query.message.edit_text(
-            text=script.HELP_TXT,
-            reply_markup=reply_markup,
-            parse_mode=enums.ParseMode.HTML
-        )  
+        # Optionally notify user
+        await query.answer("❌ An error occurred. The admin has been notified.", show_alert=True)
