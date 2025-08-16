@@ -4,36 +4,48 @@ from os import environ
 from Script import script
 
 def is_enabled(value, default):
-    if value.lower() in ["true", "yes", "1", "enable", "y"]:
-        return True
-    elif value.lower() in ["false", "no", "0", "disable", "n"]:
-        return False
-    else:
+    try:
+        if value.lower() in ["true", "yes", "1", "enable", "y"]:
+            return True
+        elif value.lower() in ["false", "no", "0", "disable", "n"]:
+            return False
+        else:
+            return default
+    except Exception as e:
+        print("⚠️ Error in is_enabled:", e)
         return default
 
 try:
     id_pattern = re.compile(r'^.\d+$')
-    
+
+    PORT = environ.get("PORT", "8080")
+
     # Bot Information
     API_ID = int(environ.get("API_ID", "15479023"))
     API_HASH = environ.get("API_HASH", "f8f6cf547822449c29fc60dae3b31dd4")
     BOT_TOKEN = environ.get("BOT_TOKEN", "7845374433:AAGsstCb801Ry-pQSNF-gNbdARqZqKH913I")
-
-    PICS = (environ.get('PICS', 'https://graph.org/file/ce1723991756e48c35aa1.jpg')).split() # Bot Start Picture
-    ADMINS = [int(admin) if id_pattern.search(admin) else admin for admin in environ.get('ADMINS', '1512442581').split()]
     BOT_USERNAME = environ.get("BOT_USERNAME", "Testaf1bot") # without @
-    PORT = environ.get("PORT", "8080")
 
-    # Clone Info :-
+    # Database Information
+    DB_URI = environ.get("DB_URI", "mongodb+srv://test:test123@test.eccvyc9.mongodb.net/?retryWrites=true&w=majority&appName=test")
+    DB_NAME = environ.get("DB_NAME", "techvjbotz")
+
+    # Clone Information
     CLONE_MODE = bool(environ.get('CLONE_MODE', True)) # Set True or False
 
     # If Clone Mode Is True Then Fill All Required Variable, If False Then Don't Fill.
     CLONE_DB_URI = environ.get("CLONE_DB_URI", "mongodb+srv://testclone:test123@testclone.gnnmw7g.mongodb.net/?retryWrites=true&w=majority&appName=testclone")
     CDB_NAME = environ.get("CDB_NAME", "clonetechvj")
 
-    # Database Information
-    DB_URI = environ.get("DB_URI", "mongodb+srv://test:test123@test.eccvyc9.mongodb.net/?retryWrites=true&w=majority&appName=test")
-    DB_NAME = environ.get("DB_NAME", "techvjbotz")
+    # Moderator Information
+    ADMINS = [int(admin) if id_pattern.search(admin) else admin for admin in environ.get('ADMINS', '1512442581').split()]
+
+    # Channel Information
+    LOG_CHANNEL = int(environ.get("LOG_CHANNEL", "-1002855763957"))
+
+    # Start Information
+    WLC = environ.get("WLC", "")
+    PICS = environ.get("PICS", None)
 
     # Auto Delete Information
     AUTO_DELETE_MODE = bool(environ.get('AUTO_DELETE_MODE', True)) # Set True or False
@@ -41,9 +53,6 @@ try:
     # If Auto Delete Mode Is True Then Fill All Required Variable, If False Then Don't Fill.
     AUTO_DELETE = int(environ.get("AUTO_DELETE", "30")) # Time in Minutes
     AUTO_DELETE_TIME = int(environ.get("AUTO_DELETE_TIME", "1800")) # Time in Seconds
-
-    # Channel Information
-    LOG_CHANNEL = int(environ.get("LOG_CHANNEL", "-1002855763957"))
 
     # File Caption Information
     CUSTOM_FILE_CAPTION = environ.get("CUSTOM_FILE_CAPTION", f"{script.CAPTION}")

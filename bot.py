@@ -36,7 +36,7 @@ loop = asyncio.get_event_loop()
 
 async def start():
     print('\n')
-    print('Initalizing Tech VJ Bot')
+    print('Initalizing Bot...')
     bot_info = await StreamBot.get_me()
     StreamBot.username = bot_info.username
     await initialize_clients()
@@ -50,9 +50,9 @@ async def start():
             load = importlib.util.module_from_spec(spec)
             spec.loader.exec_module(load)
             sys.modules["plugins." + plugin_name] = load
-            print("Tech VJ Imported => " + plugin_name)
-    if ON_HEROKU:
-        asyncio.create_task(ping_server())
+            print("✅ Imported => " + plugin_name)
+    #if ON_HEROKU:
+        #asyncio.create_task(ping_server())
     me = await StreamBot.get_me()
     tz = pytz.timezone('Asia/Kolkata')
     today = date.today()
@@ -63,9 +63,9 @@ async def start():
     await app.setup()
     bind_address = "0.0.0.0"
     await web.TCPSite(app, bind_address, PORT).start()
-    if CLONE_MODE == True:
-        await restart_bots()
-    print("Bot Started Powered By @VJ_Botz")
+    #if CLONE_MODE == True:
+    await restart_bots()
+    print("Bot Started.")
     await idle()
 
 if __name__ == '__main__':
