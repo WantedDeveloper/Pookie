@@ -381,7 +381,7 @@ async def cb_handler(client: Client, query: CallbackQuery):
         # Optionally notify user
         await query.answer("❌ An error occurred. The admin has been notified.", show_alert=True)
 
-@Client.on_message(filters.forwarded)
+@Client.on_message()
 async def token_handler(client, message):
     user_id = message.from_user.id
 
@@ -389,15 +389,27 @@ async def token_handler(client, message):
     if user_id not in WAITING_FOR_TOKEN:
         return  
 
-    try:
-        token = re.findall(r"\b(\d+:[A-Za-z0-9_-]+)\b", message.text or "")[0]
-    except IndexError:
-        await message.reply_text("❌ Invalid bot token. Returning to clone menu...")
-        await show_clone_menu(client, WAITING_FOR_TOKEN[user_id], user_id)
+    msg = WAITING_FOR_TOKEN[user_id]
+
+    # ✅ ensure it is forwarded from BotFather
+    if not (message.forward_from and message.forward_from.id == 93372553):
+        await message.reply_text("❌ Please forward the BotFather message containing your bot token.")
+        await asyncio.sleep(2)
+        await show_clone_menu(client, msg, user_id)
         WAITING_FOR_TOKEN.pop(user_id, None)
         return
 
-    msg = WAITING_FOR_TOKEN[user_id]
+    # ✅ extract token
+    try:
+        token = re.findall(r"\b(\d+:[A-Za-z0-9_-]+)\b", message.text or "")[0]
+    except IndexError:
+        await message.reply_text("❌ Could not detect bot token. Please forward the correct BotFather message.")
+        await asyncio.sleep(2)
+        await show_clone_menu(client, msg, user_id)
+        WAITING_FOR_TOKEN.pop(user_id, None)
+        return
+
+    # ✅ proceed with bot creation
     await msg.edit_text("👨‍💻 Creating your bot, please wait...")
 
     try:

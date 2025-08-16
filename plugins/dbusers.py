@@ -1,5 +1,6 @@
 import motor.motor_asyncio
 from config import DB_NAME, DB_URI
+from Script import script
 
 class Database:
     
