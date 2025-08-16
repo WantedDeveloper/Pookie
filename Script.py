@@ -43,6 +43,65 @@ I am a permenant file store bot. you can store files from your public channel wi
 
 🧑🏻‍💻 Developer: <a href=tg://user?id={}>Developer</a>"""
 
+    MANAGEC_TXT = """<u>✨ MANAGE CLONE</u>
+
+You can now manage and create your very own identical clone bot, mirroring all my awesome features, using the given buttons."""
+
+    CUSTOMIZEC_TXT = """<u>✨ CUSTOMIZE CLONE</u>
+
+🖍️ Name: {}
+
+If you want to modify your clone bot then do it from here."""
+
+    ST_MSG_TXT = """<u>✨ START MESSAGE</u>
+
+customize your clone start message using the following buttons."""
+
+    ST_TXT_TXT = """<u>✨ START TEXT</u>
+
+Personalize your clone start message text to suit your preferences. Use the provided button to edit the start message text of your clone."""
+
+    EDIT_TXT_TXT = """<m>{} : mention user</m>
+
+Eg: <m>Hi {} 👋
+I am a file store bot.</m>
+
+Now send your new start message text."""
+
+    ST_PIC_TXT = """<u>✨ START PHOTO</u>
+
+You have the option to include a photo along with your start message."""
+
+    ADD_PIC_TXT = """Send your new start message photo."""
+
+    FSUB_TXT = """<u>✨ FORCE SUBSCRIBE</u>
+
+Users can only use your clone bot after joining all force sub channels. clone bots now also support join request mode.
+
+You can add up to 4 channels."""
+
+    TOKEN_TXT = """<u>✨ ACCESS TOKEN</u>
+
+Users need to pass a shortened link to gain special access to messages from all clone shareable links. This access will be valid for the next custom validity period."""
+
+    DELETE_TXT = """<u>✨ AUTO DELETE</u>
+
+Automatically delete all messages sent to clone users after 30 minutes."""
+
+    FORWARD_TXT = """<u>✨ FORWARD PROTECTION</u>
+
+Restrict Clone users from forwarding messages from shareable link."""
+
+    MODERATOR_TXT = """<u>✨ MODERATOR</u>
+
+Moderators have access to all your clone features, include broadcasting."""
+
+    STATUS_TXT = """✨ STATUS
+
+Total Users: {}
+Used Storage: {} mib
+Free Storage: {} mib"""
+
     CAPTION = """<b>📂 ғɪʟᴇɴᴀᴍᴇ : {file_name}
 
 ⚙️ sɪᴢᴇ : {file_size}
