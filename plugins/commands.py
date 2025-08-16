@@ -324,6 +324,27 @@ async def cb_handler(client: Client, query: CallbackQuery):
                 reply_markup=InlineKeyboardMarkup(buttons)
             )
 
+        # Clone Menu
+        elif query.data == "clone":
+            all_clones = await get_cloned_bot(client, query.message)
+
+            if all_clones:
+                buttons = []
+                for bot_user in all_clones:
+                    add_clone_text = bot_user.first_name or "Unnamed Bot"
+                    add_clone_callback = f"setting_{bot_user.id}"
+                    buttons.append([InlineKeyboardButton(add_clone_text, callback_data=add_clone_callback)])
+            else:
+                buttons = [[InlineKeyboardButton("➕ Add Clone", callback_data="add_clone")]]
+
+            # Always add Back button
+            buttons.append([InlineKeyboardButton('⬅️ Back', callback_data='start')])
+
+            await query.message.edit_text(
+                text=script.MANAGEC_TXT,
+                reply_markup=InlineKeyboardMarkup(buttons)
+            )
+
         # Close Menu
         elif query.data == "close":
             await query.message.delete()

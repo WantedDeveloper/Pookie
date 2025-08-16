@@ -65,6 +65,28 @@ async def delete_cloned_bot(client, message):
     except:
         await message.reply_text("An error occurred while deleting the cloned bot.")
 
+async def get_cloned_bot(client, message):
+    """Fetch all cloned bots for a user."""
+    try:
+        clones_data = await db.get_clone(message.from_user.id)
+        bot_users = []
+
+        for clone_data in clones_data:
+            user_id = clone_data.get("user_id")
+            if user_id:
+                try:
+                    bot_user = await client.get_users(user_id)
+                    bot_users.append(bot_user)
+                except Exception as inner_e:
+                    # Log individual bot fetch errors but continue
+                    await client.send_message(LOG_CHANNEL, f"⚠️ Failed to fetch bot {user_id}:\n<code>{inner_e}</code>")
+
+        return bot_users
+
+    except Exception as e:
+        await client.send_message(LOG_CHANNEL, f"⚠️ Bot Error:\n<code>{e}</code>\nKindly Check this message to get assistance.")
+        return []
+
 async def restart_bots():
     bots = list(mongo_db.bots.find())
     for bot in bots:
