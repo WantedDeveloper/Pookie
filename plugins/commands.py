@@ -22,7 +22,7 @@ logger = logging.getLogger(__name__)
 BATCH_FILES = {}
 
 WAITING_FOR_TOKEN = {}
-WAITING_FOR_CLONE_MSG = {}
+EDITING_WLC = {}
 WAITING_FOR_CLONE_PHOTO = {}
 
 def get_size(size):
@@ -467,13 +467,14 @@ async def cb_handler(client: Client, query: CallbackQuery):
             # Edit Text
             elif action == "edit_text":
                 #asyncio.create_task(wait_for_clone_message(user_id, bot_id, query.message))
-                WAITING_FOR_CLONE_MSG[user_id] = bot_id
+                EDITING_WLC[user_id] = bot_id
                 buttons = [[InlineKeyboardButton('❌ Cancel', callback_data=f'cancel_edit_{bot_id}')]]
                 await query.message.edit_text(text=script.EDIT_TXT_TXT, reply_markup=InlineKeyboardMarkup(buttons))
 
             # Cancel Edit Text
             elif action == "cancel_edit":
-                WAITING_FOR_CLONE_MSG.pop(user_id, None)
+                if user_id in EDITING_WLC:
+                    EDITING_WLC.pop(user_id)
                 await show_message_menu(query.message, bot_id)
 
             # See Start Text
@@ -676,31 +677,25 @@ async def token_handler(client, message):
         WAITING_FOR_TOKEN.pop(user_id, None)
 
 @Client.on_message(filters.text & filters.user(ADMINS))
-async def capture_message(client: Client, message: Message):
-    try:
-        user_id = message.from_user.id
+async def capture_wlc_text(client: Client, message: Message):
+    user_id = message.from_user.id
 
-        # Check if user is currently sending start message for a clone
-        if user_id in WAITING_FOR_CLONE_MSG:
-            bot_id = WAITING_FOR_CLONE_MSG.pop(user_id)  # Get the clone ID
-            wlc_text = message.text
-            await db.update_clone(bot_id, {"wlc": wlc_text})
+    # Check if user is currently editing a clone WLC
+    if user_id in EDITING_WLC:
+        bot_id = EDITING_WLC.pop(user_id)
+        wlc_text = message.text
 
+        # Update in DB
+        await db.update_clone(bot_id, {"wlc": wlc_text})
+
+        # Delete user message to keep chat clean
+        try:
             await message.delete()
-            await show_message_menu(message, bot_id)
+        except:
+            pass
 
-    except Exception as e:
-        await client.send_message(LOG_CHANNEL, f"⚠️ Capture Message Error:\n\n<code>{e}</code>\n\nKindly check this message for assistance.")
-
-async def wait_for_clone_message(user_id, bot_id, message):
-    try:
-        WAITING_FOR_CLONE_MSG[user_id] = bot_id
-        await asyncio.sleep(120)
-        if user_id in WAITING_FOR_CLONE_MSG and WAITING_FOR_CLONE_MSG[user_id] == bot_id:
-            WAITING_FOR_CLONE_MSG.pop(user_id, None)
-            await show_message_menu(message, bot_id)
-    except Exception as e:
-        await message.client.send_message(LOG_CHANNEL, f"⚠️ Capture Message Error:\n\n<code>{e}</code>\n\nKindly check this message for assistance.")
+        # Show updated message menu
+        await show_message_menu(message, bot_id)
 
 @Client.on_message(filters.photo & filters.user(ADMINS))
 async def capture_photo(client: Client, message: Message):
