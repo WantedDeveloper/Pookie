@@ -613,66 +613,6 @@ async def cb_handler(client: Client, query: CallbackQuery):
         # Optionally notify user
         await query.answer("❌ An error occurred. The admin has been notified.", show_alert=True)
 
-@Client.on_message()
-async def token_handler(client, message):
-    user_id = message.from_user.id
-
-    # check if user is in waiting mode
-    if user_id not in WAITING_FOR_TOKEN:
-        return  
-
-    msg = WAITING_FOR_TOKEN[user_id]
-
-    # 🗑 delete user message to keep chat clean
-    try:
-        await message.delete()
-    except:
-        pass
-
-    # ✅ ensure it is forwarded from BotFather
-    if not (message.forward_from and message.forward_from.id == 93372553):
-        await msg.edit_text("❌ Please forward the BotFather message containing your bot token.")
-        await asyncio.sleep(2)
-        await show_clone_menu(client, msg, user_id)
-        WAITING_FOR_TOKEN.pop(user_id, None)
-        return
-
-    # ✅ extract token
-    try:
-        token = re.findall(r"\b(\d+:[A-Za-z0-9_-]+)\b", message.text or "")[0]
-    except IndexError:
-        await msg.edit_text("❌ Could not detect bot token. Please forward the correct BotFather message.")
-        await asyncio.sleep(2)
-        await show_clone_menu(client, msg, user_id)
-        WAITING_FOR_TOKEN.pop(user_id, None)
-        return
-
-    # ✅ proceed with bot creation
-    await msg.edit_text("👨‍💻 Creating your bot, please wait...")
-
-    try:
-        xd = Client(
-            f"{token}", API_ID, API_HASH,
-            bot_token=token,
-            plugins={"root": "clone_plugins"}
-        )
-        await xd.start()
-        bot = await xd.get_me()
-        await db.add_clone_bot(bot.id, user_id, bot.first_name, bot.username, token)
-        await xd.stop()
-
-        await msg.edit_text(f"✅ Successfully cloned your bot: @{bot.username}")
-        await asyncio.sleep(2)
-        await show_clone_menu(client, msg, user_id)
-
-    except Exception as e:
-        await client.send_message(LOG_CHANNEL, f"⚠️ Create Bot Error:\n\n<code>{e}</code>\n\nKindly check this message for assistance.")
-        await msg.edit_text(f"❌ Failed to create bot: {e}")
-        await asyncio.sleep(2)
-        await show_clone_menu(client, msg, user_id)
-
-    finally:
-        WAITING_FOR_TOKEN.pop(user_id, None)
 
 @Client.on_message(filters.text)
 async def wlc_handler(client, message: Message):
@@ -709,6 +649,7 @@ async def wlc_handler(client, message: Message):
 
     finally:
         WAITING_FOR_WLC.pop(user_id, None)
+
 
 @Client.on_message(filters.photo & filters.user(ADMINS))
 async def capture_photo(client: Client, message: Message):
