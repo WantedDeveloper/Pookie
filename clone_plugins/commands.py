@@ -2,19 +2,19 @@ import os
 import logging
 import random
 import asyncio
-from Script import script
-from validators import domain
-from clone_plugins.dbusers import clonedb
-from clone_plugins.users_api import get_user, update_user_info
-from pyrogram import Client, filters, enums
-from plugins.clone import mongo_db
-from pyrogram.errors import ChatAdminRequired, FloodWait
-from config import BOT_USERNAME, ADMINS
-from pyrogram.types import InlineKeyboardButton, InlineKeyboardMarkup, Message, CallbackQuery, InputMediaPhoto
-from config import PICS, CUSTOM_FILE_CAPTION, AUTO_DELETE_TIME, AUTO_DELETE
 import re
 import json
 import base64
+from validators import domain
+from pyrogram import Client, filters, enums
+from pyrogram.errors import ChatAdminRequired, FloodWait
+from pyrogram.types import InlineKeyboardButton, InlineKeyboardMarkup, Message, CallbackQuery, InputMediaPhoto
+from Script import script
+from plugins.dbusers import db
+from clone_plugins.dbusers import clonedb
+from clone_plugins.users_api import get_user, update_user_info
+from config import BOT_USERNAME, ADMINS
+from config import PICS, CUSTOM_FILE_CAPTION, AUTO_DELETE_TIME, AUTO_DELETE
 
 logger = logging.getLogger(__name__)
 
@@ -173,7 +173,7 @@ async def cb_handler(client: Client, query: CallbackQuery):
             query.message.id, 
             InputMediaPhoto(random.choice(PICS))
         )
-        owner = mongo_db.bots.find_one({'bot_id': me.id})
+        owner = await db.get_bot(me.id)
         ownerid = int(owner['user_id'])
         reply_markup = InlineKeyboardMarkup(buttons)
         await query.message.edit_text(

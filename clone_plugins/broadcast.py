@@ -1,13 +1,13 @@
 import datetime, time, asyncio
 from pyrogram import Client, filters
-from plugins.clone import mongo_db
 from pyrogram.errors import *
+from plugins.dbusers import db
 from clone_plugins.dbusers import clonedb
         
 @Client.on_message(filters.command("broadcast"))
 async def pm_broadcast(bot, message):
     me = await bot.get_me()
-    owner = mongo_db.bots.find_one({'bot_id': me.id})
+    owner = await db.get_bot(me.id)
     ownerid = int(owner['user_id'])
     if ownerid != message.from_user.id:
         await message.reply_text("ᴏɴʟʏ ᴏᴡɴᴇʀ ᴄᴏᴍᴍᴀɴᴅ❗")

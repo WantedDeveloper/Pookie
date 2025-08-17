@@ -1,9 +1,9 @@
 import re
+import base64
 from pyrogram import filters, Client, enums
 from clone_plugins.users_api import get_user, get_short_link
-import base64
 
-@Client.on_message(filters.command(['link']))
+@Client.on_message(filters.command(['genlink']))
 async def gen_link_s(client: Client, message):
     replied = message.reply_to_message
     if not replied:
