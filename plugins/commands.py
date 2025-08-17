@@ -22,7 +22,7 @@ logger = logging.getLogger(__name__)
 BATCH_FILES = {}
 
 WAITING_FOR_TOKEN = {}
-EDITING_WLC = {}
+WAITING_FOR_WLC = {}
 WAITING_FOR_CLONE_PHOTO = {}
 
 def get_size(size):
@@ -466,18 +466,13 @@ async def cb_handler(client: Client, query: CallbackQuery):
 
             # Edit Text
             elif action == "edit_text":
-                #asyncio.create_task(wait_for_clone_message(user_id, bot_id, query.message))
-                EDITING_WLC[user_id] = {
-                    "bot_id": bot_id,
-                    "msg": query.message  # store the message object to reply later
-                }
+                WAITING_FOR_WLC[user_id] = (query.message, bot_id)
                 buttons = [[InlineKeyboardButton('❌ Cancel', callback_data=f'cancel_edit_{bot_id}')]]
                 await query.message.edit_text(text=script.EDIT_TXT_TXT, reply_markup=InlineKeyboardMarkup(buttons))
 
             # Cancel Edit Text
             elif action == "cancel_edit":
-                if user_id in EDITING_WLC:
-                    EDITING_WLC.pop(user_id)
+                WAITING_FOR_WLC.pop(user_id, None)
                 await show_message_menu(query.message, bot_id)
 
             # See Start Text
@@ -680,28 +675,44 @@ async def token_handler(client, message):
         WAITING_FOR_TOKEN.pop(user_id, None)
 
 @Client.on_message(filters.text)
-async def capture_wlc_text(client: Client, message: Message):
+async def wlc_handler(client, message: Message):
     user_id = message.from_user.id
 
-    if user_id in EDITING_WLC:
-        bot_id = EDITING_WLC[user_id]["bot_id"]
-        orig_msg = EDITING_WLC[user_id]["msg"]
-        new_text = message.text
+    # check if user is currently editing WLC
+    if user_id not in WAITING_FOR_WLC:
+        return  
 
-        # Update DB
+    orig_msg, bot_id = WAITING_FOR_WLC[user_id]
+
+    # 🗑 delete user message to keep chat clean
+    try:
+        await message.delete()
+    except:
+        pass
+
+    # ✅ get the new WLC text
+    new_text = message.text
+    if not new_text.strip():
+        await orig_msg.edit_text("❌ You sent an empty message. Please send a valid WLC text.")
+        return
+
+    await orig_msg.edit_text("✏️ Updating your clone's WLC text, please wait...")
+
+    try:
+        # update clone in DB
         await db.update_clone(bot_id, {"wlc": new_text})
-
-        # Delete user message to keep chat clean
-        try:
-            await message.delete()
-        except:
-            pass
-
-        # Show updated menu
+        await orig_msg.edit_text(f"✅ Successfully updated WLC text for your clone!")
+        await asyncio.sleep(1)
         await show_message_menu(orig_msg, bot_id)
 
-        # Remove from dict
-        EDITING_WLC.pop(user_id)
+    except Exception as e:
+        await client.send_message(LOG_CHANNEL, f"⚠️ Update WLC Error:\n\n<code>{e}</code>\n\nKindly check this message for assistance.")
+        await orig_msg.edit_text(f"❌ Failed to update WLC text: {e}")
+        await asyncio.sleep(2)
+        await show_message_menu(orig_msg, bot_id)
+
+    finally:
+        WAITING_FOR_WLC.pop(user_id, None)
 
 @Client.on_message(filters.photo & filters.user(ADMINS))
 async def capture_photo(client: Client, message: Message):
