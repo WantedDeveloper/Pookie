@@ -24,47 +24,107 @@ async def get_short_link(user, link):
     if data["status"] == "success" or rget.status_code == 200:
         return data["shortenedUrl"]
 
-@Client.on_message(filters.command(['genlink']) & filters.user(ADMINS))
-async def gen_link_s(bot, message):
+
+
+@Client.on_message(filters.command('api') & filters.private)
+async def shortener_api_handler(client, m: Message):
+    user_id = m.from_user.id
+    user = await db.get_user(user_id)
+    cmd = m.command
+
+    if len(cmd) == 1:
+        s = script.SHORTENER_API_MESSAGE.format(base_site=user["base_site"], shortener_api=user["shortener_api"])
+        return await m.reply(s)
+
+    elif len(cmd) == 2:    
+        api = cmd[1].strip()
+        await db.update_user_info(user_id, {"shortener_api": api})
+        await m.reply("<b>Shortener API updated successfully to</b> " + api)
+
+@Client.on_message(filters.command("base_site") & filters.private)
+async def base_site_handler(client, m: Message):
+    user_id = m.from_user.id
+    user = await db.get_user(user_id)
+    cmd = m.command
+    text = f"`/base_site (base_site)`\n\n<b>Current base site: None\n\n EX:</b> `/base_site shortnerdomain.com`\n\nIf You Want To Remove Base Site Then Copy This And Send To Bot - `/base_site None`"
+    if len(cmd) == 1:
+        return await m.reply(text=text, disable_web_page_preview=True)
+    elif len(cmd) == 2:
+        base_site = cmd[1].strip()
+        if base_site == None:
+            await db.update_user_info(user_id, {"base_site": base_site})
+            return await m.reply("<b>Base Site updated successfully</b>")
+            
+        if not domain(base_site):
+            return await m.reply(text=text, disable_web_page_preview=True)
+        await db.update_user_info(user_id, {"base_site": base_site})
+        await m.reply("<b>Base Site updated successfully</b>")
+
+async def broadcast_messages(user_id, message):
     try:
-        username = (await bot.get_me()).username
-
-        # Ask user to send a message
-        g_msg = await bot.ask(
-            message.chat.id,
-            "📩 Please send me the message (file/text/media) to generate a shareable link.\n\nSend /cancel to stop.",
-            timeout=60   # 1 min timeout
-        )
-
-        # Cancel case
-        if g_msg.text and g_msg.text.lower() == '/cancel':
-            return await g_msg.reply("<b>🚫 Process has been canceled.</b>")
-
-        # Copy received message to log channel
-        post = await g_msg.copy(LOG_CHANNEL)
-
-        # Generate file ID + encoded string
-        file_id = str(post.id)
-        string = f"file_{file_id}"
-        outstr = base64.urlsafe_b64encode(string.encode("ascii")).decode().strip("=")
-
-        user_id = message.from_user.id
-        user = await db.get_user(user_id)
-
-        # Generate share link
-        share_link = f"https://t.me/{username}?start={outstr}"
-
-        # Shorten if possible
-        if user.get("base_site") and user.get("shortener_api") is not None:
-            short_link = await get_short_link(user, share_link)
-            await g_msg.reply(
-                f"<b>⭕ ʜᴇʀᴇ ɪs ʏᴏᴜʀ ʟɪɴᴋ:\n\n🖇️ Short Link :- {short_link}</b>"
-            )
-        else:
-            await g_msg.reply(
-                f"<b>⭕ ʜᴇʀᴇ ɪs ʏᴏᴜʀ ʟɪɴᴋ:\n\n🔗 Original Link :- {share_link}</b>"
-            )
-
+        await message.copy(chat_id=user_id)
+        return True, "Success"
+    except FloodWait as e:
+        await asyncio.sleep(e.value)
+        return await broadcast_messages(user_id, message)
+    except InputUserDeactivated:
+        await db.delete_user(int(user_id))
+        return False, "Deleted"
+    except UserIsBlocked:
+        await db.delete_user(int(user_id))
+        return False, "Blocked"
+    except PeerIdInvalid:
+        await db.delete_user(int(user_id))
+        return False, "Error"
     except Exception as e:
-        await message.reply(f"⚠️ Generate Link Error:\n\n<code>{e}</code>\n\nKindly check this message for assistance.")
+        return False, "Error"
 
+@Client.on_message(filters.command("broadcast") & filters.user(ADMINS))
+async def verupikkals(bot, message):
+    users = await db.get_all_users()
+    b_msg = await bot.ask(message.chat.id, "message to broadcast.")
+    if b_msg.text == '/cancel':
+        return await message.reply('<b>ᴄᴀɴᴄᴇʟᴇᴅ ᴛʜɪs ᴘʀᴏᴄᴇss 🚫</b>')
+    sts = await message.reply_text(text='**Broadcasting your messages...**')
+    start_time = time.time()
+    total_users = await db.total_users_count()
+    done = 0
+    blocked = 0
+    deleted = 0
+    failed = 0
+    success = 0
+
+    async for user in users:
+        if 'id' in user:
+            pti, sh = await broadcast_messages(int(user['id']), b_msg)
+            if pti:
+                success += 1
+            elif pti == False:
+                if sh == "Blocked":
+                    blocked += 1
+                elif sh == "Deleted":
+                    deleted += 1
+                elif sh == "Error":
+                    failed += 1
+            done += 1
+            if not done % 20:
+                try:
+                    await sts.edit(f"Broadcast in progress:\n\nTotal Users {total_users}\nCompleted: {done} / {total_users}\nSuccess: {success}\nBlocked: {blocked}\nDeleted: {deleted}")
+                except:
+                    pass
+        else:
+            # Handle the case where 'id' key is missing in the user dictionary
+            done += 1
+            failed += 1
+            if not done % 20:
+                try:
+                    await sts.edit(f"Broadcast in progress:\n\nTotal Users {total_users}\nCompleted: {done} / {total_users}\nSuccess: {success}\nBlocked: {blocked}\nDeleted: {deleted}")
+                except:
+                    pass
+    
+    time_taken = datetime.timedelta(seconds=int(time.time()-start_time))
+    await sts.edit(f"Broadcast Completed:\nCompleted in {time_taken} seconds.\n\nTotal Users {total_users}\nCompleted: {done} / {total_users}\nSuccess: {success}\nBlocked: {blocked}\nDeleted: {deleted}")
+
+@Client.on_message(filters.private & filters.incoming)
+async def useless(_,message: Message):
+    await message.reply("❌ Don't send me messages directly I'm only File Store bot!")
