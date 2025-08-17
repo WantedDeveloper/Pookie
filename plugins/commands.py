@@ -705,12 +705,18 @@ async def message_capture(client, message: Message):
         bot_id = WAITING_FOR_CLONE_PHOTO[user_id]
         orig_msg = WAITING_FOR_CLONE_PHOTO_MSG[user_id]
 
+        try:
+            await message.delete()
+        except:
+            pass
+
         if not message.photo:
             await orig_msg.edit_text("❌ Please send a valid photo for your clone.")
             return
 
         await orig_msg.edit_text("📸 Updating your clone's photo, please wait...")
         try:
+            os.makedirs("photos", exist_ok=True)  # ensure folder exists
             file_path = await message.download(f"photos/{bot_id}.jpg")
             await db.update_clone(bot_id, {"pics": file_path})
             await orig_msg.edit_text("✅ Successfully updated the start photo!")
