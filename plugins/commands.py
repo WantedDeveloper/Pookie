@@ -469,7 +469,7 @@ async def cb_handler(client: Client, query: CallbackQuery):
                 #asyncio.create_task(wait_for_clone_message(user_id, bot_id, query.message))
                 EDITING_WLC[user_id] = {
                     "bot_id": bot_id,
-                    "message": query.message  # store the message object to reply later
+                    "msg": query.message  # store the message object to reply later
                 }
                 buttons = [[InlineKeyboardButton('❌ Cancel', callback_data=f'cancel_edit_{bot_id}')]]
                 await query.message.edit_text(text=script.EDIT_TXT_TXT, reply_markup=InlineKeyboardMarkup(buttons))
@@ -679,19 +679,17 @@ async def token_handler(client, message):
     finally:
         WAITING_FOR_TOKEN.pop(user_id, None)
 
-@Client.on_message(filters.text & filters.user(ADMINS))
+@Client.on_message(filters.text)
 async def capture_wlc_text(client: Client, message: Message):
     user_id = message.from_user.id
 
     if user_id in EDITING_WLC:
-        data = EDITING_WLC.pop(user_id)
-        bot_id = data["bot_id"]
-        orig_msg = data["message"]
+        bot_id = EDITING_WLC[user_id]["bot_id"]
+        orig_msg = EDITING_WLC[user_id]["msg"]
+        new_text = message.text
 
-        wlc_text = message.text
-
-        # Update in DB
-        await db.update_clone(bot_id, {"wlc": wlc_text})
+        # Update DB
+        await db.update_clone(bot_id, {"wlc": new_text})
 
         # Delete user message to keep chat clean
         try:
@@ -699,8 +697,11 @@ async def capture_wlc_text(client: Client, message: Message):
         except:
             pass
 
-        # Show updated message menu using the stored message object
+        # Show updated menu
         await show_message_menu(orig_msg, bot_id)
+
+        # Remove from dict
+        EDITING_WLC.pop(user_id)
 
 @Client.on_message(filters.photo & filters.user(ADMINS))
 async def capture_photo(client: Client, message: Message):
