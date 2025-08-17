@@ -78,7 +78,7 @@ async def start(client, message):
             )
 
     except Exception as e:
-        await client.send_message(LOG_CHANNEL, f"⚠️ Bot Error:\n\n<code>{e}</code>\n\nKindly Check this message to get assistance.")
+        await client.send_message(LOG_CHANNEL, f"⚠️ Bot Error:\n\n<code>{e}</code>\n\nKindly check this message to get assistance.")
 
     data = message.command[1]
     try:
@@ -338,7 +338,7 @@ async def show_clone_menu(client, message, user_id):
         )
 
     except Exception as e:
-        await client.send_message(LOG_CHANNEL, f"⚠️ Clone Menu Error:\n\n<code>{e}</code>\n\nKindly Check this message to get assistance.")
+        await client.send_message(LOG_CHANNEL, f"⚠️ Clone Menu Error:\n\n<code>{e}</code>\n\nKindly check this message to get assistance.")
 
 async def show_message_menu(msg, bot_id):
     try:
@@ -350,7 +350,7 @@ async def show_message_menu(msg, bot_id):
         ]
         await msg.edit_text(text=script.ST_TXT_TXT, reply_markup=InlineKeyboardMarkup(buttons))
     except Exception as e:
-        await client.send_message(LOG_CHANNEL, f"⚠️ Message Menu Error:\n\n<code>{e}</code>\n\nKindly Check this message to get assistance.")
+        await client.send_message(LOG_CHANNEL, f"⚠️ Message Menu Error:\n\n<code>{e}</code>\n\nKindly check this message to get assistance.")
 
 async def show_photo_menu(msg, bot_id):
     try:
@@ -361,7 +361,7 @@ async def show_photo_menu(msg, bot_id):
         ]
         await msg.edit_text(text=script.ST_PIC_TXT, reply_markup=InlineKeyboardMarkup(buttons))
     except Exception as e:
-        await client.send_message(LOG_CHANNEL, f"⚠️ Photo Menu Error:\n\n<code>{e}</code>\n\nKindly Check this message to get assistance.")
+        await client.send_message(LOG_CHANNEL, f"⚠️ Photo Menu Error:\n\n<code>{e}</code>\n\nKindly check this message to get assistance.")
 
 @Client.on_callback_query()
 async def cb_handler(client: Client, query: CallbackQuery):
@@ -599,7 +599,7 @@ async def cb_handler(client: Client, query: CallbackQuery):
         else:
             await client.send_message(
                 LOG_CHANNEL,
-                f"⚠️ Unknown Action Error:\n\n<code>{e}</code>\n\nCheck this message for assistance."
+                f"⚠️ Unknown Action Error:\n\n<code>{e}</code>\n\nKindly check this message for assistance."
             )
             await query.answer("⚠️ Unknown action.", show_alert=True)
 
@@ -607,7 +607,7 @@ async def cb_handler(client: Client, query: CallbackQuery):
         # Send error to log channel
         await client.send_message(
             LOG_CHANNEL,
-            f"⚠️ Callback Handler Error:\n\n<code>{e}</code>\n\nCheck this message for assistance."
+            f"⚠️ Callback Handler Error:\n\n<code>{e}</code>\n\nKindly check this message for assistance."
         )
         # Optionally notify user
         await query.answer("❌ An error occurred. The admin has been notified.", show_alert=True)
@@ -665,7 +665,7 @@ async def token_handler(client, message):
         await show_clone_menu(client, msg, user_id)
 
     except Exception as e:
-        await client.send_message(LOG_CHANNEL, f"⚠️ Create Bot Error:\n\n<code>{e}</code>")
+        await client.send_message(LOG_CHANNEL, f"⚠️ Create Bot Error:\n\n<code>{e}</code>\n\nKindly check this message for assistance.")
         await msg.edit_text(f"❌ Failed to create bot: {e}")
         await asyncio.sleep(2)
         await show_clone_menu(client, msg, user_id)
@@ -688,14 +688,17 @@ async def capture_message(client: Client, message: Message):
             await show_message_menu(message, bot_id)
 
     except Exception as e:
-        await client.send_message(LOG_CHANNEL, f"⚠️ Capture Message Error:\n\n<code>{e}</code>")
+        await client.send_message(LOG_CHANNEL, f"⚠️ Capture Message Error:\n\n<code>{e}</code>\n\nKindly check this message for assistance.")
 
 async def wait_for_clone_message(user_id, bot_id):
-    WAITING_FOR_CLONE_MSG[user_id] = bot_id
-    await asyncio.sleep(120)
-    if user_id in WAITING_FOR_CLONE_MSG and WAITING_FOR_CLONE_MSG[user_id] == bot_id:
-        WAITING_FOR_CLONE_MSG.pop(user_id, None)
-        await show_message_menu(message, bot_id)
+    try:
+        WAITING_FOR_CLONE_MSG[user_id] = bot_id
+        await asyncio.sleep(120)
+        if user_id in WAITING_FOR_CLONE_MSG and WAITING_FOR_CLONE_MSG[user_id] == bot_id:
+            WAITING_FOR_CLONE_MSG.pop(user_id, None)
+            await show_message_menu(message, bot_id)
+    except Exception as e:
+        await client.send_message(LOG_CHANNEL, f"⚠️ Capture Message Error:\n\n<code>{e}</code>\n\nKindly check this message for assistance.")
 
 @Client.on_message(filters.photo & filters.user(ADMINS))
 async def capture_photo(client: Client, message: Message):
@@ -712,11 +715,14 @@ async def capture_photo(client: Client, message: Message):
             await show_photo_menu(message, bot_id)
 
     except Exception as e:
-        await client.send_message(LOG_CHANNEL, f"⚠️ Capture Photo Error:\n\n<code>{e}</code>")
+        await client.send_message(LOG_CHANNEL, f"⚠️ Capture Photo Error:\n\n<code>{e}</code>\n\nKindly check this message for assistance.")
 
 async def wait_for_clone_photo(user_id, bot_id):
-    WAITING_FOR_CLONE_PHOTO[user_id] = bot_id
-    await asyncio.sleep(120)
-    if user_id in WAITING_FOR_CLONE_PHOTO and WAITING_FOR_CLONE_PHOTO[user_id] == bot_id:
-        WAITING_FOR_CLONE_PHOTO.pop(user_id, None)
-        await show_photo_menu(message, bot_id)
+    try:
+        WAITING_FOR_CLONE_PHOTO[user_id] = bot_id
+        await asyncio.sleep(120)
+        if user_id in WAITING_FOR_CLONE_PHOTO and WAITING_FOR_CLONE_PHOTO[user_id] == bot_id:
+            WAITING_FOR_CLONE_PHOTO.pop(user_id, None)
+            await show_photo_menu(message, bot_id)
+    except Exception as e:
+        await client.send_message(LOG_CHANNEL, f"⚠️ Capture Message Error:\n\n<code>{e}</code>\n\nKindly check this message for assistance.")
