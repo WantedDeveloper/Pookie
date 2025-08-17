@@ -24,7 +24,7 @@ from TechVJ.server import web_server
 
 import asyncio
 from pyrogram import idle
-from plugins.commands import restart_bots
+from plugins.buttons import restart_bots
 from TechVJ.bot import StreamBot
 from TechVJ.utils.keepalive import ping_server
 from TechVJ.bot.clients import initialize_clients
