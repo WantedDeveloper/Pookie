@@ -57,7 +57,7 @@ Then i am try to create a clone bot of me for u only 😌"""
 
     CUSTOMIZEC_TXT = """<u>✨ CUSTOMIZE CLONE</u>
 
-🖍️ Name: {}
+🖍️ Username: {}
 
 If you want to modify your clone bot then do it from here."""
 
