@@ -685,7 +685,7 @@ async def restart_bots():
     bots_cursor = await db.get_all_bots()
     bots = await bots_cursor.to_list(None)
     for bot in bots:
-        bot_token = bot['bot_token']
+        bot_token = bot['token']
         try:
             xd = Client(
                 f"{bot_token}", API_ID, API_HASH,
