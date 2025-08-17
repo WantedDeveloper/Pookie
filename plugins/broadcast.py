@@ -121,10 +121,10 @@ async def verupikkals(bot, message):
         await sts.edit(final_text)
 
         # Log summary to LOG_CHANNEL for all admins
-        try:
+        #try:
             #await bot.send_message(LOG_CHANNEL, f"📢 **Broadcast Summary**\n\n{final_text}")
-        except:
-            pass
+        #except:
+            #pass
 
     except Exception as e:
         await bot.send_message(LOG_CHANNEL, f"⚠️ Broadcast Error:\n\n<code>{e}</code>\n\nKindly check this message for assistance.")
