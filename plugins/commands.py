@@ -466,7 +466,7 @@ async def cb_handler(client: Client, query: CallbackQuery):
 
             # Edit Text
             elif action == "edit_text":
-                WAITING_FOR_WLC[user_id] = (query.message, bot_id)
+                WAITING_FOR_WLC[user_id] = (query.message.chat.id, query.message.message_id, bot_id)
                 buttons = [[InlineKeyboardButton('❌ Cancel', callback_data=f'cancel_edit_{bot_id}')]]
                 await query.message.edit_text(text=script.EDIT_TXT_TXT, reply_markup=InlineKeyboardMarkup(buttons))
 
@@ -680,9 +680,12 @@ async def wlc_handler(client, message: Message):
 
     # check if user is currently editing WLC
     if user_id not in WAITING_FOR_WLC:
-        return  
+        return
 
-    orig_msg, bot_id = WAITING_FOR_WLC[user_id]
+    chat_id, msg_id, bot_id = WAITING_FOR_WLC[user_id]
+
+    # fetch the original message safely
+    orig_msg = await client.get_messages(chat_id, msg_id)
 
     # 🗑 delete user message to keep chat clean
     try:
@@ -690,9 +693,8 @@ async def wlc_handler(client, message: Message):
     except:
         pass
 
-    # ✅ get the new WLC text
-    new_text = message.text
-    if not new_text.strip():
+    new_text = message.text.strip()
+    if not new_text:
         await orig_msg.edit_text("❌ You sent an empty message. Please send a valid WLC text.")
         return
 
@@ -706,7 +708,7 @@ async def wlc_handler(client, message: Message):
         await show_message_menu(orig_msg, bot_id)
 
     except Exception as e:
-        await client.send_message(LOG_CHANNEL, f"⚠️ Update WLC Error:\n\n<code>{e}</code>\n\nKindly check this message for assistance.")
+        await client.send_message(LOG_CHANNEL, f"⚠️ Update WLC Error:\n\n<code>{e}</code>")
         await orig_msg.edit_text(f"❌ Failed to update WLC text: {e}")
         await asyncio.sleep(2)
         await show_message_menu(orig_msg, bot_id)
