@@ -616,7 +616,7 @@ async def cb_handler(client: Client, query: CallbackQuery):
         await query.answer("❌ An error occurred. The admin has been notified.", show_alert=True)
 
 @Client.on_message(filters.text | filters.photo)
-async def message_capture(client, message: Message):
+async def message_capture(client: Client, message: Message):
     user_id = message.from_user.id
 
     # Token Capture
@@ -683,6 +683,9 @@ async def message_capture(client, message: Message):
         new_text = message.text.strip() if message.text else ""
         if not new_text:
             await orig_msg.edit_text("❌ You sent an empty message. Please send a valid start text.")
+            await asyncio.sleep(2)
+            await show_photo_menu(message, bot_id)
+            WAITING_FOR_WLC.pop(user_id, None)
             return
 
         await orig_msg.edit_text("✏️ Updating your clone's start text, please wait...")
@@ -712,6 +715,10 @@ async def message_capture(client, message: Message):
 
         if not message.photo:
             await orig_msg.edit_text("❌ Please send a valid photo for your clone.")
+            await asyncio.sleep(2)
+            await show_photo_menu(message, bot_id)
+            WAITING_FOR_CLONE_PHOTO.pop(user_id, None)
+            WAITING_FOR_CLONE_PHOTO_MSG.pop(user_id, None)
             return
 
         await orig_msg.edit_text("📸 Updating your clone's photo, please wait...")
