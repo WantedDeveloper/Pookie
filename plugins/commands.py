@@ -466,7 +466,7 @@ async def cb_handler(client: Client, query: CallbackQuery):
 
             # Edit Text
             elif action == "edit_text":
-                WAITING_FOR_WLC[user_id] = (query.message.chat.id, query.message.message_id, bot_id)
+                WAITING_FOR_WLC[user_id] = (query.message, bot_id)
                 buttons = [[InlineKeyboardButton('❌ Cancel', callback_data=f'cancel_edit_{bot_id}')]]
                 await query.message.edit_text(text=script.EDIT_TXT_TXT, reply_markup=InlineKeyboardMarkup(buttons))
 
@@ -678,16 +678,11 @@ async def token_handler(client, message):
 async def wlc_handler(client, message: Message):
     user_id = message.from_user.id
 
-    # check if user is currently editing WLC
     if user_id not in WAITING_FOR_WLC:
         return
 
-    chat_id, msg_id, bot_id = WAITING_FOR_WLC[user_id]
+    orig_msg, bot_id = WAITING_FOR_WLC[user_id]
 
-    # fetch the original message safely
-    orig_msg = await client.get_messages(chat_id, msg_id)
-
-    # 🗑 delete user message to keep chat clean
     try:
         await message.delete()
     except:
@@ -701,7 +696,6 @@ async def wlc_handler(client, message: Message):
     await orig_msg.edit_text("✏️ Updating your clone's WLC text, please wait...")
 
     try:
-        # update clone in DB
         await db.update_clone(bot_id, {"wlc": new_text})
         await orig_msg.edit_text(f"✅ Successfully updated WLC text for your clone!")
         await asyncio.sleep(1)
