@@ -3,7 +3,7 @@ from config import DB_NAME, DB_URI
 from Script import script
 
 class Database:
-    
+
     def __init__(self, uri, database_name):
         self._client = motor.motor_asyncio.AsyncIOMotorClient(uri)
         self.db = self._client[database_name]
@@ -16,11 +16,11 @@ class Database:
             id = id,
             name = name,
         )
-    
+
     async def add_user(self, id, name):
         user = self.new_user(id, name)
         await self.col.insert_one(user)
-    
+
     async def is_user_exist(self, id):
         user = await self.col.find_one({'id':int(id)})
         return bool(user)
@@ -28,7 +28,7 @@ class Database:
     async def total_users_count(self):
         count = await self.col.count_documents({})
         return count
-    
+
     async def get_all_users(self):
         return self.col.find({})
 
@@ -59,7 +59,7 @@ class Database:
     async def get_clone(self, user_id):
         clones = await self.bot.find({"user_id": int(user_id)}).to_list(length=100)
         return clones
-    
+
     async def update_clone(self, bot_id, user_data):
         await self.bot.update_one({'bot_id': int(bot_id)}, {'$set': user_data}, upsert=True)
 
@@ -69,5 +69,8 @@ class Database:
 
     async def get_db_size(self):
         return (await self.db.command("dbstats"))['dataSize']
+
+    async def get_all_bots(self):
+        return self.bot.find({})
 
 db = Database(DB_URI, DB_NAME)

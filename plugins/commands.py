@@ -15,7 +15,7 @@ import re
 import json
 import base64
 from urllib.parse import quote_plus
-from TechVJ.utils.file_properties import get_name, get_hash, get_media_file_size
+from Tech.utils.file_properties import get_name, get_hash, get_media_file_size
 
 logger = logging.getLogger(__name__)
 
@@ -294,27 +294,6 @@ async def base_site_handler(client, m: Message):
             return await m.reply(text=text, disable_web_page_preview=True)
         await update_user_info(user_id, {"base_site": base_site})
         await m.reply("<b>Base Site updated successfully</b>")
-
-async def show_clone_menu(client, message, user_id):
-    clones = await db.get_clone(user_id)
-    buttons = []
-
-    if clones:
-        # ✅ show list of clones
-        for clone in clones:
-            bot_name = clone.get("name", f"Clone {clone['bot_id']}")
-            buttons.append([InlineKeyboardButton(f'⚙️ {bot_name}', callback_data=f'manage_{clone["bot_id"]}')])
-    else:
-        # ✅ no clones, show Add Clone button
-        buttons.append([InlineKeyboardButton("➕ Add Clone", callback_data="add_clone")])
-
-    # common back button
-    buttons.append([InlineKeyboardButton('⬅️ Back', callback_data='start')])
-
-    await message.edit_text(
-        script.MANAGEC_TXT,
-        reply_markup=InlineKeyboardMarkup(buttons)
-    )
 
 async def show_clone_menu(client, message, user_id):
     try:
@@ -728,7 +707,7 @@ async def message_capture(client: Client, message: Message):
             await db.update_clone(bot_id, {"pics": file_path})
             await orig_msg.edit_text("✅ Successfully updated the start photo!")
             await asyncio.sleep(2)
-            await show_photo_menu(message, bot_id)
+            await show_photo_menu(orig_msg, bot_id)
         except Exception as e:
             await client.send_message(LOG_CHANNEL, f"⚠️ Update Photo Error:\n\n<code>{e}</code>\n\nKindly check this message for assistance.")
             await orig_msg.edit_text(f"❌ Failed to update start photo: {e}")
@@ -736,3 +715,18 @@ async def message_capture(client: Client, message: Message):
             WAITING_FOR_CLONE_PHOTO.pop(user_id, None)
             WAITING_FOR_CLONE_PHOTO_MSG.pop(user_id, None)
         return
+
+async def restart_bots():
+    bots_cursor = await db.get_all_bots()
+    bots = await bots_cursor.to_list(None)
+    for bot in bots:
+        bot_token = bot['bot_token']
+        try:
+            xd = Client(
+                f"{bot_token}", API_ID, API_HASH,
+                bot_token=bot_token,
+                plugins={"root": "clone_plugins"},
+            )
+            await xd.start()
+        except Exception as e:
+            print(f"Error while restarting bot with token {bot_token}: {e}")
