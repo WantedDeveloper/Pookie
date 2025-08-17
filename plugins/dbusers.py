@@ -1,11 +1,12 @@
 import motor.motor_asyncio
+from motor.motor_asyncio import AsyncIOMotorClient
 from config import DB_NAME, DB_URI
 from Script import script
 
 class Database:
 
     def __init__(self, uri, database_name):
-        self._client = motor.motor_asyncio.AsyncIOMotorClient(uri)
+        self.client = AsyncIOMotorClient(uri)
         self.db = self._client[database_name]
         self.col = self.db.users
         self.bot = self.db.clone_bots
@@ -82,15 +83,15 @@ class Database:
 
     async def get_user(self, user_id):
         user_id = int(user_id)
-        user = self.db.user.find_one({"user_id": user_id})
+        user = await self.db.user.find_one({"user_id": user_id})
         if not user:
             res = {
                 "user_id": user_id,
                 "shortener_api": None,
                 "base_site": None,
             }
-            self.db.user.insert_one(res)
-            user = self.db.user.find_one({"user_id": user_id})
+            await self.db.user.insert_one(res)
+            user = await self.db.user.find_one({"user_id": user_id})
         return user
 
     async def update_user_info(user_id, value:dict):
