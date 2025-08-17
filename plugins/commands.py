@@ -684,7 +684,7 @@ async def message_capture(client: Client, message: Message):
         if not new_text:
             await orig_msg.edit_text("❌ You sent an empty message. Please send a valid start text.")
             await asyncio.sleep(2)
-            await show_photo_menu(message, bot_id)
+            await show_message_menu(orig_msg, bot_id)
             WAITING_FOR_WLC.pop(user_id, None)
             return
 
@@ -716,7 +716,7 @@ async def message_capture(client: Client, message: Message):
         if not message.photo:
             await orig_msg.edit_text("❌ Please send a valid photo for your clone.")
             await asyncio.sleep(2)
-            await show_photo_menu(message, bot_id)
+            await show_photo_menu(orig_msg, bot_id)
             WAITING_FOR_CLONE_PHOTO.pop(user_id, None)
             WAITING_FOR_CLONE_PHOTO_MSG.pop(user_id, None)
             return
