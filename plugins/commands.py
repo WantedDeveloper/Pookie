@@ -466,8 +466,9 @@ async def cb_handler(client: Client, query: CallbackQuery):
 
             # Edit Text
             elif action == "edit_text":
-                asyncio.create_task(wait_for_clone_message(user_id, bot_id, query.message))
-                buttons = [[InlineKeyboardButton('❌ Cancel', callback_data=f'cancel_edit{bot_id}')]]
+                #asyncio.create_task(wait_for_clone_message(user_id, bot_id, query.message))
+                WAITING_FOR_CLONE_MSG[user_id] = bot_id
+                buttons = [[InlineKeyboardButton('❌ Cancel', callback_data=f'cancel_edit_{bot_id}')]]
                 await query.message.edit_text(text=script.EDIT_TXT_TXT, reply_markup=InlineKeyboardMarkup(buttons))
 
             # Cancel Edit Text
@@ -493,7 +494,8 @@ async def cb_handler(client: Client, query: CallbackQuery):
 
             # Add Photo
             elif action == "add_photo":
-                asyncio.create_task(wait_for_clone_photo(user_id, bot_id, query.message))
+                #asyncio.create_task(wait_for_clone_photo(user_id, bot_id, query.message))
+                WAITING_FOR_CLONE_PHOTO[user_id] = bot_id
                 buttons = [[InlineKeyboardButton('❌ Cancel', callback_data=f'cancel_add_{bot_id}')]]
                 await query.message.edit_text(text=script.ADD_PIC_TXT, reply_markup=InlineKeyboardMarkup(buttons))
 
@@ -599,7 +601,7 @@ async def cb_handler(client: Client, query: CallbackQuery):
         else:
             await client.send_message(
                 LOG_CHANNEL,
-                f"⚠️ Unknown callback data received: {query.data}\nUser: {query.from_user.id}\n\nKindly check this message for assistance."
+                f"⚠️ Unknown callback data received:\n\n{query.data}\n\nUser: {query.from_user.id}\n\nKindly check this message for assistance."
             )
             await query.answer("⚠️ Unknown action.", show_alert=True)
 
