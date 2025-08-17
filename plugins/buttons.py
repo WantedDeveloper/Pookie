@@ -8,12 +8,13 @@ import base64
 from validators import domain
 from pyrogram import Client, filters, enums
 from pyrogram.errors import ChatAdminRequired, FloodWait
+from pyrogram.errors.exceptions.bad_request_400 import AccessTokenExpired, AccessTokenInvalid
 from pyrogram.types import *
+from urllib.parse import quote_plus
 from utils import verify_user, check_token, check_verification, get_token
 from Script import script
 from config import *
 from plugins.dbusers import db
-from urllib.parse import quote_plus
 from TechVJ.utils.file_properties import get_name, get_hash, get_media_file_size
 
 logger = logging.getLogger(__name__)
