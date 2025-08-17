@@ -1,12 +1,11 @@
 import motor.motor_asyncio
-from motor.motor_asyncio import AsyncIOMotorClient
 from config import DB_NAME, DB_URI
 from Script import script
 
 class Database:
 
     def __init__(self, uri, database_name):
-        self.client = AsyncIOMotorClient(uri)
+        self._client = motor.motor_asyncio.AsyncIOMotorClient(uri)
         self.db = self._client[database_name]
         self.col = self.db.users
         self.bot = self.db.clone_bots
