@@ -4,6 +4,7 @@ from pyrogram import filters, Client, enums
 from pyrogram.types import Message
 from pyrogram.errors.exceptions.bad_request_400 import ChannelInvalid, UsernameInvalid, UsernameNotModified
 from config import ADMINS, LOG_CHANNEL
+from plugins.dbusers import db
 import re
 import os
 import json
