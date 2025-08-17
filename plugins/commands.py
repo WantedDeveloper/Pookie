@@ -145,8 +145,3 @@ async def gen_link_batch(bot, message):
     else:
         await sts.edit(f"<b>⭕ ʜᴇʀᴇ ɪs ʏᴏᴜʀ ʟɪɴᴋ:\n\nContains `{og_msg}` files.\n\n🔗 ᴏʀɪɢɪɴᴀʟ ʟɪɴᴋ :- {share_link}</b>")
 
-
-
-@Client.on_message(filters.private & filters.incoming)
-async def useless(_,message: Message):
-    await message.reply("❌ Don't send me messages directly I'm only File Store bot!")
