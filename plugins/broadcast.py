@@ -1,7 +1,7 @@
 from pyrogram.errors import InputUserDeactivated, UserNotParticipant, FloodWait, UserIsBlocked, PeerIdInvalid
 from plugins.dbusers import db
 from pyrogram import Client, filters
-from config import ADMINS
+from config import ADMINS, LOG_CHANNEL
 import datetime, time, asyncio
 
 # Broadcast message sender with error handler
@@ -106,7 +106,7 @@ async def verupikkals(bot, message):
 👥 <b>Total Users:</b> {total_users}
 
 📊 <b>Results:</b>
-🟩 <b>Success:</b> {success} ({(success/total_users)*100:.1f}%)
+✅ <b>Success:</b> {success} ({(success/total_users)*100:.1f}%)
 🚫 <b>Blocked:</b> {blocked} ({(blocked/total_users)*100:.1f}%)
 ❌ <b>Deleted:</b> {deleted} ({(deleted/total_users)*100:.1f}%)
 ⚠️ <b>Failed:</b> {failed} ({(failed/total_users)*100:.1f}%)
