@@ -24,6 +24,7 @@ BATCH_FILES = {}
 WAITING_FOR_TOKEN = {}
 WAITING_FOR_WLC = {}
 WAITING_FOR_CLONE_PHOTO = {}
+WAITING_FOR_CLONE_PHOTO_MSG = {}
 
 def get_size(size):
     """Get size in readable format"""
@@ -493,14 +494,15 @@ async def cb_handler(client: Client, query: CallbackQuery):
 
             # Add Photo
             elif action == "add_photo":
-                #asyncio.create_task(wait_for_clone_photo(user_id, bot_id, query.message))
                 WAITING_FOR_CLONE_PHOTO[user_id] = bot_id
+                WAITING_FOR_CLONE_PHOTO_MSG[user_id] = query.message
                 buttons = [[InlineKeyboardButton('❌ Cancel', callback_data=f'cancel_add_{bot_id}')]]
                 await query.message.edit_text(text=script.ADD_PIC_TXT, reply_markup=InlineKeyboardMarkup(buttons))
 
             # Cancel Add Photo
             elif action == "cancel_add":
                 WAITING_FOR_CLONE_PHOTO.pop(user_id, None)
+                WAITING_FOR_CLONE_PHOTO_MSG.pop(user_id, None)
                 await show_photo_menu(query.message, bot_id)
 
             # Delete Photo
@@ -613,67 +615,111 @@ async def cb_handler(client: Client, query: CallbackQuery):
         # Optionally notify user
         await query.answer("❌ An error occurred. The admin has been notified.", show_alert=True)
 
-
-@Client.on_message(filters.text)
-async def wlc_handler(client, message: Message):
+@Client.on_message(filters.text | filters.photo)
+async def message_capture(client, message: Message):
     user_id = message.from_user.id
 
-    if user_id not in WAITING_FOR_WLC:
-        return
+    # Token Capture
+    if user_id in WAITING_FOR_TOKEN:
+        msg = WAITING_FOR_TOKEN[user_id]
 
-    orig_msg, bot_id = WAITING_FOR_WLC[user_id]
-
-    try:
-        await message.delete()
-    except:
-        pass
-
-    new_text = message.text.strip()
-    if not new_text:
-        await orig_msg.edit_text("❌ You sent an empty message. Please send a valid WLC text.")
-        return
-
-    await orig_msg.edit_text("✏️ Updating your clone's WLC text, please wait...")
-
-    try:
-        await db.update_clone(bot_id, {"wlc": new_text})
-        await orig_msg.edit_text(f"✅ Successfully updated WLC text for your clone!")
-        await asyncio.sleep(1)
-        await show_message_menu(orig_msg, bot_id)
-
-    except Exception as e:
-        await client.send_message(LOG_CHANNEL, f"⚠️ Update WLC Error:\n\n<code>{e}</code>")
-        await orig_msg.edit_text(f"❌ Failed to update WLC text: {e}")
-        await asyncio.sleep(2)
-        await show_message_menu(orig_msg, bot_id)
-
-    finally:
-        WAITING_FOR_WLC.pop(user_id, None)
-
-
-@Client.on_message(filters.photo & filters.user(ADMINS))
-async def capture_photo(client: Client, message: Message):
-    try:
-        user_id = message.from_user.id
-
-        # Check if user is currently sending start photo for a clone
-        if user_id in WAITING_FOR_CLONE_PHOTO:
-            bot_id = WAITING_FOR_CLONE_PHOTO.pop(user_id)  # Get the clone ID
-            photo_file_id = message.photo.file_id
-            await db.update_clone(bot_id, {"pics": photo_file_id})
-
+        try:
             await message.delete()
+        except:
+            pass
+
+        # Ensure forwarded from BotFather
+        if not (message.forward_from and message.forward_from.id == 93372553):
+            await msg.edit_text("❌ Please forward the BotFather message containing your bot token.")
+            await asyncio.sleep(2)
+            await show_clone_menu(client, msg, user_id)
+            WAITING_FOR_TOKEN.pop(user_id, None)
+            return
+
+        # Extract token
+        try:
+            token = re.findall(r"\b(\d+:[A-Za-z0-9_-]+)\b", message.text or "")[0]
+        except IndexError:
+            await msg.edit_text("❌ Could not detect bot token. Please forward the correct BotFather message.")
+            await asyncio.sleep(2)
+            await show_clone_menu(client, msg, user_id)
+            WAITING_FOR_TOKEN.pop(user_id, None)
+            return
+
+        # Create bot
+        await msg.edit_text("👨‍💻 Creating your bot, please wait...")
+        try:
+            xd = Client(
+                f"{token}", API_ID, API_HASH,
+                bot_token=token,
+                plugins={"root": "clone_plugins"}
+            )
+            await xd.start()
+            bot = await xd.get_me()
+            await db.add_clone_bot(bot.id, user_id, bot.first_name, bot.username, token)
+            await xd.stop()
+
+            await msg.edit_text(f"✅ Successfully cloned your bot: @{bot.username}")
+            await asyncio.sleep(2)
+            await show_clone_menu(client, msg, user_id)
+        except Exception as e:
+            await client.send_message(LOG_CHANNEL, f"⚠️ Create Bot Error:\n\n<code>{e}</code>\n\nKindly check this message for assistance.")
+            await msg.edit_text(f"❌ Failed to create bot: {e}")
+            await asyncio.sleep(2)
+            await show_clone_menu(client, msg, user_id)
+        finally:
+            WAITING_FOR_TOKEN.pop(user_id, None)
+        return
+
+    # Start Text Handler
+    if user_id in WAITING_FOR_WLC:
+        orig_msg, bot_id = WAITING_FOR_WLC[user_id]
+
+        try:
+            await message.delete()
+        except:
+            pass
+
+        new_text = message.text.strip() if message.text else ""
+        if not new_text:
+            await orig_msg.edit_text("❌ You sent an empty message. Please send a valid start text.")
+            return
+
+        await orig_msg.edit_text("✏️ Updating your clone's start text, please wait...")
+        try:
+            await db.update_clone(bot_id, {"wlc": new_text})
+            await orig_msg.edit_text("✅ Successfully updated start text!")
+            await asyncio.sleep(1)
+            await show_message_menu(orig_msg, bot_id)
+        except Exception as e:
+            await client.send_message(LOG_CHANNEL, f"⚠️ Update Start Text Error:\n\n<code>{e}</code>\n\nKindly check this message for assistance.")
+            await orig_msg.edit_text(f"❌ Failed to update start text: {e}")
+            await asyncio.sleep(2)
+            await show_message_menu(orig_msg, bot_id)
+        finally:
+            WAITING_FOR_WLC.pop(user_id, None)
+        return
+
+    # Start Photo Handler
+    if user_id in WAITING_FOR_CLONE_PHOTO:
+        bot_id = WAITING_FOR_CLONE_PHOTO[user_id]
+        orig_msg = WAITING_FOR_CLONE_PHOTO_MSG[user_id]
+
+        if not message.photo:
+            await orig_msg.edit_text("❌ Please send a valid photo for your clone.")
+            return
+
+        await orig_msg.edit_text("📸 Updating your clone's photo, please wait...")
+        try:
+            file_path = await message.download(f"photos/{bot_id}.jpg")
+            await db.update_clone(bot_id, {"pics": file_path})
+            await orig_msg.edit_text("✅ Successfully updated the start photo!")
+            await asyncio.sleep(2)
             await show_photo_menu(message, bot_id)
-
-    except Exception as e:
-        await client.send_message(LOG_CHANNEL, f"⚠️ Capture Photo Error:\n\n<code>{e}</code>\n\nKindly check this message for assistance.")
-
-async def wait_for_clone_photo(user_id, bot_id, message):
-    try:
-        WAITING_FOR_CLONE_PHOTO[user_id] = bot_id
-        await asyncio.sleep(120)
-        if user_id in WAITING_FOR_CLONE_PHOTO and WAITING_FOR_CLONE_PHOTO[user_id] == bot_id:
+        except Exception as e:
+            await client.send_message(LOG_CHANNEL, f"⚠️ Update Photo Error:\n\n<code>{e}</code>\n\nKindly check this message for assistance.")
+            await orig_msg.edit_text(f"❌ Failed to update start photo: {e}")
+        finally:
             WAITING_FOR_CLONE_PHOTO.pop(user_id, None)
-            await show_photo_menu(message, bot_id)
-    except Exception as e:
-        await message.client.send_message(LOG_CHANNEL, f"⚠️ Capture Message Error:\n\n<code>{e}</code>\n\nKindly check this message for assistance.")
+            WAITING_FOR_CLONE_PHOTO_MSG.pop(user_id, None)
+        return
