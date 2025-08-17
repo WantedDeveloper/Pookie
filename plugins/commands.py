@@ -467,7 +467,10 @@ async def cb_handler(client: Client, query: CallbackQuery):
             # Edit Text
             elif action == "edit_text":
                 #asyncio.create_task(wait_for_clone_message(user_id, bot_id, query.message))
-                EDITING_WLC[user_id] = bot_id
+                EDITING_WLC[user_id] = {
+                    "bot_id": bot_id,
+                    "message": query.message  # store the message object to reply later
+                }
                 buttons = [[InlineKeyboardButton('❌ Cancel', callback_data=f'cancel_edit_{bot_id}')]]
                 await query.message.edit_text(text=script.EDIT_TXT_TXT, reply_markup=InlineKeyboardMarkup(buttons))
 
@@ -680,9 +683,11 @@ async def token_handler(client, message):
 async def capture_wlc_text(client: Client, message: Message):
     user_id = message.from_user.id
 
-    # Check if user is currently editing a clone WLC
     if user_id in EDITING_WLC:
-        bot_id = EDITING_WLC.pop(user_id)
+        data = EDITING_WLC.pop(user_id)
+        bot_id = data["bot_id"]
+        orig_msg = data["message"]
+
         wlc_text = message.text
 
         # Update in DB
@@ -694,8 +699,8 @@ async def capture_wlc_text(client: Client, message: Message):
         except:
             pass
 
-        # Show updated message menu
-        await show_message_menu(message, bot_id)
+        # Show updated message menu using the stored message object
+        await show_message_menu(orig_msg, bot_id)
 
 @Client.on_message(filters.photo & filters.user(ADMINS))
 async def capture_photo(client: Client, message: Message):
