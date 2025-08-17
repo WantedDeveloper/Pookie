@@ -52,6 +52,10 @@ class Database:
         clone = await self.bot.find_one({'user_id': int(user_id)})
         return bool(clone)
 
+    async def get_clone_by_id(self, bot_id):
+        clone = await self.bot.find_one({'bot_id': int(bot_id)})
+        return clone
+
     async def get_clone(self, user_id):
         clones = await self.bot.find({"user_id": int(user_id)}).to_list(length=100)
         return clones
