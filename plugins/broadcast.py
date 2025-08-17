@@ -1,6 +1,7 @@
 from pyrogram.errors import InputUserDeactivated, UserNotParticipant, FloodWait, UserIsBlocked, PeerIdInvalid
 from plugins.dbusers import db
 from pyrogram import Client, filters
+from pyrogram.types import Message
 from config import ADMINS
 import asyncio
 import datetime
