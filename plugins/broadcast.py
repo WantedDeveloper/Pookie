@@ -123,8 +123,10 @@ async def verupikkals(bot, message):
         # Log summary to LOG_CHANNEL for all admins
         try:
             await bot.send_message(LOG_CHANNEL, f"📢 **Broadcast Summary**\n\n{final_report}")
+            await message.reply(LOG_CHANNEL, f"📢 **Broadcast Summary**\n\n{final_report}")
         except:
             pass
 
     except Exception as e:
         await bot.send_message(LOG_CHANNEL, f"⚠️ Broadcast Error:\n\n<code>{e}</code>\n\nKindly check this message for assistance.")
+        await message.reply(LOG_CHANNEL, f"⚠️ Broadcast Error:\n\n<code>{e}</code>\n\nKindly check this message for assistance.")
