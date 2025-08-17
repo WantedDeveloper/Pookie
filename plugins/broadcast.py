@@ -122,7 +122,7 @@ async def verupikkals(bot, message):
 
         # Log summary to LOG_CHANNEL for all admins
         try:
-            await bot.send_message(LOG_CHANNEL, f"📢 **Broadcast Summary**\n\n{final_text}")
+            #await bot.send_message(LOG_CHANNEL, f"📢 **Broadcast Summary**\n\n{final_text}")
         except:
             pass
 
