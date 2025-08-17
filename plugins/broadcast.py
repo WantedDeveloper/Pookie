@@ -6,7 +6,6 @@ import asyncio
 import datetime
 import time
 
-
 async def broadcast_messages(user_id, message):
     try:
         await message.copy(chat_id=user_id)
@@ -26,10 +25,12 @@ async def broadcast_messages(user_id, message):
     except Exception as e:
         return False, "Error"
 
-@Client.on_message(filters.command("broadcast") & filters.user(ADMINS) & filters.reply)
+@Client.on_message(filters.command("broadcast") & filters.user(ADMINS))
 async def verupikkals(bot, message):
     users = await db.get_all_users()
-    b_msg = message.reply_to_message
+    b_msg = await bot.ask(message.chat.id, "message to broadcast.")
+    if b_msg.text == '/cancel':
+        return await message.reply('<b>ᴄᴀɴᴄᴇʟᴇᴅ ᴛʜɪs ᴘʀᴏᴄᴇss 🚫</b>')
     sts = await message.reply_text(text='**Broadcasting your messages...**')
     start_time = time.time()
     total_users = await db.total_users_count()
