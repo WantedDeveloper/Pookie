@@ -467,7 +467,7 @@ async def cb_handler(client: Client, query: CallbackQuery):
             # Edit Text
             elif action == "edit_text":
                 asyncio.create_task(wait_for_clone_message(user_id, bot_id, query.message))
-                buttons = [[InlineKeyboardButton('❌ Cancel', callback_data='cancel_edit')]]
+                buttons = [[InlineKeyboardButton('❌ Cancel', callback_data=f'cancel_edit{bot_id}')]]
                 await query.message.edit_text(text=script.EDIT_TXT_TXT, reply_markup=InlineKeyboardMarkup(buttons))
 
             # Cancel Edit Text
@@ -480,7 +480,6 @@ async def cb_handler(client: Client, query: CallbackQuery):
                 clone = await db.get_clone_by_id(bot_id)
                 start_text = clone.get("wlc", "No text set for this clone.")
                 await query.answer(f"📝 Current Start Message:\n\n{start_text}", show_alert=True)
-
 
             # Default Start Text
             elif action == "default_text":
@@ -495,7 +494,7 @@ async def cb_handler(client: Client, query: CallbackQuery):
             # Add Photo
             elif action == "add_photo":
                 asyncio.create_task(wait_for_clone_photo(user_id, bot_id, query.message))
-                buttons = [[InlineKeyboardButton('❌ Cancel', callback_data='cancel_add')]]
+                buttons = [[InlineKeyboardButton('❌ Cancel', callback_data=f'cancel_add_{bot_id}')]]
                 await query.message.edit_text(text=script.ADD_PIC_TXT, reply_markup=InlineKeyboardMarkup(buttons))
 
             # Cancel Add Photo
@@ -565,14 +564,15 @@ async def cb_handler(client: Client, query: CallbackQuery):
 
             # Restart
             elif action == "restart":
-                await query.message.delete()
-                bot_id = int(bot_id)
-                progress = await query.message.reply_text(f"🔄 Restarting clone bot `{bot_id}`...\n[░░░░░░░░░░] 0%")
+                clone = await db.get_clone_by_id(bot_id)
+                await query.message.edit_text(f"🔄 Restarting clone bot `@{clone['username']}`...\n[░░░░░░░░░░] 0%")
                 for i in range(1, 11):
                     await asyncio.sleep(0.5)
                     bar = '▓' * i + '░' * (10 - i)
-                    await progress.edit_text(f"🔄 Restarting clone bot `{bot_id}`...\n[{bar}] {i*10}%")
-                await progress.edit_text(f"✅ Clone bot `{bot_id}` restarted successfully!")
+                    await query.message.edit_text(f"🔄 Restarting clone bot `@{clone['username']}`...\n[{bar}] {i*10}%")
+                await query.message.edit_text(f"✅ Clone bot `@{clone['username']}` restarted successfully!")
+                await asyncio.sleep(2)
+                await show_clone_menu(client, query.message, user_id)
 
             # Delete Menu
             elif action == "delete":
