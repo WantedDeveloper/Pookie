@@ -1,9 +1,11 @@
-import re, os, json, base64, requests
+import re
 from pyrogram import filters, Client, enums
-from pyrogram.types import Message
 from pyrogram.errors.exceptions.bad_request_400 import ChannelInvalid, UsernameInvalid, UsernameNotModified
-from plugins.dbusers import db
 from config import OWNERS, LOG_CHANNEL
+import re
+import os
+import json
+import base64
 
 async def get_short_link(user, link):
     api_key = user["shortener_api"]

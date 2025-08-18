@@ -1,14 +1,20 @@
-import os, logging, random, asyncio, re, json, base64
+import os
+import logging
+import random
+import asyncio
+import re
+import json
+import base64
 from validators import domain
+from Script import script
+from plugins.dbusers import db
 from pyrogram import Client, filters, enums
 from pyrogram.errors import ChatAdminRequired, FloodWait
 from pyrogram.errors.exceptions.bad_request_400 import AccessTokenExpired, AccessTokenInvalid
 from pyrogram.types import *
-from urllib.parse import quote_plus
-from plugins.dbusers import db
 from utils import verify_user, check_token, check_verification, get_token
-from Script import script
 from config import *
+from urllib.parse import quote_plus
 from TechVJ.utils.file_properties import get_name, get_hash, get_media_file_size
 
 logger = logging.getLogger(__name__)
@@ -35,7 +41,7 @@ def formate_file_name(file_name):
     chars = ["[", "]", "(", ")"]
     for c in chars:
         file_name.replace(c, "")
-    file_name = 'FuckYou ' + ' '.join(filter(lambda x: not x.startswith('http') and not x.startswith('@') and not x.startswith('www.'), file_name.split()))
+    file_name = '@PookieManagerBot ' + ' '.join(filter(lambda x: not x.startswith('http') and not x.startswith('@') and not x.startswith('www.'), file_name.split()))
     return file_name
 
 @Client.on_message(filters.command("start") & filters.incoming)
