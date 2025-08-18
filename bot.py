@@ -26,7 +26,6 @@ import asyncio
 from pyrogram import idle
 from plugins.start import restart_bots
 from TechVJ.bot import StreamBot
-#from TechVJ.utils.keepalive import ping_server
 from TechVJ.bot.clients import initialize_clients
 
 ppath = "plugins/*.py"
@@ -51,8 +50,6 @@ async def start():
             spec.loader.exec_module(load)
             sys.modules["plugins." + plugin_name] = load
             print("✅ Imported => " + plugin_name)
-    #if ON_HEROKU:
-        #asyncio.create_task(ping_server())
     me = await StreamBot.get_me()
     tz = pytz.timezone('Asia/Kolkata')
     today = date.today()
