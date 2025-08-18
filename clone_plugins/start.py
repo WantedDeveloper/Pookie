@@ -34,8 +34,15 @@ async def start(client, message):
     try:
         me = await client.get_me()
 
+        # Check banned users
+        banned = await db.get_banned_users(me.id)
+        if message.from_user.id in banned:
+            return await message.reply_text("🚫 You are banned from using this bot.")
+
+        # Track new users
         if not await clonedb.is_user_exist(me.id, message.from_user.id):
             await clonedb.add_user(me.id, message.from_user.id)
+            await db.increment_users_count(me.id)
 
         if len(message.command) != 2:
             buttons = [[
@@ -47,17 +54,17 @@ async def start(client, message):
                 InlineKeyboardButton('🔒 Close', callback_data='close')
             ]]
 
-            text = None
-            try:
-                text = WLC.format(message.from_user.mention, me.mention)
-            except Exception as e:
-                text = f"👋 Hey {message.from_user.mention}, welcome!"
-                print(f"⚠️ WLC format error: {e}")
-
             if PICS:
-                return await message.reply_photo(photo=PICS, caption=text, reply_markup=InlineKeyboardMarkup(buttons))
+                return await message.reply_photo(
+                    photo=PICS,
+                    caption=WLC.format(user=message.from_user.mention, bot=client.me.mention),
+                    reply_markup=InlineKeyboardMarkup(buttons)
+                )
 
-            return await message.reply_text(text, reply_markup=InlineKeyboardMarkup(buttons))
+            await message.reply_text(
+                WLC.format(user=message.from_user.mention, bot=client.me.mention),
+                reply_markup=InlineKeyboardMarkup(buttons)
+            )
 
     except Exception as e:
         await client.send_message(LOG_CHANNEL, f"⚠️ Clone Start Bot Error:\n\n<code>{e}</code>\n\nKindly check this message to get assistance.")
@@ -80,6 +87,7 @@ async def start(client, message):
         file = getattr(msg, filetype.value)
         title = '@PookieManagerBot  ' + ' '.join(filter(lambda x: not x.startswith('[') and not x.startswith('@'), file.file_name.split()))
         size=get_size(file.file_size)
+        await db.add_storage_used(me.id, file.file_size)
         f_caption = f"<code>{title}</code>"
         if CUSTOM_FILE_CAPTION:
             try:
@@ -105,11 +113,11 @@ async def cb_handler(client: Client, query: CallbackQuery):
             buttons = [
                 [InlineKeyboardButton('💁‍♀️ Help', callback_data='help'),
                  InlineKeyboardButton('ℹ️ About', callback_data='about')],
-                [InlineKeyboardButton('🤖 Create Your Own Clone', url=f'https://t.me/{BOT_USERNAME}?start=clone')],
+                [InlineKeyboardButton('🤖 Create Your Own Clone', url=f'https://t.me/{BOT_USERNAME}')],
                 [InlineKeyboardButton('🔒 Close', callback_data='close')]
             ]
             await query.message.edit_text(
-                text=WLC.format(query.from_user.mention, me.mention),
+                text=WLC.format(user=query.from_user.mention, bot=me.mention),
                 reply_markup=InlineKeyboardMarkup(buttons)
             )
 
@@ -127,7 +135,7 @@ async def cb_handler(client: Client, query: CallbackQuery):
             owner = await db.get_bot(me.id)
             ownerid = int(owner['user_id'])
             await query.message.edit_text(
-                text=script.CABOUT_TXT.format(me.mention, ownerid),
+                text=script.CABOUT_TXT.format(bot=me.mention, developer=ownerid),
                 reply_markup=InlineKeyboardMarkup(buttons)
             )
 
