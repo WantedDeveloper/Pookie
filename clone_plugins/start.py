@@ -109,7 +109,7 @@ async def cb_handler(client: Client, query: CallbackQuery):
                 [InlineKeyboardButton('🔒 Close', callback_data='close')]
             ]
             await query.message.edit_text(
-                text=script.WLC.format(query.from_user.mention, me.mention),
+                text=WLC.format(query.from_user.mention, me.mention),
                 reply_markup=InlineKeyboardMarkup(buttons)
             )
 
