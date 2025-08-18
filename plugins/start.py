@@ -694,21 +694,20 @@ async def message_capture(client: Client, message: Message):
         return
 
 async def restart_bots():
-    bots_cursor = await db.get_all_bots()
-    bots = await bots_cursor.to_list(None)
-    for bot in bots:
-        bot_id = bot['bot_id']
-        bot_token = bot['token']
+    clones = await db.bot.find({}).to_list(length=None)
+    for clone in clones:
+        bot_id = clone["bot_id"]
+        token = clone["token"]
         if bot_id in CLONE_CLIENTS:
             continue
         try:
             xd = Client(
                 f"clone_{bot_id}", API_ID, API_HASH,
-                bot_token=bot_token,
+                bot_token=token,
                 plugins={"root": "clone_plugins"},
             )
             await xd.start()
-            CLONE_CLIENTS[bot_id] = xd   # ✅ store running client
-            print(f"✅ Clone @{bot['username']} started")
+            CLONE_CLIENTS[bot_id] = xd
+            print(f"✅ Clone @{clone['username']} started")
         except Exception as e:
-            print(f"❌ Error starting @{bot['username']}: {e}")
+            print(f"❌ Failed to start @{clone['username']}: {e}")
