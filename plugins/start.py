@@ -606,7 +606,7 @@ async def message_capture(client: Client, message: Message):
         await msg.edit_text("👨‍💻 Creating your bot, please wait...")
         try:
             xd = Client(
-                f"clone_{bot.id}", API_ID, API_HASH,
+                f"clone_{user_id}", API_ID, API_HASH,
                 bot_token=token,
                 plugins={"root": "clone_plugins"}
             )
