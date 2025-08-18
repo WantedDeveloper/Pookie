@@ -47,7 +47,7 @@ class Database:
             'pics': None,
             'users_count': 0,
             'storage_used': 0,
-            'storage_limit': 536870912  # 512 MB default
+            'storage_limit': 536870912,  # 512 MB default
             'banned_users': []
         }
         await self.bot.insert_one(settings)
