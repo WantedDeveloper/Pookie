@@ -1,7 +1,7 @@
 class script(object):
-    START_TXT = """Hello {} 👋 
+    START_TXT = """Hello {user} 👋 
 
-My Name {}
+My Name {bot}
 
 I am a permenant file store bot and users can access stored messages by using a shareable link given by me
 
@@ -21,7 +21,7 @@ I am a permenant file store bot. you can store files from your public channel wi
 
     ABOUT_TXT = """<u>✨ ABOUT ME</u>
 
-🤖 My Name: {}
+🤖 My Name: {bot}
 
 📝 Language: <a href=https://www.python.org>Python3</a>
 
@@ -35,13 +35,13 @@ I am a permenant file store bot. you can store files from your public channel wi
 
     CABOUT_TXT = """<u>✨ ABOUT ME</u>
 
-🤖 My Name: {}
+🤖 My Name: {bot}
 
 📝 Language: <a href=https://www.python.org>Python3</a>
 
 📚 Library: <a href=https://docs.pyrogram.org>Pyrogram</a>
 
-🧑🏻‍💻 Developer: <a href=tg://user?id={}>Developer</a>"""
+🧑🏻‍💻 Developer: <a href=tg://user?id={developer}>Developer</a>"""
 
     MANAGEC_TXT = """<u>✨ MANAGE CLONE</u>
 
@@ -57,7 +57,7 @@ Then i am try to create a clone bot of me for u only 😌"""
 
     CUSTOMIZEC_TXT = """<u>✨ CUSTOMIZE CLONE</u>
 
-🖍️ Username: {}
+🖍️ Username: {username}
 
 If you want to modify your clone bot then do it from here."""
 
@@ -69,9 +69,9 @@ customize your clone start message using the following buttons."""
 
 Personalize your clone start message text to suit your preferences. Use the provided button to edit the start message text of your clone."""
 
-    EDIT_TXT_TXT = """<m>{} : mention user</m>
+    EDIT_TXT_TXT = """{user} : mention user
 
-Eg: <m>Hi {} 👋
+Eg: Hi {user} 👋
 I am a file store bot.</m>
 
 Now send your new start message text."""
@@ -103,12 +103,6 @@ Restrict Clone users from forwarding messages from shareable link."""
     MODERATOR_TXT = """<u>✨ MODERATOR</u>
 
 Moderators have access to all your clone features, include broadcasting."""
-
-    STATUS_TXT = """✨ STATUS
-
-Total Users: {}
-Used Storage: {} mib
-Free Storage: {} mib"""
 
     CAPTION = """<b>📂 ғɪʟᴇɴᴀᴍᴇ : {file_name}
 
