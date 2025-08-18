@@ -54,8 +54,6 @@ async def start(client, message):
             await db.add_user(message.from_user.id, message.from_user.first_name)
             await client.send_message(LOG_CHANNEL, script.LOG_TEXT.format(message.from_user.id, message.from_user.mention))
 
-        #await load_clone_settings(client.me.id)
-
         if len(message.command) != 2:
             buttons = [[
                 InlineKeyboardButton('💁‍♀️ Help', callback_data='help'),

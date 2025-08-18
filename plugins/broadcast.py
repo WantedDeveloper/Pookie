@@ -1,8 +1,8 @@
+import datetime, time, asyncio
+from pyrogram import Client, filters
 from pyrogram.errors import InputUserDeactivated, UserNotParticipant, FloodWait, UserIsBlocked, PeerIdInvalid
 from plugins.dbusers import db
-from pyrogram import Client, filters
-from config import ADMINS, LOG_CHANNEL
-import datetime, time, asyncio
+from config import OWNERS, LOG_CHANNEL
 
 # Broadcast message sender with error handler
 async def broadcast_messages(user_id, message):
@@ -31,7 +31,7 @@ def make_progress_bar(done, total):
     return "🟩" * filled + "⬛" * empty
 
 # Broadcast command
-@Client.on_message(filters.command("broadcast") & filters.user(ADMINS))
+@Client.on_message(filters.command("broadcast") & filters.user(OWNERS))
 async def verupikkals(bot, message):
     try:
         users = await db.get_all_users()

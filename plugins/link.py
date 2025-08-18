@@ -1,16 +1,9 @@
-import re
-from motor.motor_asyncio import AsyncIOMotorClient
+import re, os, json, base64, requests
 from pyrogram import filters, Client, enums
 from pyrogram.types import Message
 from pyrogram.errors.exceptions.bad_request_400 import ChannelInvalid, UsernameInvalid, UsernameNotModified
-from config import ADMINS, LOG_CHANNEL
 from plugins.dbusers import db
-import re
-import os
-import json
-import base64
-import requests
-import json
+from config import OWNERS, LOG_CHANNEL
 
 async def get_short_link(user, link):
     api_key = user["shortener_api"]
@@ -55,7 +48,7 @@ async def base_site_handler(client, m: Message):
         await db.update_user_info(user_id, {"base_site": base_site})
         await m.reply("<b>Base Site updated successfully</b>")
 
-@Client.on_message(filters.command(['genlink']) & filters.user(ADMINS))
+@Client.on_message(filters.command(['genlink']) & filters.user(OWNERS))
 async def gen_link_s(bot, message):
     try:
         username = (await bot.get_me()).username
@@ -89,24 +82,24 @@ async def gen_link_s(bot, message):
         if user.get("base_site") and user.get("shortener_api") is not None:
             short_link = await get_short_link(user, share_link)
             await g_msg.reply(
-                f"<b>⭕ ʜᴇʀᴇ ɪs ʏᴏᴜʀ ʟɪɴᴋ:\n\n🖇️ Short Link :- {short_link}</b>"
+                f"Here is your link:\n\n{short_link}"
             )
         else:
             await g_msg.reply(
-                f"<b>⭕ ʜᴇʀᴇ ɪs ʏᴏᴜʀ ʟɪɴᴋ:\n\n🔗 Original Link :- {share_link}</b>"
+                f"Here is your link:\n\n{share_link}"
             )
 
     except Exception as e:
         await message.reply(f"⚠️ Generate Link Error:\n\n<code>{e}</code>\n\nKindly check this message for assistance.")
 
-@Client.on_message(filters.command(['batch']) & filters.user(ADMINS))
+@Client.on_message(filters.command(['batch']) & filters.user(OWNERS))
 async def gen_link_batch(bot, message):
     username = (await bot.get_me()).username
     if " " not in message.text:
-        return await message.reply("Use correct format.\nExample /batch https://t.me/vj_botz/10 https://t.me/vj_botz/20.")
+        return await message.reply("Use correct format.\nExample /batch https://t.me/example/10 https://t.me/example/20.")
     links = message.text.strip().split(" ")
     if len(links) != 3:
-        return await message.reply("Use correct format.\nExample /batch https://t.me/vj_botz/10 https://t.me/vj_botz/20.")
+        return await message.reply("Use correct format.\nExample /batch https://t.me/example/10 https://t.me/example/20.")
     cmd, first, last = links
     regex = re.compile("(https://)?(t\.me/|telegram\.me/|telegram\.dog/)(c/)?(\d+|[a-zA-Z_0-9]+)/(\d+)$")
     match = regex.match(first)
