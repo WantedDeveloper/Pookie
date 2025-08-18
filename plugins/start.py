@@ -707,7 +707,8 @@ async def restart_bots():
                 plugins={"root": "clone_plugins"},
             )
             await xd.start()
-            CLONE_CLIENTS[bot_id] = xd
+            bot = await xd.get_me()
+            CLONE_CLIENTS[bot.id] = xd
             print(f"✅ Clone @{clone['username']} started")
         except Exception as e:
             print(f"❌ Failed to start @{clone['username']}: {e}")
