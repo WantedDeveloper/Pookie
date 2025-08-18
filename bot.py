@@ -1,22 +1,33 @@
-import sys, glob, importlib, logging, logging.config, pytz, asyncio
+import sys
+import glob
+import importlib
 from pathlib import Path
-from pyrogram import idle, Client, __version__, types
-from pyrogram.raw.all import layer
-from typing import Union, Optional, AsyncGenerator
-from datetime import date, datetime 
-from aiohttp import web
-from Script import script
-from config import LOG_CHANNEL, PORT
-from plugins.start import restart_bots
-from TechVJ.server import web_server
-from TechVJ.bot import StreamBot
-from TechVJ.utils.keepalive import ping_server
-from TechVJ.bot.clients import initialize_clients
+from pyrogram import idle
+import logging
+import logging.config
 
 # Get logging configurations
 logging.config.fileConfig('logging.conf')
 logging.getLogger().setLevel(logging.INFO)
 logging.getLogger("pyrogram").setLevel(logging.ERROR)
+
+from pyrogram import Client, __version__
+from pyrogram.raw.all import layer
+from config import LOG_CHANNEL, PORT
+from typing import Union, Optional, AsyncGenerator
+from pyrogram import types
+from Script import script 
+from datetime import date, datetime 
+import pytz
+from aiohttp import web
+from TechVJ.server import web_server
+
+import asyncio
+from pyrogram import idle
+from plugins.start import restart_bots
+from TechVJ.bot import StreamBot
+from TechVJ.utils.keepalive import ping_server
+from TechVJ.bot.clients import initialize_clients
 
 ppath = "plugins/*.py"
 files = glob.glob(ppath)
