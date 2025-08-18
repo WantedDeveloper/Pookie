@@ -28,7 +28,6 @@ WAITING_FOR_TOKEN = {}
 WAITING_FOR_WLC = {}
 WAITING_FOR_CLONE_PHOTO = {}
 WAITING_FOR_CLONE_PHOTO_MSG = {}
-CLONE_CLIENTS = {}
 
 def get_size(size):
     """Get size in readable format"""
@@ -157,7 +156,6 @@ async def start(client, message):
                 old_title = getattr(file, "file_name", "")
                 title = formate_file_name(old_title)
                 size=get_size(int(file.file_size))
-                await db.add_storage_used(me.id, file.file_size)
                 if BATCH_FILE_CAPTION:
                     try:
                         f_caption=BATCH_FILE_CAPTION.format(file_name= '' if title is None else title, file_size='' if size is None else size, file_caption='' if f_caption is None else f_caption)
@@ -504,8 +502,6 @@ async def cb_handler(client: Client, query: CallbackQuery):
 
                 uptime = str(timedelta(seconds=int(time.time() - START_TIME)))
 
-                is_running = "🟢 Running" if bot_id in CLONE_CLIENTS else "🔴 Stopped"
-
                 await query.answer(
                     f"📊 Status for @{clone.get('username')}\n\n"
                     f"👤 Users: {users_count}\n"
@@ -513,7 +509,6 @@ async def cb_handler(client: Client, query: CallbackQuery):
                     f"💾 Used: {get_size(storage_used)} / {get_size(storage_limit)}\n"
                     f"💽 Free: {get_size(storage_free)}\n"
                     f"⏱ Uptime: {uptime}\n"
-                    f"🔌 Bot Status: {is_running}",
                     show_alert=True
                 )
 
@@ -606,14 +601,13 @@ async def message_capture(client: Client, message: Message):
         await msg.edit_text("👨‍💻 Creating your bot, please wait...")
         try:
             xd = Client(
-                f"clone_{user_id}", API_ID, API_HASH,
+                f"{token}", API_ID, API_HASH,
                 bot_token=token,
                 plugins={"root": "clone_plugins"}
             )
             await xd.start()
             bot = await xd.get_me()
             await db.add_clone_bot(bot.id, user_id, bot.first_name, bot.username, token)
-            CLONE_CLIENTS[bot.id] = xd
 
             await msg.edit_text(f"✅ Successfully cloned your bot: @{bot.username}")
             await asyncio.sleep(2)
@@ -694,21 +688,16 @@ async def message_capture(client: Client, message: Message):
         return
 
 async def restart_bots():
-    clones = await db.bot.find({}).to_list(length=None)
-    for clone in clones:
-        bot_id = clone["bot_id"]
-        token = clone["token"]
-        if bot_id in CLONE_CLIENTS:
-            continue
+    bots_cursor = await db.get_all_bots()
+    bots = await bots_cursor.to_list(None)
+    for bot in bots:
+        bot_token = bot['token']
         try:
             xd = Client(
-                f"clone_{bot_id}", API_ID, API_HASH,
-                bot_token=token,
+                f"{bot_token}", API_ID, API_HASH,
+                bot_token=bot_token,
                 plugins={"root": "clone_plugins"},
             )
             await xd.start()
-            bot = await xd.get_me()
-            CLONE_CLIENTS[bot.id] = xd
-            print(f"✅ Clone @{clone['username']} started")
         except Exception as e:
-            print(f"❌ Failed to start @{clone['username']}: {e}")
+            print(f"Error while restarting bot with token {bot_token}: {e}")
