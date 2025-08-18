@@ -45,7 +45,7 @@ async def start(client, message):
         ]]
         reply_markup = InlineKeyboardMarkup(buttons)
         await message.reply_photo(
-            photo=PICS
+            photo=PICS,
             caption=script.WLC.format(message.from_user.mention, me.mention),
             reply_markup=reply_markup
         )
@@ -138,7 +138,7 @@ async def cb_handler(client: Client, query: CallbackQuery):
         await client.edit_message_media(
             query.message.chat.id, 
             query.message.id, 
-            InputMediaPhoto(PICS))
+            InputMediaPhoto(PICS)
         )
         await query.message.edit_text(
             text=script.WLC.format(query.from_user.mention, me.mention),
@@ -154,7 +154,7 @@ async def cb_handler(client: Client, query: CallbackQuery):
         await client.edit_message_media(
             query.message.chat.id, 
             query.message.id, 
-            InputMediaPhoto(PICS))
+            InputMediaPhoto(PICS)
         )
         reply_markup = InlineKeyboardMarkup(buttons)
         await query.message.edit_text(
@@ -171,7 +171,7 @@ async def cb_handler(client: Client, query: CallbackQuery):
         await client.edit_message_media(
             query.message.chat.id, 
             query.message.id, 
-            InputMediaPhoto(PICS))
+            InputMediaPhoto(PICS)
         )
         owner = await db.get_bot(me.id)
         ownerid = int(owner['user_id'])
