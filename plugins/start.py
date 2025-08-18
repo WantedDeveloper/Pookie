@@ -508,7 +508,7 @@ async def cb_handler(client: Client, query: CallbackQuery):
                     f"🚫 Banned: {banned_users}\n"
                     f"💾 Used: {get_size(storage_used)} / {get_size(storage_limit)}\n"
                     f"💽 Free: {get_size(storage_free)}\n"
-                    f"⏱ Uptime: {uptime}\n"
+                    f"⏱ Uptime: {uptime}\n",
                     show_alert=True
                 )
 
