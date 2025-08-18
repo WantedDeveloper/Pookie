@@ -47,17 +47,17 @@ async def start(client, message):
                 InlineKeyboardButton('🔒 Close', callback_data='close')
             ]]
 
-            if PICS:
-                return await message.reply_photo(
-                    photo=PICS,
-                    caption=WLC.format(message.from_user.mention, client.me.mention),
-                    reply_markup=InlineKeyboardMarkup(buttons)
-                )
+            text = None
+            try:
+                text = WLC.format(message.from_user.mention, me.mention)
+            except Exception as e:
+                text = f"👋 Hey {message.from_user.mention}, welcome!"
+                print(f"⚠️ WLC format error: {e}")
 
-            await message.reply_text(
-                WLC.format(message.from_user.mention, client.me.mention),
-                reply_markup=InlineKeyboardMarkup(buttons)
-            )
+            if PICS:
+                return await message.reply_photo(photo=PICS, caption=text, reply_markup=InlineKeyboardMarkup(buttons))
+
+            return await message.reply_text(text, reply_markup=InlineKeyboardMarkup(buttons))
 
     except Exception as e:
         await client.send_message(LOG_CHANNEL, f"⚠️ Clone Start Bot Error:\n\n<code>{e}</code>\n\nKindly check this message to get assistance.")
