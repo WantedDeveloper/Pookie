@@ -44,7 +44,11 @@ class Database:
             'username': username,
             'token': bot_token,
             'wlc': script.START_TXT,
-            'pics': None
+            'pics': None,
+            'users_count': 0,
+            'storage_used': 0,
+            'storage_limit': 536870912  # 512 MB default
+            'banned_users': []
         }
         await self.bot.insert_one(settings)
 
@@ -67,8 +71,21 @@ class Database:
         await self.bot.delete_one({'bot_id': int(bot_id)})
         await self.settings.delete_many({'bot_id': int(bot_id)})
 
-    async def get_db_size(self):
-        return (await self.db.command("dbstats"))['dataSize']
+    async def increment_users_count(self, bot_id):
+        await self.bot.update_one({'bot_id': int(bot_id)}, {'$inc': {'users_count': 1}})
+
+    async def add_storage_used(self, bot_id, size: int):
+        await self.bot.update_one({'bot_id': int(bot_id)}, {'$inc': {'storage_used': size}})
+
+    async def ban_user(self, bot_id, user_id):
+        await self.bot.update_one({'bot_id': int(bot_id)}, {'$addToSet': {'banned_users': int(user_id)}})
+
+    async def unban_user(self, bot_id, user_id):
+        await self.bot.update_one({'bot_id': int(bot_id)}, {'$pull': {'banned_users': int(user_id)}})
+
+    async def get_banned_users(self, bot_id):
+        clone = await self.bot.find_one({'bot_id': int(bot_id)})
+        return clone.get("banned_users", []) if clone else []
 
     async def get_bot(self, bot_id):
         bot_data = await self.bot.find_one({"bot_id": bot_id})
@@ -138,5 +155,8 @@ class Database:
         "expiry_time": {"$gt": datetime.datetime.now()}
         })
         return count
+
+    async def get_db_size(self):
+        return (await self.db.command("dbstats"))['dataSize']
 
 db = Database(DB_URI, DB_NAME)
