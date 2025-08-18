@@ -13,7 +13,7 @@ logging.getLogger("pyrogram").setLevel(logging.ERROR)
 
 from pyrogram import Client, __version__
 from pyrogram.raw.all import layer
-from config import LOG_CHANNEL, ON_HEROKU, CLONE_MODE, PORT
+from config import LOG_CHANNEL, PORT
 from typing import Union, Optional, AsyncGenerator
 from pyrogram import types
 from Script import script 
@@ -63,7 +63,6 @@ async def start():
     await app.setup()
     bind_address = "0.0.0.0"
     await web.TCPSite(app, bind_address, PORT).start()
-    #if CLONE_MODE == True:
     await restart_bots()
     print("Bot Started.")
     await idle()
