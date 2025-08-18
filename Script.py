@@ -128,14 +128,14 @@ If You Want To Remove Api Then Copy This And Send To Bot - `/api None`"""
 
     LOG_TEXT = """<b>#NewUser
     
-ID - <code>{}</code>
+Id - <code>{}</code>
 
-Nᴀᴍᴇ - {}</b>"""
+Name - {}</b>"""
 
     RESTART_TXT = """
-<b>Bᴏᴛ Rᴇsᴛᴀʀᴛᴇᴅ !
+<b>Bot Restarted !
 
-📅 Dᴀᴛᴇ : <code>{}</code>
-⏰ Tɪᴍᴇ : <code>{}</code>
-🌐 Tɪᴍᴇᴢᴏɴᴇ : <code>Asia/Kolkata</code>
-🛠️ Bᴜɪʟᴅ Sᴛᴀᴛᴜs: <code>v2.7.1 [ Sᴛᴀʙʟᴇ ]</code></b>"""
+📅 Date : <code>{}</code>
+⏰ Time : <code>{}</code>
+🌐 Timezone : <code>Asia/Kolkata</code>
+🛠️ Build Status : <code>v2.7.1 [ Stable ]</code></b>"""
