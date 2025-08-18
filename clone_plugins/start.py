@@ -125,8 +125,9 @@ async def cb_handler(client: Client, query: CallbackQuery):
         elif query.data == "about":
             buttons = [[InlineKeyboardButton('⬅️ Back', callback_data='start')]]
             owner = await db.get_bot(me.id)
+            ownerid = int(owner['user_id'])
             await query.message.edit_text(
-                text=script.CABOUT_TXT.format(me.mention, owner),
+                text=script.CABOUT_TXT.format(me.mention, ownerid),
                 reply_markup=InlineKeyboardMarkup(buttons)
             )
 

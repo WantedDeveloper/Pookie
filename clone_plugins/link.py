@@ -54,8 +54,6 @@ async def base_site_handler(client, m: Message):
 @Client.on_message(filters.command(['genlink']) & filters.user(ADMINS))
 async def gen_link_s(bot, message):
     try:
-        username = (await bot.get_me()).username
-
         # Ask user to send a message
         g_msg = await bot.ask(
             message.chat.id,

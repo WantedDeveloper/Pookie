@@ -8,8 +8,7 @@ from clone_plugins.dbusers import clonedb
 async def pm_broadcast(bot, message):
     me = await bot.get_me()
     owner = await db.get_bot(me.id)
-    ownerid = int(owner['user_id'])
-    if ownerid != message.from_user.id:
+    if owner["user_id"] != message.from_user.id:
         await message.reply_text("ᴏɴʟʏ ᴏᴡɴᴇʀ ᴄᴏᴍᴍᴀɴᴅ❗")
         return
     b_msg = await bot.ask(chat_id = message.from_user.id, text = "Now Send Me Your Broadcast Message")
