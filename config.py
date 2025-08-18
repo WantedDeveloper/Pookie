@@ -30,21 +30,19 @@ try:
     DB_URI = environ.get("DB_URI", "mongodb+srv://test:test123@test.eccvyc9.mongodb.net/?retryWrites=true&w=majority&appName=test")
     DB_NAME = environ.get("DB_NAME", "techvjbotz")
 
-    # Clone Information
-    CLONE_MODE = bool(environ.get('CLONE_MODE', True)) # Set True or False
-
-    # If Clone Mode Is True Then Fill All Required Variable, If False Then Don't Fill.
+    # Clone Database Information
     CLONE_DB_URI = environ.get("CLONE_DB_URI", "mongodb+srv://testclone:test123@testclone.gnnmw7g.mongodb.net/?retryWrites=true&w=majority&appName=testclone")
     CDB_NAME = environ.get("CDB_NAME", "clonetechvj")
 
     # Moderator Information
+    OWNERS = [int(owner) if id_pattern.search(owner) else owner for owner in environ.get('OWNERS', '1512442581').split()]
     ADMINS = [int(admin) if id_pattern.search(admin) else admin for admin in environ.get('ADMINS', '1512442581').split()]
 
     # Channel Information
     LOG_CHANNEL = int(environ.get("LOG_CHANNEL", "-1002855763957"))
 
     # Start Information
-    WLC = environ.get("WLC", "")
+    WLC = environ.get("WLC", None)
     PICS = environ.get("PICS", None)
 
     # Auto Delete Information
