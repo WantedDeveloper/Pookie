@@ -93,7 +93,7 @@ class Database:
             user = await self.db.user.find_one({"user_id": user_id})
         return user
 
-    async def update_user_info(user_id, value:dict):
+    async def update_user_info(self, user_id, value:dict):
         user_id = int(user_id)
         myquery = {"user_id": user_id}
         newvalues = { "$set": value }

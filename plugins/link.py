@@ -2,11 +2,12 @@ import re
 from pyrogram import filters, Client, enums
 from pyrogram.types import Message
 from pyrogram.errors.exceptions.bad_request_400 import ChannelInvalid, UsernameInvalid, UsernameNotModified
+from plugins.dbusers import db
 from config import OWNERS, LOG_CHANNEL
-import re
 import os
-import json
 import base64
+import requests
+import json
 
 async def get_short_link(user, link):
     api_key = user["shortener_api"]
@@ -93,7 +94,7 @@ async def gen_link_s(bot, message):
             )
 
     except Exception as e:
-        await message.reply(f"⚠️ Generate Link Error:\n\n<code>{e}</code>\n\nKindly check this message for assistance.")
+        await bot.send_message(LOG_CHANNEL, f"⚠️ Generate Link Error:\n\n<code>{e}</code>\n\nKindly check this message for assistance.")
 
 @Client.on_message(filters.command(['batch']) & filters.user(OWNERS))
 async def gen_link_batch(bot, message):
