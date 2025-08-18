@@ -94,5 +94,5 @@ async def gen_link_s(bot, message):
             )
 
     except Exception as e:
-        await bot.send_message(LOG_CHANNEL, f"⚠️ Generate Link Error:\n\n<code>{e}</code>\n\nKindly check this message for assistance.")
+        await bot.send_message(LOG_CHANNEL, f"⚠️ Clone Generate Link Error:\n\n<code>{e}</code>\n\nKindly check this message for assistance.")
         
