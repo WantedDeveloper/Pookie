@@ -2,7 +2,7 @@ import datetime, time, asyncio
 from pyrogram import Client, filters
 from pyrogram.errors import InputUserDeactivated, FloodWait, UserIsBlocked, PeerIdInvalid
 from clone_plugins.dbusers import clonedb
-from config import OWNERS, LOG_CHANNEL
+from config import ADMINS, LOG_CHANNEL
 
 # Broadcast sender with error handling
 async def broadcast_messages(bot_id, user_id, message):
