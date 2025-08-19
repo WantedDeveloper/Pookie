@@ -1,5 +1,6 @@
 import re
 from pyrogram import filters, Client, enums
+from pyrogram.types import Message
 from clone_plugins.users_api import get_user, get_short_link
 import base64
 
