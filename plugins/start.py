@@ -538,11 +538,11 @@ async def cb_handler(client: Client, query: CallbackQuery):
                 msg_set = clone.get("auto_delete_msg", script.AD_TXT)
                 if current:
                     buttons = [
-                        [InlineKeyboardButton("⏱ Time", callback_data=f"ad_time_{bot_id}")],
-                        [InlineKeyboardButton("📝 Message", callback_data=f"ad_message_{bot_id}")],
-                        [InlineKeyboardButton("❌ Disable", callback_data=f"ad_status_{bot_id}")]
+                        [InlineKeyboardButton("⏱ Time", callback_data=f"ad_time_{bot_id}"),
+                        InlineKeyboardButton("📝 Message", callback_data=f"ad_message_{bot_id}"),
+                        InlineKeyboardButton("❌ Disable", callback_data=f"ad_status_{bot_id}")]
                     ]
-                    status = f"🟢 Enabled\n⏱ Time: {time_set} minutes\n📝 Msg: {clone.get('auto_delete_msg','')}"
+                    status = f"🟢 Enabled\n\n⏱ Time: {time_set} minutes\n📝 Msg: {msg_set.format(time=f'{time_set} minutes')}"
                 else:
                     buttons = [[InlineKeyboardButton("✅ Enable", callback_data=f"ad_status_{bot_id}")]]
                     status = "🔴 Disabled"
