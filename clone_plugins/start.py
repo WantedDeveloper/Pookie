@@ -11,7 +11,7 @@ from pyrogram import Client, filters, enums
 from pyrogram.errors import ChatAdminRequired, FloodWait
 from config import BOT_USERNAME, ADMINS
 from pyrogram.types import InlineKeyboardButton, InlineKeyboardMarkup, Message, CallbackQuery, InputMediaPhoto
-from config import PICS, CUSTOM_FILE_CAPTION, AUTO_DELETE_TIME, AUTO_DELETE
+from config import CUSTOM_FILE_CAPTION, AUTO_DELETE_TIME, AUTO_DELETE
 import re
 import json
 import base64
