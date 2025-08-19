@@ -521,7 +521,7 @@ async def cb_handler(client: Client, query: CallbackQuery):
 
                 buttons.append([InlineKeyboardButton("⬅️ Back", callback_data=f"manage_{bot_id}")])
                 await query.message.edit_text(
-                    text=script.DELETE_TXT.format(status=f"{status}", reply_markup=InlineKeyboardMarkup(buttons)
+                    text=script.DELETE_TXT.format(status=f"{status}"), reply_markup=InlineKeyboardMarkup(buttons)
                 )
 
             # Forward Protect
