@@ -53,9 +53,9 @@ async def start(client, message):
                 InlineKeyboardButton('🔒 Close', callback_data='close')
             ]]
 
-            clone = await db.get_bot(me.id) or {}
+            clone = await db.get_bot(me.id)
             start_text = clone.get("wlc") or script.START_TXT
-            start_pic = clone.get("pics")
+            start_pic = clone.get("pics") or None
 
             if start_pic:
                 return await message.reply_photo(
@@ -120,7 +120,7 @@ async def cb_handler(client: Client, query: CallbackQuery):
                 [InlineKeyboardButton('🔒 Close', callback_data='close')]
             ]
             clone = await db.get_bot(me.id)
-            start_text = clone.get("wlc")
+            start_text = clone.get("wlc") or script.START_TXT
             await query.message.edit_text(
                 text=start_text.format(user=query.from_user.mention, bot=me.mention),
                 reply_markup=InlineKeyboardMarkup(buttons)
