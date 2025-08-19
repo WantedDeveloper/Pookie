@@ -7,7 +7,7 @@ from validators import domain
 from clone_plugins.dbusers import clonedb
 from clone_plugins.users_api import get_user, update_user_info
 from pyrogram import Client, filters, enums
-from plugins.clone import mongo_db
+#from plugins.clone import mongo_db
 from pyrogram.errors import ChatAdminRequired, FloodWait
 from config import BOT_USERNAME, ADMINS
 from pyrogram.types import InlineKeyboardButton, InlineKeyboardMarkup, Message, CallbackQuery, InputMediaPhoto
