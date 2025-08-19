@@ -1,7 +1,10 @@
 import re
 from pyrogram import filters, Client, enums
+from pyrogram.types import Message
 from clone_plugins.dbusers import clonedb
 from config import ADMINS, LOG_CHANNEL
+import os
+import asyncio
 import base64
 
 async def get_short_link(user, link):
@@ -28,7 +31,6 @@ async def gen_link_s(bot, message):
                     "📩 Please send me the message (file/text/media) to generate a shareable link.\n\nSend /cancel to stop.",
                     timeout=60
                 )
-                g_msg = g_msg  # ensure it's a Message object
             except asyncio.TimeoutError:
                 return await message.reply("<b>⏰ Timeout! You didn’t send any message in 60s.</b>")
 
