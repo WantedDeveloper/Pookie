@@ -49,7 +49,7 @@ class Database:
             # Auto Delete
             'auto_delete': False,
             'auto_delete_time': 30,
-            'auto_delete_msg': "⚠️ This message has been auto-deleted.",
+            'auto_delete_msg': script.AD_TXT,
             # Status
             'users_count': 0,
             'banned_users': [],
@@ -76,6 +76,10 @@ class Database:
     async def delete_clone(self, bot_id):
         await self.bot.delete_one({'bot_id': int(bot_id)})
         #await self.settings.delete_many({'bot_id': int(bot_id)})
+        #await self.settings.update_many(
+            #{'bot_id': int(bot_id)},
+            #{'$set': {'active': False}}  # Add or use a field like 'active' to indicate clone is deleted
+        #)
 
     async def set_auto_delete(self, bot_id, value: bool):
         await self.bot.update_one({"bot_id": int(bot_id)}, {"$set": {"auto_delete": value}})
