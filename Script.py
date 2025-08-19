@@ -90,11 +90,23 @@ You can add up to 4 channels."""
 
 Users need to pass a shortened link to gain special access to messages from all clone shareable links. This access will be valid for the next custom validity period."""
 
+    AD_TXT = """<u>⚠️ IMPORTANT:</u>
+
+All Messages will be deleted after {time}. Please save or forward these messages to your personal saved messages to avoid losing them!"""
+
     DELETE_TXT = """<u>✨ AUTO DELETE</u>
 
 Automatically delete all messages sent to clone users after 30 minutes.
 
 Current Status: {status}"""
+
+    AD_TIME_TXT = """<u>✨ AUTO DELETE TIME</u>
+
+You can customize the alert time about auto-delete that is sent last to users when they access the links"""
+
+    AD_MSG_TXT = """<u>✨ AUTO DELETE MESSAGE</u>
+
+You can customize the alert message about auto-delete that is sent last to users when they access the links"""
 
     FORWARD_TXT = """<u>✨ FORWARD PROTECTION</u>
 
