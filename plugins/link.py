@@ -1,8 +1,7 @@
 import re
 from pyrogram import filters, Client, enums
 from pyrogram.types import Message, InlineKeyboardMarkup, InlineKeyboardButton
-from pyrogram.errors import TimeoutError
-from pyrogram.errors.exceptions.bad_request_400 import ChannelInvalid, UsernameInvalid, UsernameNotModified, TimeoutError
+from pyrogram.errors.exceptions.bad_request_400 import ChannelInvalid, UsernameInvalid, UsernameNotModified
 from plugins.dbusers import db
 from config import OWNERS, LOG_CHANNEL
 import os
@@ -73,7 +72,7 @@ async def gen_link_s(bot, message):
                         [[InlineKeyboardButton("🚫 Cancel", callback_data="cancel_genlink")]]
                     )
                 )
-            except TimeoutError:
+            except asyncio.TimeoutError:
                 return await message.reply("<b>⏰ Timeout! You didn’t send anything in 60 seconds.</b>")
 
             # Cancel case

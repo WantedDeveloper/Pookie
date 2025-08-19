@@ -1,5 +1,4 @@
 from pyrogram.errors import InputUserDeactivated, UserNotParticipant, FloodWait, UserIsBlocked, PeerIdInvalid
-from pyrogram.errors import TimeoutError
 from plugins.dbusers import db
 from pyrogram import Client, filters
 from pyrogram.types import InlineKeyboardMarkup, InlineKeyboardButton
@@ -53,7 +52,7 @@ async def verupikkals(bot, message):
                     "📩 <b>Send the message to broadcast</b>\n\n/cancel to stop.",
                     timeout=60
                 )
-            except TimeoutError:
+            except asyncio.TimeoutError:
                 return await message.reply("<b>⏰ Timeout! You didn’t send any message in 60s.</b>")
 
             if b_msg.text and b_msg.text.lower() == '/cancel':
