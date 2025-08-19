@@ -40,7 +40,7 @@ try:
     LOG_CHANNEL = int(os.environ.get("LOG_CHANNEL", "-1002855763957"))
 
     # Start Information
-    WLC = os.environ.get("WLC", None)
+    WLC = os.environ.get("WLC", f"{script.START_TEXT}")
     PICS = os.environ.get("PICS", None)
 
     # Auto Delete Information
