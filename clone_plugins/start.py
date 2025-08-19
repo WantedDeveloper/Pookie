@@ -99,9 +99,9 @@ async def start(client, message):
                 return
         await msg.edit_caption(f_caption)
         if clone and clone.get("auto_delete", False):
-            ad_time = clone.get("auto_delete_time", 1800)
+            ad_time = clone.get("auto_delete_time", 30)
             ad_msg = clone.get("auto_delete_msg", script.AD_TXT)
-            asyncio.create_task(auto_delete_message(client, msg, ad_time, ad_msg))
+            asyncio.create_task(auto_delete_message(client, msg, ad_time, ad_msg.format(time=f"{ad_time} minutes")))
     except:
         pass
 
