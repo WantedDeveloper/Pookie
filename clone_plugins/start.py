@@ -98,13 +98,23 @@ async def start(client, message):
             except:
                 return
         await msg.edit_caption(f_caption)
-        k = await msg.reply(f"<b><u>❗️❗️❗️IMPORTANT❗️️❗️❗️</u></b>\n\nThis Movie File/Video will be deleted in <b><u>{AUTO_DELETE} mins</u> 🫥 <i></b>(Due to Copyright Issues)</i>.\n\n<b><i>Please forward this File/Video to your Saved Messages and Start Download there</i></b>",quote=True)
-        await asyncio.sleep(AUTO_DELETE_TIME)
-        await msg.delete()
-        await k.edit_text("<b>Your File/Video is successfully deleted!!!</b>")
-        return
+        if clone and clone.get("auto_delete", False):
+            ad_time = clone.get("auto_delete_time", 1800)
+            ad_msg = clone.get("auto_delete_msg", script.AD_TXT)
+            asyncio.create_task(auto_delete_message(client, msg, ad_time, ad_msg))
     except:
         pass
+
+async def auto_delete_message(client, msg, delay, ad_msg):
+    try:
+        await asyncio.sleep(delay)
+        await msg.delete()
+        await client.send_message(msg.chat.id, ad_msg)
+    except Exception as e:
+        await client.send_message(
+            LOG_CHANNEL,
+            f"⚠️ Clone Auto Delete Message Error:\n\n<code>{e}</code>\n\nKindly check this message for assistance."
+        )
 
 @Client.on_callback_query()
 async def cb_handler(client: Client, query: CallbackQuery):
