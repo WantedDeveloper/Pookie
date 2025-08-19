@@ -75,7 +75,7 @@ class Database:
 
     async def delete_clone(self, bot_id):
         await self.bot.delete_one({'bot_id': int(bot_id)})
-        await self.settings.delete_many({'bot_id': int(bot_id)})
+        #await self.settings.delete_many({'bot_id': int(bot_id)})
 
     async def set_auto_delete(self, bot_id, value: bool):
         await self.bot.update_one({"bot_id": int(bot_id)}, {"$set": {"auto_delete": value}})
