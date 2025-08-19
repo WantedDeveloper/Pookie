@@ -18,6 +18,8 @@ try:
 
     PORT = os.environ.get("PORT", "8080")
 
+    DEBUG_MODE = True
+
     # Bot Information
     API_ID = int(os.environ.get("API_ID", "15479023"))
     API_HASH = os.environ.get("API_HASH", "f8f6cf547822449c29fc60dae3b31dd4")
