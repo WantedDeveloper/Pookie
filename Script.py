@@ -80,8 +80,6 @@ Now send your new start message text."""
 
 You have the option to include a photo along with your start message."""
 
-    ADD_PIC_TXT = """Send your new start message photo."""
-
     FSUB_TXT = """<u>✨ FORCE SUBSCRIBE</u>
 
 Users can only use your clone bot after joining all force sub channels. clone bots now also support join request mode.
@@ -94,7 +92,9 @@ Users need to pass a shortened link to gain special access to messages from all 
 
     DELETE_TXT = """<u>✨ AUTO DELETE</u>
 
-Automatically delete all messages sent to clone users after 30 minutes."""
+Automatically delete all messages sent to clone users after 30 minutes.
+
+Current Status: {status}"""
 
     FORWARD_TXT = """<u>✨ FORWARD PROTECTION</u>
 

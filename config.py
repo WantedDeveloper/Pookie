@@ -39,10 +39,6 @@ try:
     # Channel Information
     LOG_CHANNEL = int(os.environ.get("LOG_CHANNEL", "-1002855763957"))
 
-    # Start Information
-    WLC = os.environ.get("WLC", f"{script.START_TXT}")
-    PICS = os.environ.get("PICS", None)
-
     # Auto Delete Information
     AUTO_DELETE_MODE = bool(os.environ.get('AUTO_DELETE_MODE', True)) # Set True or False
 
