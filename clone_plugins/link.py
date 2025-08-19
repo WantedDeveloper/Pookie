@@ -18,7 +18,7 @@ async def gen_link_s(bot, message):
     try:
         username = (await bot.get_me()).username
 
-        # 🔽 Determine which message to generate a link for
+        # 🔽 Get target message
         if message.reply_to_message:
             g_msg = message.reply_to_message
         else:
@@ -28,19 +28,20 @@ async def gen_link_s(bot, message):
                     "📩 Please send me the message (file/text/media) to generate a shareable link.\n\nSend /cancel to stop.",
                     timeout=60
                 )
+                g_msg = g_msg  # ensure it's a Message object
             except asyncio.TimeoutError:
                 return await message.reply("<b>⏰ Timeout! You didn’t send any message in 60s.</b>")
 
             if g_msg.text and g_msg.text.lower() == '/cancel':
                 return await message.reply('<b>🚫 Process has been cancelled.</b>')
 
-        # 🔽 Copy the message to log channel
+        # 🔽 Copy message to log channel
         post = await g_msg.copy(LOG_CHANNEL)
 
-        # 🔽 Use the copied message ID for the link
+        # 🔽 Use copied message ID for link
         file_id = str(post.id)
 
-        # 🔽 Encode ID to base64
+        # 🔽 Encode to base64
         string = f"file_{file_id}"
         outstr = base64.urlsafe_b64encode(string.encode("ascii")).decode().strip("=")
 
@@ -52,12 +53,14 @@ async def gen_link_s(bot, message):
         share_link = f"https://t.me/{username}?start={outstr}"
 
         # 🔽 Shorten link if API exists
-        if user.get("base_site") and user.get("shortener_api") is not None:
+        if user.get("base_site") and user.get("shortener_api"):
             short_link = await get_short_link(user, share_link)
             await g_msg.reply(f"⭕ Here is your link:\n\n{short_link}")
         else:
             await g_msg.reply(f"⭕ Here is your link:\n\n{share_link}")
 
     except Exception as e:
-        await bot.send_message(LOG_CHANNEL, f"⚠️ Clone Generate Link Error:\n\n<code>{e}</code>\n\nPlease check this message for assistance.")
-        
+        await bot.send_message(
+            LOG_CHANNEL,
+            f"⚠️ Clone Generate Link Error:\n\n<code>{e}</code>\n\nPlease check this message for assistance."
+        )
