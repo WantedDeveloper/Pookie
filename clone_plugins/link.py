@@ -53,7 +53,7 @@ async def gen_link_s(client: Client, message):
     string += file_id
     outstr = base64.urlsafe_b64encode(string.encode("ascii")).decode().strip("=")
     user_id = message.from_user.id
-    user = await get_user(user_id)
+    user = await clonedb.get_user(user_id)
     # Get the bot's username
     bot_username = (await client.get_me()).username
     share_link = f"https://t.me/{bot_username}?start={outstr}"
