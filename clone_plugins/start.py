@@ -8,9 +8,8 @@ from clone_plugins.dbusers import clonedb
 from pyrogram import Client, filters, enums
 from plugins.dbusers import db
 from pyrogram.errors import ChatAdminRequired, FloodWait
-from config import BOT_USERNAME, ADMINS
+from config import *
 from pyrogram.types import InlineKeyboardButton, InlineKeyboardMarkup, Message, CallbackQuery, InputMediaPhoto
-from config import WLC, PICS, CUSTOM_FILE_CAPTION, AUTO_DELETE_TIME, AUTO_DELETE
 import re
 import json
 import base64
@@ -55,17 +54,18 @@ async def start(client, message):
             ]]
 
             clone = await db.get_bot(me.id)
-            wlc_text = clone.get("wlc") if clone and clone.get("wlc") else WLC
+            start_text = clone.get("wlc")
+            start_pic = clone.get("pics")
 
-            if PICS:
+            if start_pic:
                 return await message.reply_photo(
-                    photo=PICS,
-                    caption=wlc_text.format(user=message.from_user.mention, bot=client.me.mention),
+                    photo=start_pic,
+                    caption=start_text.format(user=message.from_user.mention, bot=client.me.mention),
                     reply_markup=InlineKeyboardMarkup(buttons)
                 )
 
             await message.reply_text(
-                wlc_text.format(user=message.from_user.mention, bot=client.me.mention),
+                start_text.format(user=message.from_user.mention, bot=client.me.mention),
                 reply_markup=InlineKeyboardMarkup(buttons)
             )
 
@@ -116,13 +116,13 @@ async def cb_handler(client: Client, query: CallbackQuery):
             buttons = [
                 [InlineKeyboardButton('💁‍♀️ Help', callback_data='help'),
                  InlineKeyboardButton('ℹ️ About', callback_data='about')],
-                [InlineKeyboardButton('🤖 Create Your Own Clone', url=f'https://t.me/{BOT_USERNAME}')],
+                [InlineKeyboardButton('🤖 Create Your Own Clone', url=f'https://t.me/{BOT_USERNAME}?start=clone')],
                 [InlineKeyboardButton('🔒 Close', callback_data='close')]
             ]
             clone = await db.get_bot(me.id)
-            wlc_text = clone.get("wlc") if clone and clone.get("wlc") else WLC
+            start_text = clone.get("wlc")
             await query.message.edit_text(
-                text=wlc_text.format(user=query.from_user.mention, bot=me.mention),
+                text=start_text.format(user=query.from_user.mention, bot=me.mention),
                 reply_markup=InlineKeyboardMarkup(buttons)
             )
 
