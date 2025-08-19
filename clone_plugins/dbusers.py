@@ -27,21 +27,21 @@ class Database:
 
     async def get_user(self, user_id):
         user_id = int(user_id)
-        user = await self.db.user.find_one({"user_id": user_id})
+        user = await self.db.users.find_one({"user_id": user_id})
         if not user:
             res = {
                 "user_id": user_id,
                 "shortener_api": None,
                 "base_site": None,
             }
-            await self.db.user.insert_one(res)
-            user = await self.db.user.find_one({"user_id": user_id})
+            await self.db.users.insert_one(res)
+            user = await self.db.users.find_one({"user_id": user_id})
         return user
 
     async def update_user_info(self, user_id, value:dict):
         user_id = int(user_id)
         myquery = {"user_id": user_id}
         newvalues = { "$set": value }
-        await self.db.user.update_one(myquery, newvalues)
+        await self.db.users.update_one(myquery, newvalues)
 
 clonedb = Database(CLONE_DB_URI, CDB_NAME)
