@@ -554,8 +554,8 @@ async def cb_handler(client: Client, query: CallbackQuery):
 
             # Status
             elif action == "ad_status":
-                new_value = not clone.get("auto_delete", False)
-                await db.update_clone(bot_id, {"auto_delete_time": new_value})
+                new_value = clone.get("auto_delete", True)
+                await db.update_clone(bot_id, {"auto_delete": new_value})
                 await query.answer("✅ Auto Delete updated!", show_alert=True)
 
             # Time Menu
