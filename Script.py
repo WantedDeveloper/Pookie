@@ -96,8 +96,6 @@ All Messages will be deleted after {time}. Please save or forward these messages
 
     DELETE_TXT = """<u>✨ AUTO DELETE</u>
 
-Automatically delete all messages sent to clone users after 30 minutes.
-
 Current Status: {status}"""
 
     AD_TIME_TXT = """<u>✨ AUTO DELETE TIME</u>
