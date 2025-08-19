@@ -11,12 +11,12 @@ import pytz
 from functools import wraps
 
 from pyrogram import Client, idle
+from pyrogram.types import InlineKeyboardButton, InlineKeyboardMarkup
 from aiohttp import web
 
-from config import API_ID, API_HASH, BOT_TOKEN, LOG_CHANNEL, PORT, DEBUG_MODE, BOT_USERNAME
+from config import API_ID, API_HASH, BOT_TOKEN, LOG_CHANNEL, PORT, DEBUG_MODE, SLEEP_THRESHOLD, BOT_USERNAME
 from Script import script
 from TechVJ.server import web_server
-from plugins.start import restart_bots
 from plugins.dbusers import db  # your DB modules
 from clone_plugins.dbusers import clonedb  # your DB modules
 
@@ -31,18 +31,10 @@ StreamBot = Client(
     api_id=API_ID,
     api_hash=API_HASH,
     bot_token=BOT_TOKEN,
-    no_updates=True,
+    sleep_threshold=SLEEP_THRESHOLD,
+    no_updates=False,   # Must be False for bot to respond
     in_memory=True
 )
-
-async def initialize_client():
-    try:
-        await StreamBot.start()
-        me = await StreamBot.get_me()
-        StreamBot.username = me.username
-        print(f"✅ StreamBot Started: @{StreamBot.username}")
-    except Exception as e:
-        logging.error(f"Failed to start StreamBot: {e}", exc_info=True)
 
 # ---------------- Plugin Hot-Reload ----------------
 PLUGIN_DIRS = [
@@ -71,7 +63,7 @@ def wrap_debug(func, plugin_name):
 
 def reload_plugin_functions(path: Path):
     plugin_name = path.stem
-    import_path = f"{path.parent.name}.{plugin_name}"  # e.g., clone_plugins.myplugin or plugins.adminplugin
+    import_path = f"{path.parent.name}.{plugin_name}"
 
     if import_path not in sys.modules:
         spec = importlib.util.spec_from_file_location(import_path, path)
@@ -111,12 +103,21 @@ async def watch_plugins(interval=5):
                 reload_plugin_functions(path)
         await asyncio.sleep(interval)
 
+# ---------------- Test Handler ----------------
+@StreamBot.on_message()
+async def test_ping(client, message):
+    if message.text and message.text.lower() == "/ping":
+        await message.reply_text("Pong ✅")
+
 # ---------------- Main Bot Start ----------------
 async def start():
     print("\nInitializing Bot...")
 
-    # Initialize client
-    await initialize_client()
+    # Start client first
+    await StreamBot.start()
+    me = await StreamBot.get_me()
+    StreamBot.username = me.username
+    print(f"✅ StreamBot Started: @{StreamBot.username}")
 
     # Load all plugins initially
     for folder in PLUGIN_DIRS:
@@ -124,7 +125,7 @@ async def start():
         for path in plugin_paths:
             reload_plugin_functions(path)
 
-    # Start hot-reload watcher
+    # Start plugin watcher in background
     asyncio.create_task(watch_plugins(interval=5))
 
     # Start web server
@@ -143,7 +144,7 @@ async def start():
     # Restart plugins/bots if needed
     await restart_bots()
 
-    print("Bot Started.")
+    print("Bot Started and Ready ✅")
     await idle()
 
 # ---------------- Entry Point ----------------
