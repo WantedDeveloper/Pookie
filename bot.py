@@ -10,25 +10,44 @@ from datetime import date, datetime
 import pytz
 from functools import wraps
 
-from pyrogram import idle
+from pyrogram import Client, idle
 from aiohttp import web
-from pyrogram.types import InlineKeyboardButton, InlineKeyboardMarkup
 
-from config import LOG_CHANNEL, PORT, DEBUG_MODE, BOT_USERNAME
+from config import API_ID, API_HASH, BOT_TOKEN, LOG_CHANNEL, PORT, DEBUG_MODE, BOT_USERNAME
 from Script import script
 from TechVJ.server import web_server
 from plugins.start import restart_bots
-from TechVJ.bot import StreamBot
-from TechVJ.bot.clients import initialize_clients
-from plugins.dbusers import db, clonedb  # make sure your db modules are imported
+from plugins.dbusers import db, clonedb  # your DB modules
 
 # ---------------- Logging Setup ----------------
 logging.config.fileConfig('logging.conf')
 logging.getLogger().setLevel(logging.INFO)
 logging.getLogger("pyrogram").setLevel(logging.ERROR)
 
-# ---------------- Plugin Setup ----------------
-PLUGIN_DIR = Path("plugins")
+# ---------------- StreamBot Client ----------------
+StreamBot = Client(
+    name="StreamBot",
+    api_id=API_ID,
+    api_hash=API_HASH,
+    bot_token=BOT_TOKEN,
+    no_updates=True,
+    in_memory=True
+)
+
+async def initialize_client():
+    try:
+        await StreamBot.start()
+        me = await StreamBot.get_me()
+        StreamBot.username = me.username
+        print(f"✅ StreamBot Started: @{StreamBot.username}")
+    except Exception as e:
+        logging.error(f"Failed to start StreamBot: {e}", exc_info=True)
+
+# ---------------- Plugin Hot-Reload ----------------
+PLUGIN_DIRS = [
+    Path("clone_plugins"),  # Clone plugins
+    Path("plugins")         # Owner plugins
+]
 plugin_hashes = {}  # {plugin_path: {function_name: hash}}
 
 def func_hash(func: FunctionType) -> str:
@@ -51,10 +70,9 @@ def wrap_debug(func, plugin_name):
 
 def reload_plugin_functions(path: Path):
     plugin_name = path.stem
-    import_path = f"plugins.{plugin_name}"
+    import_path = f"{path.parent.name}.{plugin_name}"  # e.g., clone_plugins.myplugin or plugins.adminplugin
 
     if import_path not in sys.modules:
-        # First-time import
         spec = importlib.util.spec_from_file_location(import_path, path)
         module = importlib.util.module_from_spec(spec)
         spec.loader.exec_module(module)
@@ -66,13 +84,11 @@ def reload_plugin_functions(path: Path):
                 wrapped = wrap_debug(obj, plugin_name)
                 setattr(module, f, wrapped)
                 plugin_hashes[path][f] = func_hash(obj)
-        print(f"✅ Loaded new plugin: {plugin_name}")
+        print(f"✅ Loaded new plugin: {import_path}")
         return
 
-    # Reload module
     module = sys.modules[import_path]
     importlib.reload(module)
-
     current_hashes = {}
     for f in dir(module):
         obj = getattr(module, f)
@@ -83,14 +99,15 @@ def reload_plugin_functions(path: Path):
             if old_hash != h:
                 wrapped = wrap_debug(obj, plugin_name)
                 setattr(module, f, wrapped)
-                print(f"♻️ Updated function: {plugin_name}.{f}")
+                print(f"♻️ Updated function: {import_path}.{f}")
     plugin_hashes[path] = current_hashes
 
 async def watch_plugins(interval=5):
     while True:
-        plugin_paths = list(PLUGIN_DIR.glob("*.py"))
-        for path in plugin_paths:
-            reload_plugin_functions(path)
+        for folder in PLUGIN_DIRS:
+            plugin_paths = list(folder.glob("*.py"))
+            for path in plugin_paths:
+                reload_plugin_functions(path)
         await asyncio.sleep(interval)
 
 # ---------------- Main Bot Start ----------------
@@ -98,14 +115,15 @@ async def start():
     print("\nInitializing Bot...")
 
     # Initialize client
-    await initialize_clients()
+    await initialize_client()
 
-    # Import all plugins initially
-    plugin_paths = list(PLUGIN_DIR.glob("*.py"))
-    for path in plugin_paths:
-        reload_plugin_functions(path)
+    # Load all plugins initially
+    for folder in PLUGIN_DIRS:
+        plugin_paths = list(folder.glob("*.py"))
+        for path in plugin_paths:
+            reload_plugin_functions(path)
 
-    # Start plugin watcher
+    # Start hot-reload watcher
     asyncio.create_task(watch_plugins(interval=5))
 
     # Start web server
