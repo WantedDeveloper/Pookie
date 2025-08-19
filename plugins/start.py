@@ -435,7 +435,7 @@ async def cb_handler(client: Client, query: CallbackQuery):
             # Default Start Text
             elif action == "default_text":
                 await db.update_clone(bot_id, {"wlc": script.START_TXT})
-                await query.answer(f"🔄 Start message reset to default:\n\n{script.START_TXT}", show_alert=True)
+                await query.answer(f"🔄 Start message reset to default.", show_alert=True)
 
             # Start Photo Menu
             elif action == "start_photo":
