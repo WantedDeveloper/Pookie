@@ -54,8 +54,8 @@ async def start(client, message):
             ]]
 
             clone = await db.get_bot(me.id)
-            start_text = clone.get("wlc")
-            start_pic = clone.get("pics")
+            start_text = clone.get("wlc", script.START_TXT)
+            start_pic = clone.get("pics", None)
 
             if start_pic:
                 return await message.reply_photo(
