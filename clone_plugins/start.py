@@ -53,9 +53,9 @@ async def start(client, message):
                 InlineKeyboardButton('🔒 Close', callback_data='close')
             ]]
 
-            clone = await db.get_bot(me.id)
-            start_text = clone.get("wlc", script.START_TXT)
-            start_pic = clone.get("pics", None)
+            clone = await db.get_bot(me.id) or {}
+            start_text = clone.get("wlc") or script.START_TXT
+            start_pic = clone.get("pics")
 
             if start_pic:
                 return await message.reply_photo(
