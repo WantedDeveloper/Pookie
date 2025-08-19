@@ -54,15 +54,18 @@ async def start(client, message):
                 InlineKeyboardButton('🔒 Close', callback_data='close')
             ]]
 
+            clone = await db.get_bot(me.id)
+            wlc_text = clone.get("wlc") if clone and clone.get("wlc") else WLC
+
             if PICS:
                 return await message.reply_photo(
                     photo=PICS,
-                    caption=WLC.format(user=message.from_user.mention, bot=client.me.mention),
+                    caption=wlc_text.format(user=message.from_user.mention, bot=client.me.mention),
                     reply_markup=InlineKeyboardMarkup(buttons)
                 )
 
             await message.reply_text(
-                WLC.format(user=message.from_user.mention, bot=client.me.mention),
+                wlc_text.format(user=message.from_user.mention, bot=client.me.mention),
                 reply_markup=InlineKeyboardMarkup(buttons)
             )
 
@@ -116,8 +119,10 @@ async def cb_handler(client: Client, query: CallbackQuery):
                 [InlineKeyboardButton('🤖 Create Your Own Clone', url=f'https://t.me/{BOT_USERNAME}')],
                 [InlineKeyboardButton('🔒 Close', callback_data='close')]
             ]
+            clone = await db.get_bot(me.id)
+            wlc_text = clone.get("wlc") if clone and clone.get("wlc") else WLC
             await query.message.edit_text(
-                text=WLC.format(user=query.from_user.mention, bot=me.mention),
+                text=wlc_text.format(user=query.from_user.mention, bot=me.mention),
                 reply_markup=InlineKeyboardMarkup(buttons)
             )
 
