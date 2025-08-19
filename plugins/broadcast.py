@@ -49,8 +49,12 @@ async def verupikkals(bot, message):
             try:
                 b_msg = await bot.ask(
                     message.chat.id,
-                    "📩 <b>Send the message to broadcast</b>\n\n/cancel to stop.",
-                    timeout=60
+                    "📩 <b>Send the message to broadcast</b>\n\n/cancel to stop.\n\n"
+                    "You can also press Cancel below.",
+                    timeout=60,  # 1 min timeout
+                    reply_markup=InlineKeyboardMarkup(
+                        [[InlineKeyboardButton("🚫 Cancel", callback_data="cancle_bd")]]
+                    )
                 )
             except asyncio.TimeoutError:
                 return await message.reply("<b>⏰ Timeout! You didn’t send any message in 60s.</b>")
@@ -198,3 +202,7 @@ async def cancel_broadcast_handler(bot, query):
             if msg_id in broadcast_states:
                 broadcast_states[msg_id]["cancel"] = True
                 await query.answer("🚫 Broadcast Cancelled!", show_alert=True)
+
+    elif query.data == "cancel_bd":
+        await query.message.edit_text("🚫 Process has been canceled.")
+        await query.answer("❌ Cancelled!", show_alert=True)

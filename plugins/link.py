@@ -65,7 +65,7 @@ async def gen_link_s(bot, message):
                 # Otherwise ask user to send file/text/media
                 g_msg = await bot.ask(
                     message.chat.id,
-                    "📩 Please send me the message (file/text/media) to generate a shareable link.\n\n"
+                    "📩 Please send me the message (file/text/media) to generate a shareable link.\n\n/cancel to stop.\n\n"
                     "You can also press Cancel below.",
                     timeout=60,  # 1 min timeout
                     reply_markup=InlineKeyboardMarkup(
