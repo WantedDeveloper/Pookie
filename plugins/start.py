@@ -28,6 +28,7 @@ WAITING_FOR_TOKEN = {}
 WAITING_FOR_WLC = {}
 WAITING_FOR_CLONE_PHOTO = {}
 WAITING_FOR_CLONE_PHOTO_MSG = {}
+AUTO_DELETE_STATE = {}
 
 def get_size(size):
     """Get size in readable format"""
@@ -57,6 +58,12 @@ async def start(client, message):
             await db.add_user(message.from_user.id, message.from_user.first_name)
             await client.send_message(LOG_CHANNEL, script.LOG_TEXT.format(message.from_user.id, message.from_user.mention))
 
+        # Check if user came with argument (?start=clone)
+        if len(message.command) == 2 and message.command[1] == "clone":
+            # 🔽 Directly open your clone menu
+            await show_clone_menu(client, message, message.from_user.id)
+            return
+
         if len(message.command) != 2:
             buttons = [[
                 InlineKeyboardButton('💁‍♀️ Help', callback_data='help'),
@@ -66,13 +73,6 @@ async def start(client, message):
                 ],[
                 InlineKeyboardButton('🔒 Close', callback_data='close')
             ]]
-
-            if PICS:
-                return await message.reply_photo(
-                    photo=PICS,
-                    caption=script.START_TXT.format(user=message.from_user.mention, bot=client.me.mention),
-                    reply_markup=InlineKeyboardMarkup(buttons)
-                )
 
             await message.reply_text(
                 script.START_TXT.format(user=message.from_user.mention, bot=client.me.mention),
@@ -295,7 +295,9 @@ async def show_message_menu(msg, bot_id):
             InlineKeyboardButton('🔄 Default', callback_data=f'default_text_{bot_id}')],
             [InlineKeyboardButton('⬅️ Back', callback_data=f'start_message_{bot_id}')]
         ]
-        await msg.edit_text(text=script.ST_TXT_TXT, reply_markup=InlineKeyboardMarkup(buttons))
+        await msg.edit_text(text=script.ST_TXT_TXT,
+                    reply_markup=InlineKeyboardMarkup(buttons)
+                )
     except Exception as e:
         await client.send_message(LOG_CHANNEL, f"⚠️ Show Message Menu Error:\n\n<code>{e}</code>\n\nKindly check this message to get assistance.")
 
@@ -303,10 +305,13 @@ async def show_photo_menu(msg, bot_id):
     try:
         buttons = [
             [InlineKeyboardButton('➕ Add', callback_data=f'add_photo_{bot_id}'),
+            InlineKeyboardButton('👁️ See', callback_data=f'see_photo_{bot_id}'),
             InlineKeyboardButton('🗑️ Delete', callback_data=f'delete_photo_{bot_id}')],
             [InlineKeyboardButton('⬅️ Back', callback_data=f'start_message_{bot_id}')]
         ]
-        await msg.edit_text(text=script.ST_PIC_TXT, reply_markup=InlineKeyboardMarkup(buttons))
+        await msg.edit_text(text=script.ST_PIC_TXT,
+                    reply_markup=InlineKeyboardMarkup(buttons)
+                )
     except Exception as e:
         await client.send_message(LOG_CHANNEL, f"⚠️ Show Photo Menu Error:\n\n<code>{e}</code>\n\nKindly check this message to get assistance.")
 
@@ -368,7 +373,6 @@ async def cb_handler(client: Client, query: CallbackQuery):
         elif query.data.startswith("manage_"):
             bot_id = query.data.split("_", 1)[1]
             clone = await db.get_clone_by_id(bot_id)
-
             buttons = [
                 [InlineKeyboardButton('📝 Start Message', callback_data=f'start_message_{bot_id}'),
                  InlineKeyboardButton('🔔 Force Subscribe', callback_data=f'force_subscribe_{bot_id}')],
@@ -390,11 +394,12 @@ async def cb_handler(client: Client, query: CallbackQuery):
 
         # Handle per-clone actions
         elif any(query.data.startswith(prefix) for prefix in [
-            "start_message_", "start_text_", "edit_text_", "cancel_edit_", "see_text_", "default_text_", "start_photo_", "add_photo_", "cancel_add_", "delete_photo_", "force_subscribe_", "access_token_", "premium_user_",
+            "start_message_", "start_text_", "edit_text_", "cancel_edit_", "see_text_", "default_text_", "start_photo_", "add_photo_", "cancel_add_", "see_photo_", "delete_photo_", "force_subscribe_", "access_token_", "premium_user_",
             "auto_delete_", "forward_protect_", "moderator_", "status_",
             "activate_deactivate_", "restart_", "delete_", "delete_clone_"
         ]):
             action, bot_id = query.data.rsplit("_", 1)
+            clone = await db.get_clone_by_id(bot_id)
 
             # Start Message Menu
             if action == "start_message":
@@ -405,9 +410,12 @@ async def cb_handler(client: Client, query: CallbackQuery):
                      InlineKeyboardButton('🔻 Header', callback_data=f'help_{bot_id}')],
                     [InlineKeyboardButton('⬅️ Back', callback_data=f'manage_{bot_id}')]
                 ]
-                await query.message.edit_text(text=script.ST_MSG_TXT, reply_markup=InlineKeyboardMarkup(buttons))
+                await query.message.edit_text(
+                    text=script.ST_MSG_TXT,
+                    reply_markup=InlineKeyboardMarkup(buttons)
+                )
 
-            # Start Text
+            # Start Text Menu
             elif action == "start_text":
                 await show_message_menu(query.message, bot_id)
 
@@ -415,7 +423,10 @@ async def cb_handler(client: Client, query: CallbackQuery):
             elif action == "edit_text":
                 WAITING_FOR_WLC[user_id] = (query.message, bot_id)
                 buttons = [[InlineKeyboardButton('❌ Cancel', callback_data=f'cancel_edit_{bot_id}')]]
-                await query.message.edit_text(text=script.EDIT_TXT_TXT, reply_markup=InlineKeyboardMarkup(buttons))
+                await query.message.edit_text(
+                    text=script.EDIT_TXT_TXT,
+                    reply_markup=InlineKeyboardMarkup(buttons)
+                )
 
             # Cancel Edit Text
             elif action == "cancel_edit":
@@ -424,14 +435,12 @@ async def cb_handler(client: Client, query: CallbackQuery):
 
             # See Start Text
             elif action == "see_text":
-                clone = await db.get_clone_by_id(bot_id)
-                start_text = clone.get("wlc", "No text set for this clone.")
+                start_text = clone.get("wlc", script.START_TXT)
                 await query.answer(f"📝 Current Start Message:\n\n{start_text}", show_alert=True)
 
             # Default Start Text
             elif action == "default_text":
-                default_text = script.START_TXT
-                await db.update_clone(bot_id, {"wlc": default_text})
+                await db.update_clone(bot_id, {"wlc": script.START_TXT})
                 await query.answer(f"🔄 Start message reset to default:\n\n{default_text}", show_alert=True)
 
             # Start Photo Menu
@@ -443,13 +452,27 @@ async def cb_handler(client: Client, query: CallbackQuery):
                 WAITING_FOR_CLONE_PHOTO[user_id] = bot_id
                 WAITING_FOR_CLONE_PHOTO_MSG[user_id] = query.message
                 buttons = [[InlineKeyboardButton('❌ Cancel', callback_data=f'cancel_add_{bot_id}')]]
-                await query.message.edit_text(text=script.ADD_PIC_TXT, reply_markup=InlineKeyboardMarkup(buttons))
+                await query.message.edit_text(
+                    text="Send your new start message photo.",
+                    reply_markup=InlineKeyboardMarkup(buttons)
+                )
 
             # Cancel Add Photo
             elif action == "cancel_add":
                 WAITING_FOR_CLONE_PHOTO.pop(user_id, None)
                 WAITING_FOR_CLONE_PHOTO_MSG.pop(user_id, None)
                 await show_photo_menu(query.message, bot_id)
+
+            # See Start Phito
+            elif action == "see_photo":
+                start_photo = clone.get("pics", None)
+                if start_photo:
+                    await query.message.reply_photo(
+                        photo=start_photo,
+                        caption=f"🖼 Current Start Photo for @{clone.get('username')}"
+                    )
+                else:
+                    await query.answer("❌ No start photo set for this clone.", show_alert=True)
 
             # Delete Photo
             elif action == "delete_photo":
@@ -459,27 +482,55 @@ async def cb_handler(client: Client, query: CallbackQuery):
             # Force Subscribe
             elif action == "force_subscribe":
                 buttons = [[InlineKeyboardButton('⬅️ Back', callback_data=f'manage_{bot_id}')]]
-                await query.message.edit_text(text=script.FSUB_TXT, reply_markup=InlineKeyboardMarkup(buttons))
+                await query.message.edit_text(
+                    text=script.FSUB_TXT,
+                    reply_markup=InlineKeyboardMarkup(buttons)
+                )
 
             # Access Token
             elif action == "access_token":
                 buttons = [[InlineKeyboardButton('⬅️ Back', callback_data=f'manage_{bot_id}')]]
-                await query.message.edit_text(text=script.TOKEN_TXT, reply_markup=InlineKeyboardMarkup(buttons))
+                await query.message.edit_text(
+                    text=script.TOKEN_TXT,
+                    reply_markup=InlineKeyboardMarkup(buttons)
+                )
 
             # Premium User
             elif action == "premium_user":
                 buttons = [[InlineKeyboardButton('⬅️ Back', callback_data=f'manage_{bot_id}')]]
-                await query.message.edit_text(text=script.PREMIUM_TXT, reply_markup=InlineKeyboardMarkup(buttons))
+                await query.message.edit_text(
+                    text=script.PREMIUM_TXT,
+                    reply_markup=InlineKeyboardMarkup(buttons)
+                )
 
-            # Auto Delete
+            # Auto Delete Menu
             elif action == "auto_delete":
-                buttons = [[InlineKeyboardButton('⬅️ Back', callback_data=f'manage_{bot_id}')]]
-                await query.message.edit_text(text=script.DELETE_TXT, reply_markup=InlineKeyboardMarkup(buttons))
+                clone = await db.get_auto_delete(bot_id)
+                current = clone.get("auto_delete", False)
+                time_set = clone.get("auto_delete_time", 30)
+                if current:
+                    buttons = [
+                        [InlineKeyboardButton("⏱ Time", callback_data=f"ad_time{bot_id}")],
+                        [InlineKeyboardButton("📝 Message", callback_data=f"ad_message{bot_id}")],
+                        [InlineKeyboardButton("❌ Disable", callback_data=f"ad_status{bot_id}")]
+                    ]
+                    status = f"🟢 Enabled\n⏱ Time: {time_set} minutes\n📝 Msg: {clone.get('auto_delete_msg','')}"
+                else:
+                    buttons = [[InlineKeyboardButton("✅ Enable", callback_data=f"toggle_autodelete_{bot_id}")]]
+                    status = "🔴 Disabled"
+
+                buttons.append([InlineKeyboardButton("⬅️ Back", callback_data=f"manage_{bot_id}")])
+                await query.message.edit_text(
+                    text=script.DELETE_TXT.format(status=f"{status}", reply_markup=InlineKeyboardMarkup(buttons)
+                )
 
             # Forward Protect
             elif action == "forward_protect":
                 buttons = [[InlineKeyboardButton('⬅️ Back', callback_data=f'manage_{bot_id}')]]
-                await query.message.edit_text(text=script.FORWARD_TXT, reply_markup=InlineKeyboardMarkup(buttons))
+                await query.message.edit_text(
+                    text=script.FORWARD_TXT,
+                    reply_markup=InlineKeyboardMarkup(buttons)
+                )
 
             # Moderator Menu
             elif action == "moderator":
@@ -489,11 +540,13 @@ async def cb_handler(client: Client, query: CallbackQuery):
                     InlineKeyboardButton('🔁 Transfer', callback_data=f'transfer_moderator_{bot_id}')],
                     [InlineKeyboardButton('⬅️ Back', callback_data=f'manage_{bot_id}')]
                 ]
-                await query.message.edit_text(text=script.MODERATOR_TXT, reply_markup=InlineKeyboardMarkup(buttons))
+                await query.message.edit_text(
+                    text=script.MODERATOR_TXT,
+                    reply_markup=InlineKeyboardMarkup(buttons)
+                )
 
             # Status
             elif action == "status":
-                clone = await db.get_clone_by_id(bot_id)
                 users_count = clone.get("users_count", 0)
                 storage_used = clone.get("storage_used", 0)
                 storage_limit = clone.get("storage_limit", 536870912)
@@ -518,7 +571,6 @@ async def cb_handler(client: Client, query: CallbackQuery):
 
             # Restart
             elif action == "restart":
-                clone = await db.get_clone_by_id(bot_id)
                 await query.message.edit_text(f"🔄 Restarting clone bot `@{clone['username']}`...\n[░░░░░░░░░░] 0%")
                 for i in range(1, 11):
                     await asyncio.sleep(0.5)
@@ -534,7 +586,10 @@ async def cb_handler(client: Client, query: CallbackQuery):
                     [InlineKeyboardButton('✅ Yes, Sure', callback_data=f'delete_clone_{bot_id}')],
                     [InlineKeyboardButton('❌ No, Go Back', callback_data=f'manage_{bot_id}')]
                 ]
-                await query.message.edit_text(text='⚠️ Are You Sure? Do you want delete your clone bot.', reply_markup=InlineKeyboardMarkup(buttons))
+                await query.message.edit_text(
+                    text='⚠️ Are You Sure? Do you want delete your clone bot.',
+                    reply_markup=InlineKeyboardMarkup(buttons)
+                )
 
             # Delete Clone
             elif action == "delete_clone":

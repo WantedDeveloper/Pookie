@@ -1,6 +1,7 @@
 import re
 from pyrogram import filters, Client, enums
-from pyrogram.types import Message
+from pyrogram.types import Message, InlineKeyboardMarkup, InlineKeyboardButton
+from pyrogram.errors import TimeoutError
 from pyrogram.errors.exceptions.bad_request_400 import ChannelInvalid, UsernameInvalid, UsernameNotModified
 from plugins.dbusers import db
 from config import OWNERS, LOG_CHANNEL
@@ -57,16 +58,27 @@ async def gen_link_s(bot, message):
     try:
         username = (await bot.get_me()).username
 
-        # Ask user to send a message
-        g_msg = await bot.ask(
-            message.chat.id,
-            "📩 Please send me the message (file/text/media) to generate a shareable link.\n\nSend /cancel to stop.",
-            timeout=60   # 1 min timeout
-        )
+        # 🔽 If user replied to a message, use that
+        if message.reply_to_message:
+            g_msg = message.reply_to_message
+        else:
+            try:
+                # Otherwise ask user to send file/text/media
+                g_msg = await bot.ask(
+                    message.chat.id,
+                    "📩 Please send me the message (file/text/media) to generate a shareable link.\n\n"
+                    "You can also press Cancel below.",
+                    timeout=60,  # 1 min timeout
+                    reply_markup=InlineKeyboardMarkup(
+                        [[InlineKeyboardButton("🚫 Cancel", callback_data="cancel_genlink")]]
+                    )
+                )
+            except TimeoutError:
+                return await message.reply("<b>⏰ Timeout! You didn’t send anything in 60 seconds.</b>")
 
-        # Cancel case
-        if g_msg.text and g_msg.text.lower() == '/cancel':
-            return await g_msg.reply("<b>🚫 Process has been canceled.</b>")
+            # Cancel case
+            if g_msg.text and g_msg.text.lower() == '/cancel':
+                return await g_msg.reply("<b>🚫 Process has been canceled.</b>")
 
         # Copy received message to log channel
         post = await g_msg.copy(LOG_CHANNEL)
@@ -85,16 +97,26 @@ async def gen_link_s(bot, message):
         # Shorten if possible
         if user.get("base_site") and user.get("shortener_api") is not None:
             short_link = await get_short_link(user, share_link)
-            await g_msg.reply(
-                f"Here is your link:\n\n{short_link}"
-            )
+            final_link = short_link
         else:
-            await g_msg.reply(
-                f"Here is your link:\n\n{share_link}"
-            )
+            final_link = share_link
+
+        # Inline button (Copy Link)
+        buttons = InlineKeyboardMarkup(
+            [[InlineKeyboardButton("📋 Copy Link", callback_data=f"copylink_{final_link}")]]
+        )
+
+        await message.reply_text(
+            f"Here is your link:\n\n{final_link}",
+            reply_markup=buttons,
+            disable_web_page_preview=True
+        )
 
     except Exception as e:
-        await bot.send_message(LOG_CHANNEL, f"⚠️ Generate Link Error:\n\n<code>{e}</code>\n\nKindly check this message for assistance.")
+        await bot.send_message(
+            LOG_CHANNEL,
+            f"⚠️ Generate Link Error:\n\n<code>{e}</code>\n\nKindly check this message for assistance."
+        )
 
 @Client.on_message(filters.command(['batch']) & filters.user(OWNERS))
 async def gen_link_batch(bot, message):
@@ -172,3 +194,13 @@ async def gen_link_batch(bot, message):
         await sts.edit(f"<b>⭕ ʜᴇʀᴇ ɪs ʏᴏᴜʀ ʟɪɴᴋ:\n\nContains `{og_msg}` files.\n\n🖇️ sʜᴏʀᴛ ʟɪɴᴋ :- {short_link}</b>")
     else:
         await sts.edit(f"<b>⭕ ʜᴇʀᴇ ɪs ʏᴏᴜʀ ʟɪɴᴋ:\n\nContains `{og_msg}` files.\n\n🔗 ᴏʀɪɢɪɴᴀʟ ʟɪɴᴋ :- {share_link}</b>")
+
+@Client.on_callback_query()
+async def copy_link_handler(bot, query):
+    if query.data.startswith("copylink_"):
+        link = query.data.replace("copylink_", "", 1)
+        await query.answer(f"📋 Link copied:\n{link}", show_alert=True)
+
+    elif query.data == "cancel_genlink":
+        await query.message.edit_text("🚫 Process has been canceled.")
+        await query.answer("❌ Cancelled!", show_alert=True)

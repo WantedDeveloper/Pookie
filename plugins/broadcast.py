@@ -1,6 +1,7 @@
 from pyrogram.errors import InputUserDeactivated, UserNotParticipant, FloodWait, UserIsBlocked, PeerIdInvalid
 from plugins.dbusers import db
 from pyrogram import Client, filters
+from pyrogram.types import InlineKeyboardMarkup, InlineKeyboardButton
 from config import OWNERS, LOG_CHANNEL
 import asyncio
 import datetime
@@ -37,17 +38,35 @@ def make_progress_bar(done, total):
 async def verupikkals(bot, message):
     try:
         users = await db.get_all_users()
-        b_msg = await bot.ask(message.chat.id, "📩 <b>Send the message to broadcast</b>\n\n/cancel to stop.")
-        if b_msg.text and b_msg.text.lower() == '/cancel':
-            return await message.reply('<b>🚫 Broadcast cancelled.</b>')
 
-        sts = await message.reply_text("⏳ <b>Broadcast starting...</b>")
+        # 🔽 Support reply-to-message
+        if message.reply_to_message:
+            b_msg = message.reply_to_message
+        else:
+            b_msg = await bot.ask(
+                message.chat.id,
+                "📩 <b>Send the message to broadcast</b>\n\n/cancel to stop."
+            )
+            if b_msg.text and b_msg.text.lower() == '/cancel':
+                return await message.reply('<b>🚫 Broadcast cancelled.</b>')
+
+        # Cancel button
+        buttons = InlineKeyboardMarkup(
+            [[InlineKeyboardButton("🚫 Cancel Broadcast", callback_data="cancel_broadcast")]]
+        )
+
+        sts = await message.reply_text("⏳ <b>Broadcast starting...</b>", reply_markup=buttons)
         start_time = time.time()
         total_users = await db.total_users_count()
 
         done = blocked = deleted = failed = success = 0
+        cancelled = False  # flag
 
         async for user in users:
+            # Check if cancelled
+            if cancelled:
+                break
+
             try:
                 if "id" in user:
                     pti, sh = await broadcast_messages(int(user["id"]), b_msg)
@@ -69,10 +88,13 @@ async def verupikkals(bot, message):
                         elapsed = time.time() - start_time
                         speed = done / elapsed if elapsed > 0 else 0
                         remaining = total_users - done
-                        eta = datetime.timedelta(seconds=int(remaining / speed)) if speed > 0 else "∞"
+                        eta = datetime.timedelta(
+                            seconds=int(remaining / speed)
+                        ) if speed > 0 else "∞"
 
                         try:
-                            await sts.edit(f"""
+                            await sts.edit(
+                                f"""
 📢 <b>Broadcast in Progress...</b>
 
 {progress} {percent:.1f}%
@@ -85,20 +107,25 @@ async def verupikkals(bot, message):
 
 ⏳ <b>ETA:</b> {eta}
 ⚡ <b>Speed:</b> {speed:.2f} users/sec
-""")
+""",
+                                reply_markup=buttons
+                            )
                         except:
                             pass
                 else:
                     done += 1
                     failed += 1
-            except Exception as e:
+            except Exception:
                 failed += 1
                 done += 1
                 continue
 
+        if cancelled:
+            return await sts.edit("🚫 <b>Broadcast cancelled.</b>")
+
         # Final summary
-        time_taken = datetime.timedelta(seconds=int(time.time()-start_time))
-        speed = round(done / (time.time()-start_time), 2) if done > 0 else 0
+        time_taken = datetime.timedelta(seconds=int(time.time() - start_time))
+        speed = round(done / (time.time() - start_time), 2) if done > 0 else 0
         progress_bar = "🟩" * 20
 
         final_text = f"""
@@ -122,11 +149,15 @@ async def verupikkals(bot, message):
 
         await sts.edit(final_text)
 
-        # Log summary to LOG_CHANNEL for all admins
-        #try:
-            #await bot.send_message(LOG_CHANNEL, f"📢 **Broadcast Summary**\n\n{final_text}")
-        #except:
-            #pass
-
     except Exception as e:
-        await bot.send_message(LOG_CHANNEL, f"⚠️ Broadcast Error:\n\n<code>{e}</code>\n\nKindly check this message for assistance.")
+        await bot.send_message(
+            LOG_CHANNEL,
+            f"⚠️ Broadcast Error:\n\n<code>{e}</code>\n\nKindly check this message for assistance."
+        )
+
+@Client.on_callback_query()
+async def cancel_broadcast_handler(bot, query):
+    global cancelled
+    if query.data == "cancel_broadcast":
+        cancelled = True
+        await query.answer("🚫 Broadcast Cancelled!", show_alert=True)

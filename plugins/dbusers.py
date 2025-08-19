@@ -43,12 +43,18 @@ class Database:
             'name': first_name,
             'username': username,
             'token': bot_token,
+            # Start Message
             'wlc': script.START_TXT,
             'pics': None,
+            # Auto Delete
+            'auto_delete': False,
+            'auto_delete_time': 30,
+            'auto_delete_msg': "⚠️ This message has been auto-deleted.",
+            # Status
             'users_count': 0,
+            'banned_users': [],
             'storage_used': 0,
-            'storage_limit': 536870912,  # 512 MB default
-            'banned_users': []
+            'storage_limit': 536870912 # 512 MB default
         }
         await self.bot.insert_one(settings)
 
@@ -70,6 +76,19 @@ class Database:
     async def delete_clone(self, bot_id):
         await self.bot.delete_one({'bot_id': int(bot_id)})
         await self.settings.delete_many({'bot_id': int(bot_id)})
+
+    async def set_auto_delete(self, bot_id, value: bool):
+        await self.bot.update_one({"bot_id": int(bot_id)}, {"$set": {"auto_delete": value}})
+
+    async def set_auto_delete_time(self, bot_id, minutes: int):
+        await self.bot.update_one({"bot_id": int(bot_id)}, {"$set": {"auto_delete_time": minutes}})
+
+    async def set_auto_delete_msg(self, bot_id, text: str):
+        await self.bot.update_one({"bot_id": int(bot_id)}, {"$set": {"auto_delete_msg": text}})
+
+    async def get_auto_delete(self, bot_id):
+        clone = await self.bot.find_one({"bot_id": int(bot_id)})
+        return clone if clone else {}
 
     async def increment_users_count(self, bot_id):
         await self.bot.update_one({'bot_id': int(bot_id)}, {'$inc': {'users_count': 1}})
