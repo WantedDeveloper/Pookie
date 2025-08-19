@@ -1,4 +1,4 @@
-from pyrogram.errors import InputUserDeactivated, UserNotParticipant, FloodWait, UserIsBlocked, PeerIdInvalid, TimeoutError
+from pyrogram.errors import InputUserDeactivated, UserNotParticipant, FloodWait, UserIsBlocked, PeerIdInvalid
 from pyrogram.errors import TimeoutError
 from plugins.dbusers import db
 from pyrogram import Client, filters
