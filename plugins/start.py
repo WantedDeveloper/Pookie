@@ -535,7 +535,7 @@ async def cb_handler(client: Client, query: CallbackQuery):
             elif action == "auto_delete":
                 current = clone.get("auto_delete", False)
                 time_set = clone.get("auto_delete_time", 30)
-                msg_set = clone.get("auto_delete_time", 30)
+                msg_set = clone.get("auto_delete_msg", script.AD_TXT)
                 if current:
                     buttons = [
                         [InlineKeyboardButton("⏱ Time", callback_data=f"ad_time_{bot_id}")],
@@ -554,8 +554,9 @@ async def cb_handler(client: Client, query: CallbackQuery):
 
             # Status
             elif action == "ad_status":
-                new_value = clone.get("auto_delete", True)
-                await db.update_clone(bot_id, {"auto_delete": new_value})
+                clone = await db.get_auto_delete(bot_id)
+                new_value = not clone.get("auto_delete", False)
+                await db.set_auto_delete(bot_id, new_value)
                 await query.answer("✅ Auto Delete updated!", show_alert=True)
 
             # Time Menu
