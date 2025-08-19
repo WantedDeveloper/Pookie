@@ -17,7 +17,8 @@ from config import API_ID, API_HASH, BOT_TOKEN, LOG_CHANNEL, PORT, DEBUG_MODE, B
 from Script import script
 from TechVJ.server import web_server
 from plugins.start import restart_bots
-from plugins.dbusers import db, clonedb  # your DB modules
+from plugins.dbusers import db  # your DB modules
+from clone_plugins.dbusers import clonedb  # your DB modules
 
 # ---------------- Logging Setup ----------------
 logging.config.fileConfig('logging.conf')
