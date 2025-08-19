@@ -1,8 +1,8 @@
+from pyrogram.errors import TimeoutError
 from pyrogram.errors import InputUserDeactivated, UserNotParticipant, FloodWait, UserIsBlocked, PeerIdInvalid, TimeoutError
 from plugins.dbusers import db
 from pyrogram import Client, filters
 from pyrogram.types import InlineKeyboardMarkup, InlineKeyboardButton
-from pyrogram.errors import TimeoutError
 from config import OWNERS, LOG_CHANNEL
 import asyncio
 import datetime
