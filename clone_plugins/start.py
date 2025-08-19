@@ -5,11 +5,13 @@ import asyncio
 from Script import script
 from validators import domain
 from clone_plugins.dbusers import clonedb
+from clone_plugins.users_api import get_user, update_user_info
 from pyrogram import Client, filters, enums
-from plugins.dbusers import db
+from plugins.clone import mongo_db
 from pyrogram.errors import ChatAdminRequired, FloodWait
-from config import *
+from config import BOT_USERNAME, ADMINS
 from pyrogram.types import InlineKeyboardButton, InlineKeyboardMarkup, Message, CallbackQuery, InputMediaPhoto
+from config import PICS, CUSTOM_FILE_CAPTION, AUTO_DELETE_TIME, AUTO_DELETE
 import re
 import json
 import base64
@@ -29,48 +31,25 @@ def get_size(size):
 
 @Client.on_message(filters.command("start") & filters.incoming)
 async def start(client, message):
-    await message.delete()
-    try:
-        me = await client.get_me()
-
-        # Check banned users
-        banned = await db.get_banned_users(me.id)
-        if message.from_user.id in banned:
-            return await message.reply_text("🚫 You are banned from using this bot.")
-
-        # Track new users
-        if not await clonedb.is_user_exist(me.id, message.from_user.id):
-            await clonedb.add_user(me.id, message.from_user.id)
-            await db.increment_users_count(me.id)
-
-        if len(message.command) != 2:
-            buttons = [[
-                InlineKeyboardButton('💁‍♀️ Help', callback_data='help'),
-                InlineKeyboardButton('😊 About', callback_data='about')
-                ],[
-                InlineKeyboardButton('🤖 Create Your Own Clone', url=f'https://t.me/{BOT_USERNAME}?start=clone')
-                ],[
-                InlineKeyboardButton('🔒 Close', callback_data='close')
-            ]]
-
-            clone = await db.get_bot(me.id)
-            start_text = clone.get("wlc") or script.START_TXT
-            start_pic = clone.get("pics") or None
-
-            if start_pic:
-                return await message.reply_photo(
-                    photo=start_pic,
-                    caption=start_text.format(user=message.from_user.mention, bot=client.me.mention),
-                    reply_markup=InlineKeyboardMarkup(buttons)
-                )
-
-            await message.reply_text(
-                start_text.format(user=message.from_user.mention, bot=client.me.mention),
-                reply_markup=InlineKeyboardMarkup(buttons)
-            )
-
-    except Exception as e:
-        await client.send_message(LOG_CHANNEL, f"⚠️ Clone Start Bot Error:\n\n<code>{e}</code>\n\nKindly check this message to get assistance.")
+    me = await client.get_me()
+    if not await clonedb.is_user_exist(me.id, message.from_user.id):
+        await clonedb.add_user(me.id, message.from_user.id)
+    if len(message.command) != 2:
+        buttons = [[
+            InlineKeyboardButton('💝 sᴜʙsᴄʀɪʙᴇ ᴍʏ ʏᴏᴜᴛᴜʙᴇ ᴄʜᴀɴɴᴇʟ', url='https://youtube.com/@Tech_VJ')
+        ],[
+            InlineKeyboardButton('🤖 ᴄʀᴇᴀᴛᴇ ʏᴏᴜʀ ᴏᴡɴ ᴄʟᴏɴᴇ ʙᴏᴛ', url=f'https://t.me/{BOT_USERNAME}?start=clone')
+        ],[
+            InlineKeyboardButton('💁‍♀️ ʜᴇʟᴘ', callback_data='help'),
+            InlineKeyboardButton('ᴀʙᴏᴜᴛ 🔻', callback_data='about')
+        ]]
+        reply_markup = InlineKeyboardMarkup(buttons)
+        await message.reply_photo(
+            photo=random.choice(PICS),
+            caption=script.CLONE_START_TXT.format(message.from_user.mention, me.mention),
+            reply_markup=reply_markup
+        )
+        return
 
     data = message.command[1]
     try:
@@ -88,9 +67,8 @@ async def start(client, message):
         )
         filetype = msg.media
         file = getattr(msg, filetype.value)
-        title = '@PookieManagerBot  ' + ' '.join(filter(lambda x: not x.startswith('[') and not x.startswith('@'), file.file_name.split()))
+        title = '@VJ_Botz  ' + ' '.join(filter(lambda x: not x.startswith('[') and not x.startswith('@'), file.file_name.split()))
         size=get_size(file.file_size)
-        await db.add_storage_used(me.id, file.file_size)
         f_caption = f"<code>{title}</code>"
         if CUSTOM_FILE_CAPTION:
             try:
@@ -98,80 +76,108 @@ async def start(client, message):
             except:
                 return
         await msg.edit_caption(f_caption)
-        if clone and clone.get("auto_delete", False):
-            ad_time = clone.get("auto_delete_time", 30)
-            ad_msg = clone.get("auto_delete_msg", script.AD_TXT)
-            asyncio.create_task(auto_delete_message(client, msg, ad_time, ad_msg.format(time=f"{ad_time} minutes")))
+        k = await msg.reply(f"<b><u>❗️❗️❗️IMPORTANT❗️️❗️❗️</u></b>\n\nThis Movie File/Video will be deleted in <b><u>{AUTO_DELETE} mins</u> 🫥 <i></b>(Due to Copyright Issues)</i>.\n\n<b><i>Please forward this File/Video to your Saved Messages and Start Download there</i></b>",quote=True)
+        await asyncio.sleep(AUTO_DELETE_TIME)
+        await msg.delete()
+        await k.edit_text("<b>Your File/Video is successfully deleted!!!</b>")
+        return
     except:
         pass
 
-async def auto_delete_message(client, msg, delay, ad_msg):
-    try:
-        await asyncio.sleep(delay)
-        await msg.delete()
-        await client.send_message(msg.chat.id, ad_msg)
-    except Exception as e:
-        await client.send_message(
-            LOG_CHANNEL,
-            f"⚠️ Clone Auto Delete Message Error:\n\n<code>{e}</code>\n\nKindly check this message for assistance."
-        )
+@Client.on_message(filters.command('api') & filters.private)
+async def shortener_api_handler(client, m: Message):
+    user_id = m.from_user.id
+    user = await get_user(user_id)
+    cmd = m.command
+
+    if len(cmd) == 1:
+        s = script.SHORTENER_API_MESSAGE.format(base_site=user["base_site"], shortener_api=user["shortener_api"])
+        return await m.reply(s)
+
+    elif len(cmd) == 2:    
+        api = cmd[1].strip()
+        await update_user_info(user_id, {"shortener_api": api})
+        await m.reply("Shortener API updated successfully to " + api)
+    else:
+        await m.reply("You are not authorized to use this command.")
+
+@Client.on_message(filters.command("base_site") & filters.private)
+async def base_site_handler(client, m: Message):
+    user_id = m.from_user.id
+    user = await get_user(user_id)
+    cmd = m.command
+    text = f"/base_site (base_site)\n\nCurrent base site: None\n\n EX: /base_site shortnerdomain.com\n\nIf You Want To Remove Base Site Then Copy This And Send To Bot - `/base_site None`"
+    
+    if len(cmd) == 1:
+        return await m.reply(text=text, disable_web_page_preview=True)
+    elif len(cmd) == 2:
+        base_site = cmd[1].strip()
+        if not domain(base_site):
+            return await m.reply(text=text, disable_web_page_preview=True)
+        await update_user_info(user_id, {"base_site": base_site})
+        await m.reply("Base Site updated successfully")
+    else:
+        await m.reply("You are not authorized to use this command.")
 
 @Client.on_callback_query()
 async def cb_handler(client: Client, query: CallbackQuery):
-    try:
-        me = await client.get_me()
-
-        # Start Menu
-        if query.data == "start":
-            buttons = [
-                [InlineKeyboardButton('💁‍♀️ Help', callback_data='help'),
-                 InlineKeyboardButton('ℹ️ About', callback_data='about')],
-                [InlineKeyboardButton('🤖 Create Your Own Clone', url=f'https://t.me/{BOT_USERNAME}?start=clone')],
-                [InlineKeyboardButton('🔒 Close', callback_data='close')]
-            ]
-            clone = await db.get_bot(me.id)
-            start_text = clone.get("wlc") or script.START_TXT
-            await query.message.edit_text(
-                text=start_text.format(user=query.from_user.mention, bot=me.mention),
-                reply_markup=InlineKeyboardMarkup(buttons)
-            )
-
-        # Help
-        elif query.data == "help":
-            buttons = [[InlineKeyboardButton('⬅️ Back', callback_data='start')]]
-            await query.message.edit_text(
-                text=script.HELP_TXT,
-                reply_markup=InlineKeyboardMarkup(buttons)
-            )
-
-        # About
-        elif query.data == "about":
-            buttons = [[InlineKeyboardButton('⬅️ Back', callback_data='start')]]
-            owner = await db.get_bot(me.id)
-            ownerid = int(owner['user_id'])
-            await query.message.edit_text(
-                text=script.CABOUT_TXT.format(bot=me.mention, developer=ownerid),
-                reply_markup=InlineKeyboardMarkup(buttons)
-            )
-
-        # Close
-        elif query.data == "close":
-            await query.message.delete()
-            await query.message.reply_text("❌ Menu closed. Send /start again.")
-
-        # Optional: Handle unknown callback
-        else:
-            await client.send_message(
-                LOG_CHANNEL,
-                f"⚠️ Clone Unknown Callback Data Received:\n\n{query.data}\n\nUser: {query.from_user.id}\n\nKindly check this message for assistance."
-            )
-            await query.answer("⚠️ Unknown action.", show_alert=True)
-
-    except Exception as e:
-        # Send error to log channel
-        await client.send_message(
-            LOG_CHANNEL,
-            f"⚠️ Clone Callback Handler Error:\n\n<code>{e}</code>\n\nKindly check this message for assistance."
+    me = await client.get_me()
+    if query.data == "close_data":
+        await query.message.delete()
+    elif query.data == "start":
+        buttons = [[
+            InlineKeyboardButton('💝 sᴜʙsᴄʀɪʙᴇ ᴍʏ ʏᴏᴜᴛᴜʙᴇ ᴄʜᴀɴɴᴇʟ', url='https://youtube.com/@Tech_VJ')
+            ],[
+            InlineKeyboardButton('🤖 ᴄʀᴇᴀᴛᴇ ʏᴏᴜʀ ᴏᴡɴ ᴄʟᴏɴᴇ ʙᴏᴛ', url=f'https://t.me/{BOT_USERNAME}?start=clone')
+            ],[
+            InlineKeyboardButton('💁‍♀️ ʜᴇʟᴘ', callback_data='help'),
+            InlineKeyboardButton('ᴀʙᴏᴜᴛ 🔻', callback_data='about')
+        ]]
+        
+        reply_markup = InlineKeyboardMarkup(buttons)
+        await client.edit_message_media(
+            query.message.chat.id, 
+            query.message.id, 
+            InputMediaPhoto(random.choice(PICS))
         )
-        # Optionally notify user
-        await query.answer("❌ An error occurred. The admin has been notified.", show_alert=True)
+        await query.message.edit_text(
+            text=script.CLONE_START_TXT.format(query.from_user.mention, me.mention),
+            reply_markup=reply_markup,
+            parse_mode=enums.ParseMode.HTML
+        )
+
+    elif query.data == "help":
+        buttons = [[
+            InlineKeyboardButton('Hᴏᴍᴇ', callback_data='start'),
+            InlineKeyboardButton('🔒 Cʟᴏsᴇ', callback_data='close_data')
+        ]]
+        await client.edit_message_media(
+            query.message.chat.id, 
+            query.message.id, 
+            InputMediaPhoto(random.choice(PICS))
+        )
+        reply_markup = InlineKeyboardMarkup(buttons)
+        await query.message.edit_text(
+            text=script.CHELP_TXT,
+            reply_markup=reply_markup,
+            parse_mode=enums.ParseMode.HTML
+        )  
+
+    elif query.data == "about":
+        buttons = [[
+            InlineKeyboardButton('Hᴏᴍᴇ', callback_data='start'),
+            InlineKeyboardButton('🔒 Cʟᴏsᴇ', callback_data='close_data')
+        ]]
+        await client.edit_message_media(
+            query.message.chat.id, 
+            query.message.id, 
+            InputMediaPhoto(random.choice(PICS))
+        )
+        owner = mongo_db.bots.find_one({'bot_id': me.id})
+        ownerid = int(owner['user_id'])
+        reply_markup = InlineKeyboardMarkup(buttons)
+        await query.message.edit_text(
+            text=script.CABOUT_TXT.format(me.mention, ownerid),
+            reply_markup=reply_markup,
+            parse_mode=enums.ParseMode.HTML
+        )  
