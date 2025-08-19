@@ -64,20 +64,19 @@ async def start(client, message):
             await show_clone_menu(client, message, message.from_user.id)
             return
 
-        if len(message.command) != 2:
-            buttons = [[
-                InlineKeyboardButton('💁‍♀️ Help', callback_data='help'),
-                InlineKeyboardButton('😊 About', callback_data='about')
-                ],[
-                InlineKeyboardButton('🤖 Create Your Own Clone', callback_data='clone')
-                ],[
-                InlineKeyboardButton('🔒 Close', callback_data='close')
-            ]]
+        buttons = [[
+            InlineKeyboardButton('💁‍♀️ Help', callback_data='help'),
+            InlineKeyboardButton('😊 About', callback_data='about')
+            ],[
+            InlineKeyboardButton('🤖 Create Your Own Clone', callback_data='clone')
+            ],[
+            InlineKeyboardButton('🔒 Close', callback_data='close')
+        ]]
 
-            await message.reply_text(
-                script.START_TXT.format(user=message.from_user.mention, bot=client.me.mention),
-                reply_markup=InlineKeyboardMarkup(buttons)
-            )
+        await message.reply_text(
+            script.START_TXT.format(user=message.from_user.mention, bot=client.me.mention),
+            reply_markup=InlineKeyboardMarkup(buttons)
+        )
 
     except Exception as e:
         await client.send_message(LOG_CHANNEL, f"⚠️ Start Bot Error:\n\n<code>{e}</code>\n\nKindly check this message to get assistance.")
