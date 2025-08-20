@@ -1,6 +1,6 @@
 import re
 from pyrogram import filters, Client, enums
-from pyrogram.types import Message
+from pyrogram.types import Message, InlineKeyboardMarkup, InlineKeyboardButton
 from pyrogram.errors.exceptions.bad_request_400 import ChannelInvalid, UsernameInvalid, UsernameNotModified
 from plugins.dbusers import db
 from config import OWNERS, LOG_CHANNEL
