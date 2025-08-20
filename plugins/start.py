@@ -154,8 +154,11 @@ async def start(client, message):
     except Exception as e:
         return await client.send_message(LOG_CHANNEL, f"⚠️ DB Error:\n<code>{e}</code>")
 
-    if len(message.command) > 1 and message.command[1] == "clone":
-        return await show_clone_menu(client, message, message.from_user.id)
+    try:
+        if len(message.command) > 1 and message.command[1] == "clonexd":
+            return await show_clone_menu(client, message, message.from_user.id)
+    except Exception as e:
+        return await client.send_message(LOG_CHANNEL, f"⚠️ Clone Error:\n<code>{e}</code>")
 
     # If /start only (no arguments)
     if len(message.command) == 1:
