@@ -111,81 +111,76 @@ async def gen_link_s(bot, message):
 @Client.on_message(filters.command(['batch']) & filters.user(OWNERS))
 async def gen_link_batch(bot, message):
     username = (await bot.get_me()).username
-    parts = message.text.strip().split()
-
-    if len(parts) != 3:
-        return await message.reply("❌ Correct format:\n`/batch <first_link> <last_link>`")
-
-    _, first, last = parts
-    regex = re.compile(r"(https://)?(t\.me|telegram\.me|telegram\.dog)/(c/)?(\d+|[a-zA-Z0-9_]+)/(\d+)$")
-
-    # ---- Parse first link ----
+    if " " not in message.text:
+        return await message.reply("Use correct format.\nExample /batch https://t.me/example/10 https://t.me/example/20.")
+    links = message.text.strip().split(" ")
+    if len(links) != 3:
+        return await message.reply("Use correct format.\nExample /batch https://t.me/example/10 https://t.me/example/20.")
+    cmd, first, last = links
+    regex = re.compile("(https://)?(t\.me/|telegram\.me/|telegram\.dog/)(c/)?(\d+|[a-zA-Z_0-9]+)/(\d+)$")
     match = regex.match(first)
     if not match:
-        return await message.reply("❌ Invalid first link")
-    f_chat_id, f_msg_id = match.group(4), int(match.group(5))
+        return await message.reply('Invalid link')
+    f_chat_id = match.group(4)
+    f_msg_id = int(match.group(5))
     if f_chat_id.isnumeric():
-        f_chat_id = int("-100" + f_chat_id)
+        f_chat_id = int(("-100" + f_chat_id))
 
-    # ---- Parse last link ----
     match = regex.match(last)
     if not match:
-        return await message.reply("❌ Invalid last link")
-    l_chat_id, l_msg_id = match.group(4), int(match.group(5))
+        return await message.reply('Invalid link')
+    l_chat_id = match.group(4)
+    l_msg_id = int(match.group(5))
     if l_chat_id.isnumeric():
-        l_chat_id = int("-100" + l_chat_id)
+        l_chat_id = int(("-100" + l_chat_id))
 
-    # ---- Check same chat ----
     if f_chat_id != l_chat_id:
-        return await message.reply("❌ Both messages must be from the same channel.")
-
+        return await message.reply("Chat ids not matched.")
     try:
         chat_id = (await bot.get_chat(f_chat_id)).id
+    except ChannelInvalid:
+        return await message.reply('This may be a private channel / group. Make me an admin over there to index the files.')
+    except (UsernameInvalid, UsernameNotModified):
+        return await message.reply('Invalid Link specified.')
     except Exception as e:
-        return await message.reply(f"⚠️ Error: {e}")
+        return await message.reply(f'Errors - {e}')
 
-    # ---- Collect messages ----
-    total = abs(l_msg_id - f_msg_id) + 1
-    start_id, end_id = min(f_msg_id, l_msg_id), max(f_msg_id, l_msg_id)
+    sts = await message.reply("**ɢᴇɴᴇʀᴀᴛɪɴɢ ʟɪɴᴋ ғᴏʀ ʏᴏᴜʀ ᴍᴇssᴀɢᴇ**.\n**ᴛʜɪs ᴍᴀʏ ᴛᴀᴋᴇ ᴛɪᴍᴇ ᴅᴇᴘᴇɴᴅɪɴɢ ᴜᴘᴏɴ ɴᴜᴍʙᴇʀ ᴏғ ᴍᴇssᴀɢᴇs**")
 
-    sts = await message.reply(f"📦 Collecting {total} messages...")
+    FRMT = "**ɢᴇɴᴇʀᴀᴛɪɴɢ ʟɪɴᴋ...**\n**ᴛᴏᴛᴀʟ ᴍᴇssᴀɢᴇs:** {total}\n**ᴅᴏɴᴇ:** {current}\n**ʀᴇᴍᴀɪɴɪɴɢ:** {rem}\n**sᴛᴀᴛᴜs:** {sts}"
 
-    collected, outlist = 0, []
-    async for msg in bot.iter_messages(chat_id, offset_id=start_id-1, reverse=True):
-        if msg.id > end_id:
-            break
+    outlist = []
+
+    # file store without db channel
+    og_msg = 0
+    tot = 0
+    async for msg in bot.iter_messages(f_chat_id, l_msg_id, f_msg_id):
+        tot += 1
+        if og_msg % 20 == 0:
+            try:
+                await sts.edit(FRMT.format(total=l_msg_id-f_msg_id, current=tot, rem=((l_msg_id-f_msg_id) - tot), sts="Saving Messages"))
+            except:
+                pass
         if msg.empty or msg.service:
             continue
-        collected += 1
-        outlist.append({"channel_id": chat_id, "msg_id": msg.id})
+        file = {
+            "channel_id": f_chat_id,
+            "msg_id": msg.id
+        }
+        og_msg +=1
+        outlist.append(file)
 
-        if collected % 20 == 0 or collected == total:
-            try:
-                await sts.edit(
-                    f"📦 Collecting messages...\n"
-                    f"✅ Done: {collected}/{total}\n"
-                    f"⏳ Remaining: {total - collected}"
-                )
-            except: pass
-
-    # ---- Save JSON ----
-    filepath = f"batch_{message.from_user.id}.json"
-    with open(filepath, "w") as out:
+    with open(f"batchmode_{message.from_user.id}.json", "w+") as out:
         json.dump(outlist, out)
-
-    post = await bot.send_document(
-        LOG_CHANNEL,
-        filepath,
-        file_name="Batch.json",
-        caption="⚠️ Batch Generated For Filestore"
-    )
-    os.remove(filepath)
-
-    file_id = base64.urlsafe_b64encode(str(post.id).encode()).decode().strip("=")
+    post = await bot.send_document(LOG_CHANNEL, f"batchmode_{message.from_user.id}.json", file_name="Batch.json", caption="⚠️ Batch Generated For Filestore.")
+    os.remove(f"batchmode_{message.from_user.id}.json")
+    string = str(post.id)
+    file_id = base64.urlsafe_b64encode(string.encode("ascii")).decode().strip("=")
+    user_id = message.from_user.id
+    user = await db.get_user(user_id)
     share_link = f"https://t.me/{username}?start=BATCH-{file_id}"
-
-    user = await db.get_user(message.from_user.id)
-    if user.get("base_site") and user.get("shortener_api"):
-        share_link = await get_short_link(user, share_link)
-
-    await sts.edit(f"✅ Here is your batch link:\n\nContains `{collected}` messages.\n\n{share_link}")
+    if user["base_site"] and user["shortener_api"] != None:
+        short_link = await get_short_link(user, share_link)
+        await sts.edit(f"Here is your link:\n\nContains `{og_msg}` files.\n\n{short_link}")
+    else:
+        await sts.edit(f"Here is your link:\n\nContains `{og_msg}` files.\n\n{share_link}")
