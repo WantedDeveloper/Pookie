@@ -49,6 +49,91 @@ def formate_file_name(file_name):
     file_name = '@PookieManagerBot ' + ' '.join(filter(lambda x: not x.startswith('http') and not x.startswith('@') and not x.startswith('www.'), file_name.split()))
     return file_name
 
+async def show_clone_menu(client, message, user_id):
+    try:
+        clones = await db.get_clone(user_id)
+        buttons = []
+
+        if clones:
+            # ✅ show list of clones
+            for clone in clones:
+                bot_name = clone.get("name", f"Clone {clone['bot_id']}")
+                buttons.append([InlineKeyboardButton(f'⚙️ {bot_name}', callback_data=f'manage_{clone["bot_id"]}')])
+        else:
+            # ✅ no clones, show Add Clone button
+            buttons.append([InlineKeyboardButton("➕ Add Clone", callback_data="add_clone")])
+
+        # common back button
+        buttons.append([InlineKeyboardButton('⬅️ Back', callback_data='start')])
+
+        await message.edit_text(
+            script.MANAGEC_TXT,
+            reply_markup=InlineKeyboardMarkup(buttons)
+        )
+
+    except Exception as e:
+        await client.send_message(LOG_CHANNEL, f"⚠️ Show Clone Menu Error:\n\n<code>{e}</code>\n\nKindly check this message to get assistance.")
+
+async def show_text_menu(msg, bot_id):
+    try:
+        buttons = [
+            [InlineKeyboardButton('✏️ Edit', callback_data=f'edit_text_{bot_id}'),
+            InlineKeyboardButton('👁️ See', callback_data=f'see_text_{bot_id}'),
+            InlineKeyboardButton('🔄 Default', callback_data=f'default_text_{bot_id}')],
+            [InlineKeyboardButton('⬅️ Back', callback_data=f'start_message_{bot_id}')]
+        ]
+        await msg.edit_text(
+            text=script.ST_TXT_TXT,
+            reply_markup=InlineKeyboardMarkup(buttons)
+        )
+    except Exception as e:
+        await client.send_message(LOG_CHANNEL, f"⚠️ Show Text Menu Error:\n\n<code>{e}</code>\n\nKindly check this message to get assistance.")
+
+async def show_photo_menu(msg, bot_id):
+    try:
+        buttons = [
+            [InlineKeyboardButton('➕ Add', callback_data=f'add_photo_{bot_id}'),
+            InlineKeyboardButton('👁️ See', callback_data=f'see_photo_{bot_id}'),
+            InlineKeyboardButton('🗑️ Delete', callback_data=f'delete_photo_{bot_id}')],
+            [InlineKeyboardButton('⬅️ Back', callback_data=f'start_message_{bot_id}')]
+        ]
+        await msg.edit_text(
+            text=script.ST_PIC_TXT,
+            reply_markup=InlineKeyboardMarkup(buttons)
+        )
+    except Exception as e:
+        await client.send_message(LOG_CHANNEL, f"⚠️ Show Photo Menu Error:\n\n<code>{e}</code>\n\nKindly check this message to get assistance.")
+
+async def show_time_menu(msg, bot_id):
+    try:
+        buttons = [
+            [InlineKeyboardButton('✏️ Edit', callback_data=f'edit_adtime_{bot_id}'),
+            InlineKeyboardButton('👁️ See', callback_data=f'see_adtime_{bot_id}'),
+            InlineKeyboardButton('🔄 Default', callback_data=f'default_adtime_{bot_id}')],
+            [InlineKeyboardButton('⬅️ Back', callback_data=f'auto_delete_{bot_id}')]
+        ]
+        await msg.edit_text(
+            text=script.AD_TIME_TXT,
+            reply_markup=InlineKeyboardMarkup(buttons)
+        )
+    except Exception as e:
+        await client.send_message(LOG_CHANNEL, f"⚠️ Show Time Menu Error:\n\n<code>{e}</code>\n\nKindly check this message to get assistance.")
+
+async def show_message_menu(msg, bot_id):
+    try:
+        buttons = [
+            [InlineKeyboardButton('✏️ Edit', callback_data=f'edit_admessage_{bot_id}'),
+            InlineKeyboardButton('👁️ See', callback_data=f'see_admessage_{bot_id}'),
+            InlineKeyboardButton('🔄 Default', callback_data=f'default_admessage_{bot_id}')],
+            [InlineKeyboardButton('⬅️ Back', callback_data=f'auto_delete_{bot_id}')]
+        ]
+        await msg.edit_text(
+            text=script.AD_MSG_TXT,
+            reply_markup=InlineKeyboardMarkup(buttons)
+        )
+    except Exception as e:
+        await client.send_message(LOG_CHANNEL, f"⚠️ Show Message Menu Error:\n\n<code>{e}</code>\n\nKindly check this message to get assistance.")
+
 @Client.on_message(filters.command("start") & filters.incoming)
 async def start(client, message):
     try:
@@ -218,91 +303,6 @@ async def start(client, message):
                 await msg.copy(chat_id=message.from_user.id, protect_content=False)
         except Exception as e:
             await message.reply_text(f"<b>Failed to fetch file:</b> <code>{e}</code>")
-
-async def show_clone_menu(client, message, user_id):
-    try:
-        clones = await db.get_clone(user_id)
-        buttons = []
-
-        if clones:
-            # ✅ show list of clones
-            for clone in clones:
-                bot_name = clone.get("name", f"Clone {clone['bot_id']}")
-                buttons.append([InlineKeyboardButton(f'⚙️ {bot_name}', callback_data=f'manage_{clone["bot_id"]}')])
-        else:
-            # ✅ no clones, show Add Clone button
-            buttons.append([InlineKeyboardButton("➕ Add Clone", callback_data="add_clone")])
-
-        # common back button
-        buttons.append([InlineKeyboardButton('⬅️ Back', callback_data='start')])
-
-        await message.edit_text(
-            script.MANAGEC_TXT,
-            reply_markup=InlineKeyboardMarkup(buttons)
-        )
-
-    except Exception as e:
-        await client.send_message(LOG_CHANNEL, f"⚠️ Show Clone Menu Error:\n\n<code>{e}</code>\n\nKindly check this message to get assistance.")
-
-async def show_text_menu(msg, bot_id):
-    try:
-        buttons = [
-            [InlineKeyboardButton('✏️ Edit', callback_data=f'edit_text_{bot_id}'),
-            InlineKeyboardButton('👁️ See', callback_data=f'see_text_{bot_id}'),
-            InlineKeyboardButton('🔄 Default', callback_data=f'default_text_{bot_id}')],
-            [InlineKeyboardButton('⬅️ Back', callback_data=f'start_message_{bot_id}')]
-        ]
-        await msg.edit_text(
-            text=script.ST_TXT_TXT,
-            reply_markup=InlineKeyboardMarkup(buttons)
-        )
-    except Exception as e:
-        await client.send_message(LOG_CHANNEL, f"⚠️ Show Text Menu Error:\n\n<code>{e}</code>\n\nKindly check this message to get assistance.")
-
-async def show_photo_menu(msg, bot_id):
-    try:
-        buttons = [
-            [InlineKeyboardButton('➕ Add', callback_data=f'add_photo_{bot_id}'),
-            InlineKeyboardButton('👁️ See', callback_data=f'see_photo_{bot_id}'),
-            InlineKeyboardButton('🗑️ Delete', callback_data=f'delete_photo_{bot_id}')],
-            [InlineKeyboardButton('⬅️ Back', callback_data=f'start_message_{bot_id}')]
-        ]
-        await msg.edit_text(
-            text=script.ST_PIC_TXT,
-            reply_markup=InlineKeyboardMarkup(buttons)
-        )
-    except Exception as e:
-        await client.send_message(LOG_CHANNEL, f"⚠️ Show Photo Menu Error:\n\n<code>{e}</code>\n\nKindly check this message to get assistance.")
-
-async def show_time_menu(msg, bot_id):
-    try:
-        buttons = [
-            [InlineKeyboardButton('✏️ Edit', callback_data=f'edit_adtime_{bot_id}'),
-            InlineKeyboardButton('👁️ See', callback_data=f'see_adtime_{bot_id}'),
-            InlineKeyboardButton('🔄 Default', callback_data=f'default_adtime_{bot_id}')],
-            [InlineKeyboardButton('⬅️ Back', callback_data=f'auto_delete_{bot_id}')]
-        ]
-        await msg.edit_text(
-            text=script.AD_TIME_TXT,
-            reply_markup=InlineKeyboardMarkup(buttons)
-        )
-    except Exception as e:
-        await client.send_message(LOG_CHANNEL, f"⚠️ Show Time Menu Error:\n\n<code>{e}</code>\n\nKindly check this message to get assistance.")
-
-async def show_message_menu(msg, bot_id):
-    try:
-        buttons = [
-            [InlineKeyboardButton('✏️ Edit', callback_data=f'edit_admessage_{bot_id}'),
-            InlineKeyboardButton('👁️ See', callback_data=f'see_admessage_{bot_id}'),
-            InlineKeyboardButton('🔄 Default', callback_data=f'default_admessage_{bot_id}')],
-            [InlineKeyboardButton('⬅️ Back', callback_data=f'auto_delete_{bot_id}')]
-        ]
-        await msg.edit_text(
-            text=script.AD_MSG_TXT,
-            reply_markup=InlineKeyboardMarkup(buttons)
-        )
-    except Exception as e:
-        await client.send_message(LOG_CHANNEL, f"⚠️ Show Message Menu Error:\n\n<code>{e}</code>\n\nKindly check this message to get assistance.")
 
 @Client.on_callback_query()
 async def cb_handler(client: Client, query: CallbackQuery):

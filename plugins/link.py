@@ -111,11 +111,14 @@ async def gen_link_s(bot, message):
 @Client.on_message(filters.command(['batch']) & filters.user(OWNERS))
 async def gen_link_batch(bot, message):
     username = (await bot.get_me()).username
+    
     if " " not in message.text:
         return await message.reply("Use correct format.\nExample /batch https://t.me/example/10 https://t.me/example/20.")
+    
     links = message.text.strip().split(" ")
     if len(links) != 3:
         return await message.reply("Use correct format.\nExample /batch https://t.me/example/10 https://t.me/example/20.")
+    
     cmd, first, last = links
     regex = re.compile("(https://)?(t\.me/|telegram\.me/|telegram\.dog/)(c/)?(\d+|[a-zA-Z_0-9]+)/(\d+)$")
     match = regex.match(first)
@@ -145,9 +148,9 @@ async def gen_link_batch(bot, message):
     except Exception as e:
         return await message.reply(f'Errors - {e}')
 
-    sts = await message.reply("**ɢᴇɴᴇʀᴀᴛɪɴɢ ʟɪɴᴋ ғᴏʀ ʏᴏᴜʀ ᴍᴇssᴀɢᴇ**.\n**ᴛʜɪs ᴍᴀʏ ᴛᴀᴋᴇ ᴛɪᴍᴇ ᴅᴇᴘᴇɴᴅɪɴɢ ᴜᴘᴏɴ ɴᴜᴍʙᴇʀ ᴏғ ᴍᴇssᴀɢᴇs**")
+    sts = await message.reply("Generating link for your message .\nThis may take time depending upon number of messages.")
 
-    FRMT = "**ɢᴇɴᴇʀᴀᴛɪɴɢ ʟɪɴᴋ...**\n**ᴛᴏᴛᴀʟ ᴍᴇssᴀɢᴇs:** {total}\n**ᴅᴏɴᴇ:** {current}\n**ʀᴇᴍᴀɪɴɪɴɢ:** {rem}\n**sᴛᴀᴛᴜs:** {sts}"
+    FRMT = "Generating Link...**\nTotal Messages: {total}\nDone: {current}\nRemaining: {rem}\nStatus: {sts}"
 
     outlist = []
 
@@ -176,11 +179,18 @@ async def gen_link_batch(bot, message):
     os.remove(f"batchmode_{message.from_user.id}.json")
     string = str(post.id)
     file_id = base64.urlsafe_b64encode(string.encode("ascii")).decode().strip("=")
+    
     user_id = message.from_user.id
     user = await db.get_user(user_id)
+
     share_link = f"https://t.me/{username}?start=BATCH-{file_id}"
+
+    reply_markup = InlineKeyboardMarkup(
+        [[InlineKeyboardButton("🔁 Share URL", url=f'https://t.me/share/url?url={share_link}')]]
+    )
+
     if user["base_site"] and user["shortener_api"] != None:
         short_link = await get_short_link(user, share_link)
-        await sts.edit(f"Here is your link:\n\nContains `{og_msg}` files.\n\n{short_link}")
+        await sts.edit(f"Contains `{og_msg}` files.\n\nHere is your link:\n\n{short_link}", reply_markup=reply_markup)
     else:
-        await sts.edit(f"Here is your link:\n\nContains `{og_msg}` files.\n\n{share_link}")
+        await sts.edit(f"Contains `{og_msg}` files.\n\nHere is your link:\n\nContains `{og_msg}` files.\n\n{share_link}", reply_markup=reply_markup)
