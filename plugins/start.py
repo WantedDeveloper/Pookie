@@ -155,7 +155,7 @@ async def start(client, message):
         return await client.send_message(LOG_CHANNEL, f"⚠️ DB Error:\n<code>{e}</code>")
 
     if len(message.command) > 1 and message.command[1] == "clone":
-        return await show_clone_menu(client, message, user_id)
+        return await show_clone_menu(client, message, message.from_user.id)
 
     # If /start only (no arguments)
     if len(message.command) == 1:
