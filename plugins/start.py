@@ -56,6 +56,8 @@ class Database:
             'auto_delete': False,
             'auto_delete_time': 30,
             'auto_delete_msg': script.AD_TXT,
+            # Forward Protect
+            'forward_protect': False,
             # Status
             'users_count': 0,
             'banned_users': [],
@@ -86,19 +88,6 @@ class Database:
             #{'bot_id': int(bot_id)},
             #{'$set': {'active': False}}  # Add or use a field like 'active' to indicate clone is deleted
         #)
-
-    async def set_auto_delete(self, bot_id, value: bool):
-        await self.bot.update_one({"bot_id": int(bot_id)}, {"$set": {"auto_delete": value}})
-
-    async def set_auto_delete_time(self, bot_id, minutes: int):
-        await self.bot.update_one({"bot_id": int(bot_id)}, {"$set": {"auto_delete_time": minutes}})
-
-    async def set_auto_delete_msg(self, bot_id, text: str):
-        await self.bot.update_one({"bot_id": int(bot_id)}, {"$set": {"auto_delete_msg": text}})
-
-    async def get_auto_delete(self, bot_id):
-        clone = await self.bot.find_one({"bot_id": int(bot_id)})
-        return clone if clone else {}
 
     async def increment_users_count(self, bot_id):
         await self.bot.update_one({'bot_id': int(bot_id)}, {'$inc': {'users_count': 1}})
@@ -303,9 +292,9 @@ async def start(client, message):
                             file_size=size or '',
                             file_caption=f_caption or ''
                         )
-                    await info.copy(chat_id=message.from_user.id, caption=f_caption, protect_content=False)
+                    await info.copy(chat_id=message.from_user.id, caption=f_caption, protect_content=FORWARD_PROTECT_MODE)
                 else:
-                    await info.copy(chat_id=message.from_user.id, protect_content=False)
+                    await info.copy(chat_id=message.from_user.id, protect_content=FORWARD_PROTECT_MODE)
                 await asyncio.sleep(1)
             return await sts.delete()
 
@@ -334,9 +323,9 @@ async def start(client, message):
                     file_size=size or '',
                     file_caption=''
                 )
-            await msg.copy(chat_id=message.from_user.id, caption=f_caption, protect_content=False)
+            await msg.copy(chat_id=message.from_user.id, caption=f_caption, protect_content=FORWARD_PROTECT_MODE)
         else:
-            await msg.copy(chat_id=message.from_user.id, protect_content=False)
+            await msg.copy(chat_id=message.from_user.id, protect_content=FORWARD_PROTECT_MODE)
 
     except Exception as e:
         await client.send_message(
@@ -870,7 +859,8 @@ async def cb_handler(client: Client, query: CallbackQuery):
             "start_message_", "start_text_", "edit_text_", "cancel_edit_", "see_text_", "default_text_", "start_photo_", "add_photo_", "cancel_add_", "see_photo_", "delete_photo_",
             "force_subscribe_", "access_token_", "premium_user_",
             "auto_delete_", "ad_status_", "ad_time_", "edit_adtime_", "cancel_editadtime_", "see_adtime_", "default_adtime_", "ad_message_", "edit_admessage_", "cancel_editadmessage_", "see_admessage_", "default_admessage_",
-            "forward_protect_", "moderator_", "status_", "activate_deactivate_", "restart_", "delete_", "delete_clone_"
+            "forward_protect_", "fp_status_",
+            "moderator_", "status_", "activate_deactivate_", "restart_", "delete_", "delete_clone_"
         ]):
             action, bot_id = query.data.rsplit("_", 1)
             clone = await db.get_clone_by_id(bot_id)
@@ -1000,9 +990,8 @@ async def cb_handler(client: Client, query: CallbackQuery):
 
             # Status
             elif action == "ad_status":
-                clone = await db.get_auto_delete(bot_id)
                 new_value = not clone.get("auto_delete", False)
-                await db.set_auto_delete(bot_id, new_value)
+                await db.update_clone(bot_id, {"auto_delete": new_value})
                 # Determine status text
                 if new_value:
                     status_text = "🟢 Auto Delete has been successfully ENABLED!"
@@ -1076,9 +1065,34 @@ async def cb_handler(client: Client, query: CallbackQuery):
 
             # Forward Protect
             elif action == "forward_protect":
-                buttons = [[InlineKeyboardButton('⬅️ Back', callback_data=f'manage_{bot_id}')]]
+                current = clone.get("forward_protect", False)
+                if current:
+                    buttons = [[InlineKeyboardButton("❌ Disable", callback_data=f"fp_status_{bot_id}")]]
+                else:
+                    buttons = [[InlineKeyboardButton("✅ Enable", callback_data=f"fp_status_{bot_id}")]]
+
+                buttons.append([InlineKeyboardButton("⬅️ Back", callback_data=f"manage_{bot_id}")])
                 await query.message.edit_text(
                     text=script.FORWARD_TXT,
+                    reply_markup=InlineKeyboardMarkup(buttons)
+                )
+
+            # Status
+            elif action == "fp_status":
+                new_value = not clone.get("forward_protect", False)
+                await db.update_clone(bot_id, {"forward_protect": new_value})
+                # Determine status text
+                if new_value:
+                    status_text = "🟢 Forward Protect has been successfully ENABLED!"
+                else:
+                    status_text = "🔴 Forward Protect has been successfully DISABLED!"
+
+                # Add back button
+                buttons = [[InlineKeyboardButton("⬅️ Back", callback_data=f"forward_protect_{bot_id}")]]
+    
+                # Edit the original message to show status + back button
+                await query.message.edit_text(
+                    text=status_text,
                     reply_markup=InlineKeyboardMarkup(buttons)
                 )
 
