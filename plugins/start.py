@@ -69,22 +69,6 @@ async def start(client, message):
     except Exception as e:
         return await client.send_message(LOG_CHANNEL, f"⚠️ DB Error:\n<code>{e}</code>")
 
-    # If /start only (no arguments)
-    if len(message.command) == 1:
-        buttons = [
-            [
-                InlineKeyboardButton('💁‍♀️ Help', callback_data='help'),
-                InlineKeyboardButton('😊 About', callback_data='about')
-            ],
-            [InlineKeyboardButton('🤖 Create Your Own Clone', callback_data='clone')],
-            [InlineKeyboardButton('🔒 Close', callback_data='close')]
-        ]
-        return await message.reply_text(
-            script.START_TXT.format(user=message.from_user.mention, bot=client.me.mention),
-            reply_markup=InlineKeyboardMarkup(buttons)
-        )
-        return
-
     if AUTH_CHANNEL and not await is_subscribed(client, message):
         try:
             if REQUEST_TO_JOIN_MODE == True:
@@ -143,7 +127,21 @@ async def start(client, message):
             script.START_TXT.format(user=message.from_user.mention, bot=client.me.mention),
             reply_markup=InlineKeyboardMarkup(buttons)
         )
-        return
+
+    # If /start only (no arguments)
+    if len(message.command) == 1:
+        buttons = [
+            [
+                InlineKeyboardButton('💁‍♀️ Help', callback_data='help'),
+                InlineKeyboardButton('😊 About', callback_data='about')
+            ],
+            [InlineKeyboardButton('🤖 Create Your Own Clone', callback_data='clone')],
+            [InlineKeyboardButton('🔒 Close', callback_data='close')]
+        ]
+        return await message.reply_text(
+            script.START_TXT.format(user=message.from_user.mention, bot=client.me.mention),
+            reply_markup=InlineKeyboardMarkup(buttons)
+        )
 
     # Extract data
     data = message.command[1]
