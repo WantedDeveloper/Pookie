@@ -1,8 +1,8 @@
-import logging, asyncio, base64, motor.motor_asyncio
+import logging, asyncio, base64, datetime, time, motor.motor_asyncio
 from validators import domain
 from pyrogram import Client, filters, enums
 from pyrogram.types import InlineKeyboardButton, InlineKeyboardMarkup, Message, CallbackQuery
-from pyrogram.errors import ChatAdminRequired, FloodWait
+from pyrogram.errors import ChatAdminRequired, InputUserDeactivated, FloodWait, UserIsBlocked, PeerIdInvalid
 from config import *
 from Script import script
 from plugins.start import db
