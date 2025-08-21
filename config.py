@@ -66,6 +66,9 @@ try:
     AUTO_DELETE = int(os.environ.get("AUTO_DELETE", "30")) # Time in Minutes
     AUTO_DELETE_TIME = int(os.environ.get("AUTO_DELETE_TIME", "1800")) # Time in Seconds
 
+    # Forward Protect Information
+    FORWARD_PROTECT_MODE = bool(os.environ.get('FORWARD_PROTECT_MODE', True)) # Set True or False
+
     # File Caption Information
     CUSTOM_FILE_CAPTION = os.environ.get("CUSTOM_FILE_CAPTION", f"{script.CAPTION}")
     BATCH_FILE_CAPTION = os.environ.get("BATCH_FILE_CAPTION", CUSTOM_FILE_CAPTION)
