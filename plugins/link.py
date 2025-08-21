@@ -193,4 +193,4 @@ async def gen_link_batch(bot, message):
         short_link = await get_short_link(user, share_link)
         await sts.edit(f"Contains `{og_msg}` files.\n\nHere is your link:\n\n{short_link}", reply_markup=reply_markup)
     else:
-        await sts.edit(f"Contains `{og_msg}` files.\n\nHere is your link:\n\nContains `{og_msg}` files.\n\n{share_link}", reply_markup=reply_markup)
+        await sts.edit(f"Contains `{og_msg}` files.\n\nHere is your link:\n\n{share_link}", reply_markup=reply_markup)

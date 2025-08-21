@@ -179,7 +179,4 @@ class Database:
         })
         return count
 
-    async def get_db_size(self):
-        return (await self.db.command("dbstats"))['dataSize']
-
 db = Database(DB_URI, DB_NAME)
