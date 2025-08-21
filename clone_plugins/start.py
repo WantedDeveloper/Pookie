@@ -77,22 +77,23 @@ async def auto_delete_message(client, msg, delay, ad_msg):
         )
         await query.answer("❌ An error occurred. The admin has been notified.", show_alert=True)
 
-@Client.on_message(filters.command("start") & filters.incoming)
+@Client.on_message(filters.command("start") & filters.private & filters.incoming)
 async def start(client, message):
     try:
         me = await client.get_me()
 
-        # Track new users
+        # --- Track new users ---
         if not await clonedb.is_user_exist(me.id, message.from_user.id):
             await clonedb.add_user(me.id, message.from_user.id)
             await db.increment_users_count(me.id)
 
-        if len(message.command) != 2:
+        # --- No extra args: Show start menu ---
+        if len(message.command) == 1:
             buttons = [[
                 InlineKeyboardButton('💁‍♀️ Help', callback_data='help'),
                 InlineKeyboardButton('😊 About', callback_data='about')
                 ],[
-                InlineKeyboardButton('🤖 Create Your Own Clone', url=f'https://t.me/{BOT_USERNAME}?start=clone')
+                InlineKeyboardButton('🤖 Create Your Own Clone', url=f'https://t.me/{BOT_USERNAME}?start')
                 ],[
                 InlineKeyboardButton('🔒 Close', callback_data='close')
             ]]
@@ -108,23 +109,20 @@ async def start(client, message):
                     reply_markup=InlineKeyboardMarkup(buttons)
                 )
 
-            await message.reply_text(
+            return await message.reply_text(
                 start_text.format(user=message.from_user.mention, bot=client.me.mention),
                 reply_markup=InlineKeyboardMarkup(buttons)
             )
 
-    except Exception as e:
-        await client.send_message(LOG_CHANNEL, f"⚠️ Clone Start Bot Error:\n\n<code>{e}</code>\n\nKindly check this message to get assistance.")
+        # --- With args: File / Batch delivery ---
+        data = message.command[1]
+        try:
+            pre, file_id = data.split('_', 1)
+        except:
+            file_id = data
+            pre = ""
 
-    data = message.command[1]
-    try:
-        pre, file_id = data.split('_', 1)
-    except:
-        file_id = data
-        pre = ""   
-
-    pre, file_id = ((base64.urlsafe_b64decode(data + "=" * (-len(data) % 4))).decode("ascii")).split("_", 1)
-    try:
+        pre, file_id = ((base64.urlsafe_b64decode(data + "=" * (-len(data) % 4))).decode("ascii")).split("_", 1)
         msg = await client.send_cached_media(
             chat_id=message.from_user.id,
             file_id=file_id,
@@ -133,21 +131,34 @@ async def start(client, message):
         filetype = msg.media
         file = getattr(msg, filetype.value)
         title = '@PookieManagerBot  ' + ' '.join(filter(lambda x: not x.startswith('[') and not x.startswith('@'), file.file_name.split()))
-        size=get_size(file.file_size)
+        size = get_size(file.file_size)
         await db.add_storage_used(me.id, file.file_size)
+
         f_caption = f"<code>{title}</code>"
         if CUSTOM_FILE_CAPTION:
             try:
-                f_caption=CUSTOM_FILE_CAPTION.format(file_name= '' if title is None else title, file_size='' if size is None else size, file_caption='')
+                f_caption = CUSTOM_FILE_CAPTION.format(
+                    file_name='' if title is None else title,
+                    file_size='' if size is None else size,
+                    file_caption=''
+                )
             except:
-                return
+                pass
         await msg.edit_caption(f_caption)
+
+        # Auto-delete if enabled
+        clone = await db.get_bot(me.id)
         if clone and clone.get("auto_delete", False):
             ad_time = clone.get("auto_delete_time", 30)
             ad_msg = clone.get("auto_delete_msg", script.AD_TXT)
             asyncio.create_task(auto_delete_message(client, msg, ad_time, ad_msg.format(time=f"{ad_time} minutes")))
-    except:
-        pass
+
+    except Exception as e:
+        await client.send_message(
+            LOG_CHANNEL,
+            f"⚠️ Clone Start Bot Error:\n\n<code>{e}</code>"
+        )
+        await query.answer("❌ An error occurred. The admin has been notified.", show_alert=True)
 
 # Broadcast sender with error handling
 async def broadcast_messages(bot_id, user_id, message):
@@ -177,7 +188,7 @@ def make_progress_bar(done, total):
     return "🟩" * filled + "⬛" * empty
 
 # Clone broadcast command with reply-to-message and /cancel support
-@Client.on_message(filters.command("broadcast") & filters.user(ADMINS))
+@Client.on_message(filters.command("broadcast") & filters.user(ADMINS)& filters.private)
 async def pm_broadcast(bot, message):
     try:
         me = await bot.get_me()
