@@ -214,7 +214,7 @@ async def link(client: Client, message):
             g_msg = message.reply_to_message
         else:
             try:
-                g_msg = await bot.ask(
+                g_msg = await client.ask(
                     message.chat.id,
                     "📩 Please send me the message (file/text/media) to generate a shareable link.\n\nSend /cancel to stop.",
                     timeout=60
