@@ -106,7 +106,10 @@ async def link(bot, message):
             )
 
     except Exception as e:
-        await bot.send_message(LOG_CHANNEL, f"⚠️ Generate Link Error:\n\n<code>{e}</code>\n\nKindly check this message for assistance.")
+        await bot.send_message(
+            LOG_CHANNEL,
+            f"⚠️ Generate Link Error:\n\n<code>{e}</code>\n\nKindly check this message for assistance."
+        )
         await query.answer("❌ An error occurred. The admin has been notified.", show_alert=True)
 
 @Client.on_message(filters.command(['batch']) & filters.user(OWNERS) & filters.private)
@@ -196,6 +199,39 @@ async def batch(bot, message):
     except (UsernameInvalid, UsernameNotModified):
         await message.reply('Invalid Link specified.')
     except Exception as e:
-        await bot.send_message(LOG_CHANNEL, f"⚠️ Batch Error:\n\n<code>{e}</code>\n\nKindly check this message for assistance.")
+        await bot.send_message(
+            LOG_CHANNEL,
+            f"⚠️ Batch Error:\n\n<code>{e}</code>\n\nKindly check this message for assistance."
+        )
         await query.answer("❌ An error occurred. The admin has been notified.", show_alert=True)
 
+@Client.on_message(filters.command('header') & filters.private)
+async def header_handler(bot, m: Message):
+    user_id = m.from_user.id
+    cmd = m.command
+    user = await get_user(user_id)
+    if m.reply_to_message:
+        header_text = m.reply_to_message.text.html
+        await update_user_info(user_id, {"header_text": header_text})
+        await m.reply("Header Text Updated Successfully")
+    elif "remove" in cmd:
+        await update_user_info(user_id, {"header_text": ""})
+        return await m.reply("Header Text Successfully Removed")
+    else:
+        return await m.reply(HEADER_MESSAGE + "\n\nCurrent Header Text: " + user["header_text"].replace("\n", "\n"))
+
+@Client.on_message(filters.command('footer') & filters.private)
+async def footer_handler(bot, m: Message):
+    user_id = m.from_user.id
+    cmd = m.command
+    user = await get_user(user_id)
+    if not m.reply_to_message:
+        if "remove" not in cmd:
+            return await m.reply(FOOTER_MESSAGE + "\n\nCurrent Footer Text: " + user["footer_text"].replace("\n", "\n"))
+
+        await update_user_info(user_id, {"footer_text": ""})
+        return await m.reply("Footer Text Successfully Removed")
+    elif m.reply_to_message.text:
+        footer_text = m.reply_to_message.text.html
+        await update_user_info(user_id, {"footer_text": footer_text})
+        await m.reply("Footer Text Updated Successfully")
