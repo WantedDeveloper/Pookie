@@ -39,16 +39,14 @@ try:
     # Channel Information
     LOG_CHANNEL = int(os.environ.get("LOG_CHANNEL", "-1002855763957"))
 
-    # Auto Delete Information
-    AUTO_DELETE_MODE = bool(os.environ.get('AUTO_DELETE_MODE', True)) # Set True or False
+    # auth_channel means force subscribe channel.
+    # if REQUEST_TO_JOIN_MODE is true then force subscribe work like request to join fsub, else if false then work like normal fsub.
+    REQUEST_TO_JOIN_MODE = bool(os.environ.get('REQUEST_TO_JOIN_MODE', False)) # Set True Or False
+    TRY_AGAIN_BTN = bool(os.environ.get('TRY_AGAIN_BTN', False)) # Set True Or False (This try again button is only for request to join fsub not for normal fsub)
 
-    # If Auto Delete Mode Is True Then Fill All Required Variable, If False Then Don't Fill.
-    AUTO_DELETE = int(os.environ.get("AUTO_DELETE", "30")) # Time in Minutes
-    AUTO_DELETE_TIME = int(os.environ.get("AUTO_DELETE_TIME", "1800")) # Time in Seconds
-
-    # File Caption Information
-    CUSTOM_FILE_CAPTION = os.environ.get("CUSTOM_FILE_CAPTION", f"{script.CAPTION}")
-    BATCH_FILE_CAPTION = os.environ.get("BATCH_FILE_CAPTION", CUSTOM_FILE_CAPTION)
+    # This Is Force Subscribe Channel, also known as Auth Channel 
+    auth_channel = os.environ.get('AUTH_CHANNEL', '-1002855763957') # give your force subscribe channel id here else leave it blank
+    AUTH_CHANNEL = int(auth_channel) if auth_channel and id_pattern.search(auth_channel) else None
 
     # Enable - True or Disable - False
     PUBLIC_FILE_STORE = is_enabled((os.environ.get('PUBLIC_FILE_STORE', "True")), True)
@@ -60,6 +58,17 @@ try:
     SHORTLINK_URL = os.environ.get("SHORTLINK_URL", "") # shortlink domain without https://
     SHORTLINK_API = os.environ.get("SHORTLINK_API", "") # shortlink api
     VERIFY_TUTORIAL = os.environ.get("VERIFY_TUTORIAL", "") # how to open link 
+
+    # Auto Delete Information
+    AUTO_DELETE_MODE = bool(os.environ.get('AUTO_DELETE_MODE', True)) # Set True or False
+
+    # If Auto Delete Mode Is True Then Fill All Required Variable, If False Then Don't Fill.
+    AUTO_DELETE = int(os.environ.get("AUTO_DELETE", "30")) # Time in Minutes
+    AUTO_DELETE_TIME = int(os.environ.get("AUTO_DELETE_TIME", "1800")) # Time in Seconds
+
+    # File Caption Information
+    CUSTOM_FILE_CAPTION = os.environ.get("CUSTOM_FILE_CAPTION", f"{script.CAPTION}")
+    BATCH_FILE_CAPTION = os.environ.get("BATCH_FILE_CAPTION", CUSTOM_FILE_CAPTION)
 
     # File Stream Config
     STREAM_MODE = bool(os.environ.get('STREAM_MODE', True)) # Set True or False
