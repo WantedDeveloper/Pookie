@@ -76,7 +76,6 @@ async def auto_delete_message(client, msg, delay, ad_msg):
             LOG_CHANNEL,
             f"⚠️ Clone Auto Delete Message Error:\n\n<code>{e}</code>\n\nKindly check this message for assistance."
         )
-        await query.answer("❌ An error occurred. The admin has been notified.", show_alert=True)
 
 @Client.on_message(filters.command("start") & filters.private & filters.incoming)
 async def start(client, message):
@@ -159,7 +158,6 @@ async def start(client, message):
             LOG_CHANNEL,
             f"⚠️ Clone Start Bot Error:\n\n<code>{e}</code>"
         )
-        await query.answer("❌ An error occurred. The admin has been notified.", show_alert=True)
 
 @Client.on_message(filters.command("base_site") & filters.private)
 async def base_site_handler(client, m: Message):
@@ -210,12 +208,9 @@ async def link(client: Client, message):
     try:
         target_msg = message.reply_to_message
 
-        # Copy received message to log channel
-        #post = await message.copy(LOG_CHANNEL)
+        if not target_msg:
+            return await message.reply("❌ Please reply to a message to generate a link.")
 
-        # Generate file ID + encoded string
-        #file_id = str(post.id)
-        #string = f"file_{g_msg}"
         unique_str = f"msg_{target_msg.chat.id}_{target_msg.message_id}"
         encoded = base64.urlsafe_b64encode(unique_str.encode("ascii")).decode().strip("=")
 
@@ -249,7 +244,6 @@ async def link(client: Client, message):
             LOG_CHANNEL,
             f"⚠️ Clone Generate Link Error:\n\n<code>{e}</code>\n\nKindly check this message for assistance."
         )
-        await query.answer("❌ An error occurred. The admin has been notified.", show_alert=True)
 
 # Broadcast sender with error handling
 async def broadcast_messages(bot_id, user_id, message):
@@ -381,7 +375,6 @@ async def broadcast(bot, message):
             LOG_CHANNEL,
             f"⚠️ Clone Broadcast Error:\n\n<code>{e}</code>\n\nKindly check this message for assistance."
         )
-        await query.answer("❌ An error occurred. The admin has been notified.", show_alert=True)
 
 @Client.on_callback_query()
 async def cb_handler(client: Client, query: CallbackQuery):
