@@ -3,6 +3,7 @@ from validators import domain
 from pyrogram import Client, filters, enums
 from pyrogram.types import InlineKeyboardButton, InlineKeyboardMarkup, Message, CallbackQuery
 from pyrogram.errors import ChatAdminRequired, InputUserDeactivated, FloodWait, UserIsBlocked, PeerIdInvalid
+from pyrogram.errors.exceptions.bad_request_400 import AccessTokenExpired, AccessTokenInvalid, ChannelInvalid, UsernameInvalid, UsernameNotModified
 from config import *
 from Script import script
 from plugins.start import db
@@ -205,7 +206,7 @@ async def get_short_link(user, link):
         return data["shortenedUrl"]
 
 @Client.on_message(filters.command(['genlink']) & filters.user(ADMINS) & filters.private)
-async def link(bot, message):
+async def link(client: Client, message):
     try:
         # 🔽 Support reply-to-message
         if message.reply_to_message:
@@ -224,11 +225,12 @@ async def link(bot, message):
                 return await message.reply('<b>🚫 Process has been cancelled.</b>')
 
         # Copy received message to log channel
-        post = await g_msg.copy(LOG_CHANNEL)
+        #post = await g_msg.copy(LOG_CHANNEL)
 
         # Generate file ID + encoded string
-        file_id = str(post.id)
-        string = f"file_{file_id}"
+        #file_id = str(post.id)
+        g_msg = message.reply_to_message
+        string = f"file_{g_msg}"
         encoded = base64.urlsafe_b64encode(string.encode("ascii")).decode().strip("=")
 
         # Get user info
@@ -236,7 +238,7 @@ async def link(bot, message):
         user = await clonedb.get_user(user_id)
 
         # Bot username and share link
-        bot_username = (await bot.get_me()).username
+        bot_username = (await client.get_me()).username
         share_link = f"https://t.me/{bot_username}?start={encoded}"
 
         reply_markup = InlineKeyboardMarkup(
@@ -257,7 +259,7 @@ async def link(bot, message):
             )
 
     except Exception as e:
-        await bot.send_message(
+        await client.send_message(
             LOG_CHANNEL,
             f"⚠️ Clone Generate Link Error:\n\n<code>{e}</code>\n\nKindly check this message for assistance."
         )
