@@ -343,7 +343,6 @@ async def start(client, message):
             LOG_CHANNEL,
             f"⚠️ Start Handler Error:\n\n<code>{e}</code>\n\nKindly check this message to get assistance."
         )
-        await query.answer("❌ An error occurred. The admin has been notified.", show_alert=True)
 
 async def get_short_link(user, link):
     api_key = user["shortener_api"]
@@ -445,7 +444,6 @@ async def link(bot, message):
             LOG_CHANNEL,
             f"⚠️ Generate Link Error:\n\n<code>{e}</code>\n\nKindly check this message for assistance."
         )
-        await query.answer("❌ An error occurred. The admin has been notified.", show_alert=True)
 
 @Client.on_message(filters.command(['batch']) & filters.user(OWNERS) & filters.private)
 async def batch(bot, message):
@@ -538,7 +536,6 @@ async def batch(bot, message):
             LOG_CHANNEL,
             f"⚠️ Batch Error:\n\n<code>{e}</code>\n\nKindly check this message for assistance."
         )
-        await query.answer("❌ An error occurred. The admin has been notified.", show_alert=True)
 
 # Broadcast message sender with error handler
 async def broadcast_messages(user_id, message):
@@ -682,7 +679,6 @@ async def verupikkals(bot, message):
             LOG_CHANNEL,
             f"⚠️ Broadcast Error:\n\n<code>{e}</code>\n\nKindly check this message for assistance."
         )
-        await query.answer("❌ An error occurred. The admin has been notified.", show_alert=True)
 
 async def show_clone_menu(client, message, user_id):
     try:
@@ -711,7 +707,6 @@ async def show_clone_menu(client, message, user_id):
             LOG_CHANNEL,
             f"⚠️ Show Clone Menu Error:\n\n<code>{e}</code>\n\nKindly check this message to get assistance."
         )
-        await query.answer("❌ An error occurred. The admin has been notified.", show_alert=True)
 
 async def show_text_menu(msg, bot_id):
     try:
@@ -730,7 +725,6 @@ async def show_text_menu(msg, bot_id):
             LOG_CHANNEL,
             f"⚠️ Show Text Menu Error:\n\n<code>{e}</code>\n\nKindly check this message to get assistance."
         )
-        await query.answer("❌ An error occurred. The admin has been notified.", show_alert=True)
 
 async def show_photo_menu(msg, bot_id):
     try:
@@ -749,7 +743,6 @@ async def show_photo_menu(msg, bot_id):
             LOG_CHANNEL,
             f"⚠️ Show Photo Menu Error:\n\n<code>{e}</code>\n\nKindly check this message to get assistance."
         )
-        await query.answer("❌ An error occurred. The admin has been notified.", show_alert=True)
 
 async def show_time_menu(msg, bot_id):
     try:
@@ -768,7 +761,6 @@ async def show_time_menu(msg, bot_id):
             LOG_CHANNEL,
             f"⚠️ Show Time Menu Error:\n\n<code>{e}</code>\n\nKindly check this message to get assistance."
         )
-        await query.answer("❌ An error occurred. The admin has been notified.", show_alert=True)
 
 async def show_message_menu(msg, bot_id):
     try:
@@ -787,7 +779,6 @@ async def show_message_menu(msg, bot_id):
             LOG_CHANNEL,
             f"⚠️ Show Message Menu Error:\n\n<code>{e}</code>\n\nKindly check this message to get assistance."
         )
-        await query.answer("❌ An error occurred. The admin has been notified.", show_alert=True)
 
 @Client.on_callback_query()
 async def cb_handler(client: Client, query: CallbackQuery):
@@ -1223,7 +1214,6 @@ async def message_capture(client: Client, message: Message):
                 LOG_CHANNEL,
                 f"⚠️ Create Bot Error:\n\n<code>{e}</code>\n\nKindly check this message for assistance."
            )
-            await query.answer("❌ An error occurred. The admin has been notified.", show_alert=True)
             await msg.edit_text(f"❌ Failed to create bot: {e}")
             await asyncio.sleep(2)
             await show_clone_menu(client, msg, user_id)
@@ -1259,7 +1249,6 @@ async def message_capture(client: Client, message: Message):
                 LOG_CHANNEL,
                 f"⚠️ Update Start Text Error:\n\n<code>{e}</code>\n\nKindly check this message for assistance."
             )
-            await query.answer("❌ An error occurred. The admin has been notified.", show_alert=True)
             await orig_msg.edit_text(f"❌ Failed to update start text: {e}")
             await asyncio.sleep(2)
             await show_text_menu(orig_msg, bot_id)
@@ -1298,7 +1287,6 @@ async def message_capture(client: Client, message: Message):
                 LOG_CHANNEL,
                 f"⚠️ Update Photo Error:\n\n<code>{e}</code>\n\nKindly check this message for assistance."
             )
-            await query.answer("❌ An error occurred. The admin has been notified.", show_alert=True)
             await orig_msg.edit_text(f"❌ Failed to update start photo: {e}")
         finally:
             WAITING_FOR_CLONE_PHOTO.pop(user_id, None)
@@ -1333,7 +1321,6 @@ async def message_capture(client: Client, message: Message):
                 LOG_CHANNEL,
                 f"⚠️ Update Auto Delete Time Error:\n\n<code>{e}</code>\n\nKindly check this message for assistance."
             )
-            await query.answer("❌ An error occurred. The admin has been notified.", show_alert=True)
             await orig_msg.edit_text(f"❌ Failed to update auto delete time: {e}")
             await asyncio.sleep(2)
             await show_time_menu(orig_msg, bot_id)
@@ -1369,7 +1356,6 @@ async def message_capture(client: Client, message: Message):
                 LOG_CHANNEL,
                 f"⚠️ Update Auto Delete Message Error:\n\n<code>{e}</code>\n\nKindly check this message for assistance."
             )
-            await query.answer("❌ An error occurred. The admin has been notified.", show_alert=True)
             await orig_msg.edit_text(f"❌ Failed to update auto delete message: {e}")
             await asyncio.sleep(2)
             await show_message_menu(orig_msg, bot_id)
