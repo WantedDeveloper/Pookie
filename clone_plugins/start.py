@@ -205,7 +205,7 @@ async def get_short_link(user, link):
         return data["shortenedUrl"]
 
 @Client.on_message(filters.command(['genlink']) & filters.user(ADMINS) & filters.private)
-async def link(client: Client, message):
+async def link(bot, message):
     try:
         # 🔽 Support reply-to-message
         if message.reply_to_message:
@@ -236,7 +236,7 @@ async def link(client: Client, message):
         user = await clonedb.get_user(user_id)
 
         # Bot username and share link
-        bot_username = (await client.get_me()).username
+        bot_username = (await bot.get_me()).username
         share_link = f"https://t.me/{bot_username}?start={encoded}"
 
         reply_markup = InlineKeyboardMarkup(
@@ -257,7 +257,7 @@ async def link(client: Client, message):
             )
 
     except Exception as e:
-        await client.send_message(
+        await bot.send_message(
             LOG_CHANNEL,
             f"⚠️ Clone Generate Link Error:\n\n<code>{e}</code>\n\nKindly check this message for assistance."
         )
