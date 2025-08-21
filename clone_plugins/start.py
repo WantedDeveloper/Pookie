@@ -315,9 +315,15 @@ async def batch(bot, message):
         og_msg = 0
         tot = 0
 
-        async for msg in bot.iter_messages(f_chat_id, end_id, start_id):
+        # Fetch messages one by one in range
+        for msg_id in range(start_id, end_id + 1):
+            try:
+                msg = await bot.get_messages(f_chat_id, msg_id)
+            except:
+                continue
+
             tot += 1
-            if og_msg % 20 == 0:
+            if tot % 20 == 0:
                 try:
                     await sts.edit(FRMT.format(
                         total=total_msgs,
@@ -327,8 +333,10 @@ async def batch(bot, message):
                     ))
                 except:
                     pass
-            if msg.empty or msg.service:
+
+            if not msg or msg.empty or msg.service:
                 continue
+
             file = {
                 "channel_id": f_chat_id,
                 "msg_id": msg.id
@@ -337,7 +345,7 @@ async def batch(bot, message):
             outlist.append(file)
 
         # Convert to file_id
-        string = json.dump(outlist)
+        string = json.dumps(outlist)
         file_id = base64.urlsafe_b64encode(string.encode("ascii")).decode().strip("=")
 
         user_id = message.from_user.id
