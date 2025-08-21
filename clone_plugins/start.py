@@ -209,18 +209,41 @@ async def get_short_link(user, link):
 @Client.on_message(filters.command(['genlink']) & filters.user(ADMINS) & filters.private)
 async def link(client: Client, message):
     try:
-        replied = message.reply_to_message
+        # 🔽 Support reply-to-message
+        if message.reply_to_message:
+            g_msg = message.reply_to_message
+        else:
+            try:
+                g_msg = await bot.ask(
+                    message.chat.id,
+                    "📩 Please send me the message (file/text/media) to generate a shareable link.\n\nSend /cancel to stop.",
+                    timeout=60
+                )
+            except asyncio.TimeoutError:
+                return await message.reply("<b>⏰ Timeout! You didn’t send any message in 60s.</b>")
 
-        if not replied:
-            return await message.reply("❌ Please reply to a message to generate a link.")
+            if g_msg.text and g_msg.text.lower() == '/cancel':
+                return await message.reply('<b>🚫 Process has been cancelled.</b>')
 
-        file_type = replied.media
-        if file_type not in [enums.MessageMediaType.VIDEO, enums.MessageMediaType.AUDIO, enums.MessageMediaType.DOCUMENT]:
-            return await message.reply("Reply to a supported media")
+        string = None
 
-        file_id = getattr(replied, file_type.value).file_id
-        string = 'file_'
-        string += file_id
+        # ✅ Handle text/captions
+        if g_msg.text:
+            string = 'text_' + g_msg.text
+        elif g_msg.caption:
+            string = 'text_' + g_msg.caption
+
+        # ✅ Handle any media with file_id
+        elif g_msg.media:
+            try:
+                file_id = getattr(g_msg, g_msg.media.value).file_id
+                string = f"{g_msg.media.value}_" + file_id
+            except Exception:
+                return await message.reply("⚠️ Could not extract file_id from this media.")
+
+        if not string:
+            return await message.reply("❌ Unsupported message type.")
+
         outstr = base64.urlsafe_b64encode(string.encode("ascii")).decode().strip("=")
 
         # Get user info
