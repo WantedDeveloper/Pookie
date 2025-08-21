@@ -49,60 +49,45 @@ def formate_file_name(file_name):
     file_name = '@PookieManagerBot ' + ' '.join(filter(lambda x: not x.startswith('http') and not x.startswith('@') and not x.startswith('www.'), file_name.split()))
     return file_name
 
+from pyrogram import enums, filters
+from pyrogram.types import InlineKeyboardMarkup, InlineKeyboardButton
+import asyncio, os, json, base64
+
 @Client.on_message(filters.command("start") & filters.incoming)
 async def start(client, message):
     try:
-        await message.delete()
-    except:
-        pass
+        username = client.me.username
 
-    username = client.me.username
-
-    # Save new user in DB
-    try:
+        # --- Save user in DB ---
         if not await db.is_user_exist(message.from_user.id):
             await db.add_user(message.from_user.id, message.from_user.first_name)
             await client.send_message(
                 LOG_CHANNEL,
                 script.LOG_TEXT.format(message.from_user.id, message.from_user.mention)
             )
-    except Exception as e:
-        return await client.send_message(LOG_CHANNEL, f"⚠️ DB Error:\n<code>{e}</code>")
 
-    if AUTH_CHANNEL and not await is_subscribed(client, message):
-        try:
-            if REQUEST_TO_JOIN_MODE == True:
-                invite_link = await client.create_chat_invite_link(chat_id=(int(AUTH_CHANNEL)), creates_join_request=True)
+        # --- Force Subscribe Logic ---
+        if AUTH_CHANNEL and not await is_subscribed(client, message):
+            if REQUEST_TO_JOIN_MODE:
+                invite_link = await client.create_chat_invite_link(
+                    chat_id=int(AUTH_CHANNEL), creates_join_request=True
+                )
             else:
                 invite_link = await client.create_chat_invite_link(int(AUTH_CHANNEL))
-        except Exception as e:
-            print(e)
-            await message.reply_text("Make sure Bot is admin in Forcesub channel")
-            return
-        try:
+
             btn = [[InlineKeyboardButton("ʙᴀᴄᴋᴜᴘ ᴄʜᴀɴɴᴇʟ", url=invite_link.invite_link)]]
-            if message.command[1] != "subscribe":
-                if REQUEST_TO_JOIN_MODE == True:
-                    if TRY_AGAIN_BTN == True:
-                        try:
-                            kk, file_id = message.command[1].split("_", 1)
-                            btn.append([InlineKeyboardButton("↻ ᴛʀʏ ᴀɢᴀɪɴ", callback_data=f"checksub#{kk}#{file_id}")])
-                        except (IndexError, ValueError):
-                            btn.append([InlineKeyboardButton("↻ ᴛʀʏ ᴀɢᴀɪɴ", url=f"https://t.me/{BOT_USERNAME}?start={message.command[1]}")])
-                else:
-                    try:
-                        kk, file_id = message.command[1].split("_", 1)
-                        btn.append([InlineKeyboardButton("↻ ᴛʀʏ ᴀɢᴀɪɴ", callback_data=f"checksub#{kk}#{file_id}")])
-                    except (IndexError, ValueError):
-                        btn.append([InlineKeyboardButton("↻ ᴛʀʏ ᴀɢᴀɪɴ", url=f"https://t.me/{BOT_USERNAME}?start={message.command[1]}")])
-            if REQUEST_TO_JOIN_MODE == True:
-                if TRY_AGAIN_BTN == True:
-                    text = "**🕵️ ʏᴏᴜ ᴅᴏ ɴᴏᴛ ᴊᴏɪɴ ᴍʏ ʙᴀᴄᴋᴜᴘ ᴄʜᴀɴɴᴇʟ ғɪʀsᴛ ᴊᴏɪɴ ᴄʜᴀɴɴᴇʟ ᴛʜᴇɴ ᴛʀʏ ᴀɢᴀɪɴ**"
-                else:
-                    await db.set_msg_command(message.from_user.id, com=message.command[1])
-                    text = "**🕵️ ʏᴏᴜ ᴅᴏ ɴᴏᴛ ᴊᴏɪɴ ᴍʏ ʙᴀᴄᴋᴜᴘ ᴄʜᴀɴɴᴇʟ ғɪʀsᴛ ᴊᴏɪɴ ᴄʜᴀɴɴᴇʟ**"
-            else:
-                text = "**🕵️ ʏᴏᴜ ᴅᴏ ɴᴏᴛ ᴊᴏɪɴ ᴍʏ ʙᴀᴄᴋᴜᴘ ᴄʜᴀɴɴᴇʟ ғɪʀsᴛ ᴊᴏɪɴ ᴄʜᴀɴɴᴇʟ ᴛʜᴇɴ ᴛʀʏ ᴀɢᴀɪɴ**"
+
+            if len(message.command) > 1 and message.command[1] != "subscribe":
+                try:
+                    kk, file_id = message.command[1].split("_", 1)
+                    btn.append([InlineKeyboardButton("↻ ᴛʀʏ ᴀɢᴀɪɴ", callback_data=f"checksub#{kk}#{file_id}")])
+                except (IndexError, ValueError):
+                    btn.append([InlineKeyboardButton(
+                        "↻ ᴛʀʏ ᴀɢᴀɪɴ",
+                        url=f"https://t.me/{BOT_USERNAME}?start={message.command[1]}"
+                    )])
+
+            text = "**🕵️ You must join the backup channel first!**"
             await client.send_message(
                 chat_id=message.from_user.id,
                 text=text,
@@ -110,84 +95,54 @@ async def start(client, message):
                 parse_mode=enums.ParseMode.MARKDOWN
             )
             return
-        except Exception as e:
-            print(e)
-            return await message.reply_text("something wrong with force subscribe.")
 
-    if len(message.command) == 2 and message.command[1] in ["subscribe", "error", "okay", "help"]:
-        buttons = [
-            [
-                InlineKeyboardButton('💁‍♀️ Help', callback_data='help'),
-                InlineKeyboardButton('😊 About', callback_data='about')
-            ],
-            [InlineKeyboardButton('🤖 Create Your Own Clone', callback_data='clone')],
-            [InlineKeyboardButton('🔒 Close', callback_data='close')]
-        ]
-        return await message.reply_text(
-            script.START_TXT.format(user=message.from_user.mention, bot=client.me.mention),
-            reply_markup=InlineKeyboardMarkup(buttons)
-        )
-
-    # If /start only (no arguments)
-    if len(message.command) == 1:
-        buttons = [
-            [
-                InlineKeyboardButton('💁‍♀️ Help', callback_data='help'),
-                InlineKeyboardButton('😊 About', callback_data='about')
-            ],
-            [InlineKeyboardButton('🤖 Create Your Own Clone', callback_data='clone')],
-            [InlineKeyboardButton('🔒 Close', callback_data='close')]
-        ]
-        return await message.reply_text(
-            script.START_TXT.format(user=message.from_user.mention, bot=client.me.mention),
-            reply_markup=InlineKeyboardMarkup(buttons)
-        )
-
-    # Extract data
-    data = message.command[1]
-
-    # Verification handler
-    if data.startswith("verify-"):
-        parts = data.split("-", 2)
-        if len(parts) < 3:
-            return await message.reply_text("<b>Invalid or expired link!</b>", protect_content=True)
-
-        _, userid, token = parts
-        if str(message.from_user.id) != str(userid):
-            return await message.reply_text("<b>Invalid or expired link!</b>", protect_content=True)
-
-        if await check_token(client, userid, token):
-            await verify_user(client, userid, token)
+        # --- Start / Help buttons ---
+        if len(message.command) == 1 or message.command[1] in ["subscribe", "error", "okay", "help"]:
+            buttons = [
+                [InlineKeyboardButton('💁‍♀️ Help', callback_data='help'),
+                 InlineKeyboardButton('😊 About', callback_data='about')],
+                [InlineKeyboardButton('🤖 Create Your Own Clone', callback_data='clone')],
+                [InlineKeyboardButton('🔒 Close', callback_data='close')]
+            ]
             return await message.reply_text(
-                f"<b>Hey {message.from_user.mention}, verification successful! ✅</b>",
-                protect_content=True
+                script.START_TXT.format(user=message.from_user.mention, bot=client.me.mention),
+                reply_markup=InlineKeyboardMarkup(buttons)
             )
-        else:
-            return await message.reply_text("<b>Invalid or expired link!</b>", protect_content=True)
 
-    # Batch handler
-    elif data.startswith("BATCH-"):
-        try:
-            if not await check_verification(client, message.from_user.id) and VERIFY_MODE:
-                btn = [[
-                    InlineKeyboardButton("Verify", url=await get_token(client, message.from_user.id, f"https://t.me/{username}?start="))
-                ],[
-                    InlineKeyboardButton("How To Open Link & Verify", url=VERIFY_TUTORIAL)
-                ]]
+        # --- Verification Handler ---
+        data = message.command[1]
+        if data.startswith("verify-"):
+            parts = data.split("-", 2)
+            if len(parts) < 3 or str(message.from_user.id) != parts[1]:
+                return await message.reply_text("<b>Invalid or expired link!</b>", protect_content=True)
+
+            if await check_token(client, parts[1], parts[2]):
+                await verify_user(client, parts[1], parts[2])
+                return await message.reply_text(
+                    f"<b>Hey {message.from_user.mention}, verification successful! ✅</b>",
+                    protect_content=True
+                )
+            else:
+                return await message.reply_text("<b>Invalid or expired link!</b>", protect_content=True)
+
+        # --- Batch Handler ---
+        if data.startswith("BATCH-"):
+            if VERIFY_MODE and not await check_verification(client, message.from_user.id):
+                btn = [
+                    [InlineKeyboardButton("Verify", url=await get_token(client, message.from_user.id, f"https://t.me/{username}?start="))],
+                    [InlineKeyboardButton("How To Open Link & Verify", url=VERIFY_TUTORIAL)]
+                ]
                 return await message.reply_text(
                     "<b>You are not verified! Kindly verify to continue.</b>",
                     protect_content=True,
                     reply_markup=InlineKeyboardMarkup(btn)
                 )
-        except Exception as e:
-            return await message.reply_text(f"**Error - {e}**")
 
-        sts = await message.reply("**🔺 Please wait...**")
-        file_id = data.split("-", 1)[1]
-        msgs = BATCH_FILES.get(file_id)
+            sts = await message.reply("**🔺 Please wait...**")
+            file_id = data.split("-", 1)[1]
+            msgs = BATCH_FILES.get(file_id)
 
-        if not msgs:
-            try:
+            if not msgs:
                 decode_file_id = base64.urlsafe_b64decode(file_id + "=" * (-len(file_id) % 4)).decode("ascii")
                 msg = await client.get_messages(LOG_CHANNEL, int(decode_file_id))
                 media = getattr(msg, msg.media.value)
@@ -197,12 +152,8 @@ async def start(client, message):
                     msgs = json.loads(file_data.read())
                 os.remove(file)
                 BATCH_FILES[file_id] = msgs
-            except Exception as e:
-                await sts.edit("FAILED")
-                return await client.send_message(LOG_CHANNEL, f"UNABLE TO OPEN FILE. Error: {e}")
 
-        for msg in msgs:
-            try:
+            for msg in msgs:
                 channel_id = int(msg.get("channel_id"))
                 msgid = msg.get("msg_id")
                 info = await client.get_messages(channel_id, int(msgid))
@@ -211,69 +162,55 @@ async def start(client, message):
                     title = formate_file_name(getattr(info, info.media.value).file_name or "")
                     size = get_size(int(getattr(info, info.media.value).file_size))
                     if BATCH_FILE_CAPTION:
-                        try:
-                            f_caption = BATCH_FILE_CAPTION.format(
-                                file_name=title or '',
-                                file_size=size or '',
-                                file_caption=f_caption or ''
-                            )
-                        except:
-                            pass
-                    try:
-                        await info.copy(chat_id=message.from_user.id, caption=f_caption, protect_content=False)
-                    except FloodWait as e:
-                        await asyncio.sleep(e.value)
-                        await info.copy(chat_id=message.from_user.id, caption=f_caption, protect_content=False)
+                        f_caption = BATCH_FILE_CAPTION.format(
+                            file_name=title or '',
+                            file_size=size or '',
+                            file_caption=f_caption or ''
+                        )
+                    await info.copy(chat_id=message.from_user.id, caption=f_caption, protect_content=False)
                 else:
                     await info.copy(chat_id=message.from_user.id, protect_content=False)
                 await asyncio.sleep(1)
-            except:
-                continue
+            return await sts.delete()
 
-        return await sts.delete()
-
-    # Single file handler
-    else:
-        try:
-            pre, decode_file_id = (
-                base64.urlsafe_b64decode(data + "=" * (-len(data) % 4))
-            ).decode("ascii").split("_", 1)
-        except Exception:
-            return await message.reply_text("<b>Invalid link!</b>")
-
-        if not await check_verification(client, message.from_user.id) and VERIFY_MODE:
-            btn = [[
-                InlineKeyboardButton("Verify", url=await get_token(client, message.from_user.id, f"https://t.me/{username}?start="))
-            ],[
-                InlineKeyboardButton("How To Open Link & Verify", url=VERIFY_TUTORIAL)
-            ]]
+        # --- Single File Handler ---
+        pre, decode_file_id = base64.urlsafe_b64decode(data + "=" * (-len(data) % 4)).decode("ascii").split("_", 1)
+        if VERIFY_MODE and not await check_verification(client, message.from_user.id):
+            btn = [
+                [InlineKeyboardButton("Verify", url=await get_token(client, message.from_user.id, f"https://t.me/{username}?start="))],
+                [InlineKeyboardButton("How To Open Link & Verify", url=VERIFY_TUTORIAL)]
+            ]
             return await message.reply_text(
                 "<b>You are not verified! Kindly verify to continue.</b>",
                 protect_content=True,
                 reply_markup=InlineKeyboardMarkup(btn)
             )
 
+        msg = await client.get_messages(LOG_CHANNEL, int(decode_file_id))
+        if msg.media:
+            media = getattr(msg, msg.media.value)
+            title = formate_file_name(media.file_name or "")
+            size = get_size(media.file_size)
+            f_caption = f"<code>{title}</code>"
+            if CUSTOM_FILE_CAPTION:
+                f_caption = CUSTOM_FILE_CAPTION.format(
+                    file_name=title or '',
+                    file_size=size or '',
+                    file_caption=''
+                )
+            await msg.copy(chat_id=message.from_user.id, caption=f_caption, protect_content=False)
+        else:
+            await msg.copy(chat_id=message.from_user.id, protect_content=False)
+
+    except Exception as e:
+        await client.send_message(
+            LOG_CHANNEL,
+            f"⚠️ Start Handler Error:\n\n<code>{e}</code>\n\nKindly check this message to get assistance."
+        )
         try:
-            msg = await client.get_messages(LOG_CHANNEL, int(decode_file_id))
-            if msg.media:
-                media = getattr(msg, msg.media.value)
-                title = formate_file_name(media.file_name or "")
-                size = get_size(media.file_size)
-                f_caption = f"<code>{title}</code>"
-                if CUSTOM_FILE_CAPTION:
-                    try:
-                        f_caption = CUSTOM_FILE_CAPTION.format(
-                            file_name=title or '',
-                            file_size=size or '',
-                            file_caption=''
-                        )
-                    except:
-                        pass
-                await msg.copy(chat_id=message.from_user.id, caption=f_caption, protect_content=False)
-            else:
-                await msg.copy(chat_id=message.from_user.id, protect_content=False)
-        except Exception as e:
-            await message.reply_text(f"<b>Failed to fetch file:</b> <code>{e}</code>")
+            await message.reply_text("❌ Something went wrong! Please try again later.")
+        except:
+            pass
 
 async def show_clone_menu(client, message, user_id):
     try:
