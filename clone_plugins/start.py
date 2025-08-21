@@ -206,14 +206,19 @@ async def get_short_link(user, link):
 @Client.on_message(filters.command(['genlink']) & filters.user(ADMINS) & filters.private)
 async def link(client: Client, message):
     try:
-        target_msg = message.reply_to_message
+        replied = message.reply_to_message
 
-        if not target_msg:
+        if not replied:
             return await message.reply("❌ Please reply to a message to generate a link.")
 
-        msg_id_for_link = target_msg.message_id
-        unique_str = f"msg_{msg_id_for_link}"
-        encoded = base64.urlsafe_b64encode(unique_str.encode("ascii")).decode().strip("=")
+        file_type = replied.media
+        if file_type not in [enums.MessageMediaType.VIDEO, enums.MessageMediaType.AUDIO, enums.MessageMediaType.DOCUMENT]:
+            return await message.reply("Reply to a supported media")
+
+        file_id = getattr(replied, file_type.value).file_id
+        string = 'file_'
+        string += file_id
+        outstr = base64.urlsafe_b64encode(string.encode("ascii")).decode().strip("=")
 
         # Get user info
         user_id = message.from_user.id
