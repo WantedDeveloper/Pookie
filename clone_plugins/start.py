@@ -322,7 +322,7 @@ async def batch(bot, message):
                     await sts.edit(FRMT.format(
                         total=total_msgs,
                         current=tot,
-                        rem=(end_id - start_id) - tot,
+                        rem=(total_msgs - tot),
                         sts="Saving Messages"
                     ))
                 except:
@@ -337,7 +337,7 @@ async def batch(bot, message):
             outlist.append(file)
 
         # Convert to file_id
-        string = json.dumps(outlist)
+        string = json.dump(outlist)
         file_id = base64.urlsafe_b64encode(string.encode("ascii")).decode().strip("=")
 
         user_id = message.from_user.id
@@ -352,12 +352,12 @@ async def batch(bot, message):
         if user["base_site"] and user["shortener_api"] is not None:
             short_link = await get_short_link(user, share_link)
             await sts.edit(
-                f"✅ Contains `{done}` files.\n\nHere is your link:\n\n{short_link}",
+                f"✅ Contains `{og_msg}` files.\n\nHere is your link:\n\n{short_link}",
                 reply_markup=reply_markup
             )
         else:
             await sts.edit(
-                f"✅ Contains `{done}` files.\n\nHere is your link:\n\n{share_link}",
+                f"✅ Contains `{og_msg}` files.\n\nHere is your link:\n\n{share_link}",
                 reply_markup=reply_markup
             )
 
