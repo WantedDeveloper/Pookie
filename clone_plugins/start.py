@@ -225,13 +225,14 @@ async def link(client: Client, message):
                 return await message.reply('<b>🚫 Process has been cancelled.</b>')
 
         # Copy received message to log channel
-        #post = await g_msg.copy(LOG_CHANNEL)
+        post = await message.copy(LOG_CHANNEL)
 
         # Generate file ID + encoded string
         #file_id = str(post.id)
-        g_msg = message.reply_to_message
-        string = f"file_{g_msg}"
-        encoded = base64.urlsafe_b64encode(string.encode("ascii")).decode().strip("=")
+        target_msg = message.reply_to_message
+        unique_str = f"msg_{target_msg.chat.id}_{target_msg.message_id}"
+        #string = f"file_{g_msg}"
+        encoded = base64.urlsafe_b64encode(unique_str.encode("ascii")).decode().strip("=")
 
         # Get user info
         user_id = message.from_user.id
@@ -247,13 +248,13 @@ async def link(client: Client, message):
 
         # Shortener or original link
         if user.get("shortener_api"):
-            await g_msg.reply(
+            await message.reply(
                 f"Here is your link:\n\n{share_link}",
                 reply_markup=reply_markup
             )
         else:
             short_link = await get_short_link(user, share_link)
-            await g_msg.reply(
+            await message.reply(
                 f"Here is your link:\n\n{short_link}",
                 reply_markup=reply_markup
             )
