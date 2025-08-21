@@ -49,11 +49,7 @@ def formate_file_name(file_name):
     file_name = '@PookieManagerBot ' + ' '.join(filter(lambda x: not x.startswith('http') and not x.startswith('@') and not x.startswith('www.'), file_name.split()))
     return file_name
 
-from pyrogram import enums, filters
-from pyrogram.types import InlineKeyboardMarkup, InlineKeyboardButton
-import asyncio, os, json, base64
-
-@Client.on_message(filters.command("start") & filters.incoming)
+@Client.on_message(filters.command("start") & filters.private & filters.incoming)
 async def start(client, message):
     try:
         username = client.me.username
@@ -66,48 +62,20 @@ async def start(client, message):
                 script.LOG_TEXT.format(message.from_user.id, message.from_user.mention)
             )
 
-        # --- Force Subscribe Logic ---
-        if AUTH_CHANNEL and not await is_subscribed(client, message):
-            if REQUEST_TO_JOIN_MODE:
-                invite_link = await client.create_chat_invite_link(
-                    chat_id=int(AUTH_CHANNEL), creates_join_request=True
-                )
-            else:
-                invite_link = await client.create_chat_invite_link(int(AUTH_CHANNEL))
-
-            btn = [[InlineKeyboardButton("ʙᴀᴄᴋᴜᴘ ᴄʜᴀɴɴᴇʟ", url=invite_link.invite_link)]]
-
-            if len(message.command) > 1 and message.command[1] != "subscribe":
-                try:
-                    kk, file_id = message.command[1].split("_", 1)
-                    btn.append([InlineKeyboardButton("↻ ᴛʀʏ ᴀɢᴀɪɴ", callback_data=f"checksub#{kk}#{file_id}")])
-                except (IndexError, ValueError):
-                    btn.append([InlineKeyboardButton(
-                        "↻ ᴛʀʏ ᴀɢᴀɪɴ",
-                        url=f"https://t.me/{BOT_USERNAME}?start={message.command[1]}"
-                    )])
-
-            text = "**🕵️ You must join the backup channel first!**"
-            await client.send_message(
-                chat_id=message.from_user.id,
-                text=text,
-                reply_markup=InlineKeyboardMarkup(btn),
-                parse_mode=enums.ParseMode.MARKDOWN
-            )
-            return
-
-        # --- Start / Help buttons ---
-        if len(message.command) == 1 or message.command[1] in ["subscribe", "error", "okay", "help"]:
+        # If /start only (no arguments)
+        if len(message.command) == 1:
             buttons = [
-                [InlineKeyboardButton('💁‍♀️ Help', callback_data='help'),
-                 InlineKeyboardButton('😊 About', callback_data='about')],
+                [
+                    InlineKeyboardButton('💁‍♀️ Help', callback_data='help'),
+                    InlineKeyboardButton('😊 About', callback_data='about')
+                ],
                 [InlineKeyboardButton('🤖 Create Your Own Clone', callback_data='clone')],
                 [InlineKeyboardButton('🔒 Close', callback_data='close')]
             ]
             return await message.reply_text(
                 script.START_TXT.format(user=message.from_user.mention, bot=client.me.mention),
                 reply_markup=InlineKeyboardMarkup(buttons)
-            )
+        )
 
         # --- Verification Handler ---
         data = message.command[1]
@@ -207,10 +175,7 @@ async def start(client, message):
             LOG_CHANNEL,
             f"⚠️ Start Handler Error:\n\n<code>{e}</code>\n\nKindly check this message to get assistance."
         )
-        try:
-            await message.reply_text("❌ Something went wrong! Please try again later.")
-        except:
-            pass
+        await query.answer("❌ An error occurred. The admin has been notified.", show_alert=True)
 
 async def show_clone_menu(client, message, user_id):
     try:
@@ -236,6 +201,7 @@ async def show_clone_menu(client, message, user_id):
 
     except Exception as e:
         await client.send_message(LOG_CHANNEL, f"⚠️ Show Clone Menu Error:\n\n<code>{e}</code>\n\nKindly check this message to get assistance.")
+        await query.answer("❌ An error occurred. The admin has been notified.", show_alert=True)
 
 async def show_text_menu(msg, bot_id):
     try:
@@ -251,6 +217,7 @@ async def show_text_menu(msg, bot_id):
         )
     except Exception as e:
         await client.send_message(LOG_CHANNEL, f"⚠️ Show Text Menu Error:\n\n<code>{e}</code>\n\nKindly check this message to get assistance.")
+        await query.answer("❌ An error occurred. The admin has been notified.", show_alert=True)
 
 async def show_photo_menu(msg, bot_id):
     try:
@@ -266,6 +233,7 @@ async def show_photo_menu(msg, bot_id):
         )
     except Exception as e:
         await client.send_message(LOG_CHANNEL, f"⚠️ Show Photo Menu Error:\n\n<code>{e}</code>\n\nKindly check this message to get assistance.")
+        await query.answer("❌ An error occurred. The admin has been notified.", show_alert=True)
 
 async def show_time_menu(msg, bot_id):
     try:
@@ -281,6 +249,7 @@ async def show_time_menu(msg, bot_id):
         )
     except Exception as e:
         await client.send_message(LOG_CHANNEL, f"⚠️ Show Time Menu Error:\n\n<code>{e}</code>\n\nKindly check this message to get assistance.")
+        await query.answer("❌ An error occurred. The admin has been notified.", show_alert=True)
 
 async def show_message_menu(msg, bot_id):
     try:
@@ -296,6 +265,7 @@ async def show_message_menu(msg, bot_id):
         )
     except Exception as e:
         await client.send_message(LOG_CHANNEL, f"⚠️ Show Message Menu Error:\n\n<code>{e}</code>\n\nKindly check this message to get assistance.")
+        await query.answer("❌ An error occurred. The admin has been notified.", show_alert=True)
 
 @Client.on_callback_query()
 async def cb_handler(client: Client, query: CallbackQuery):
@@ -728,6 +698,7 @@ async def message_capture(client: Client, message: Message):
             await show_clone_menu(client, msg, user_id)
         except Exception as e:
             await client.send_message(LOG_CHANNEL, f"⚠️ Create Bot Error:\n\n<code>{e}</code>\n\nKindly check this message for assistance.")
+            await query.answer("❌ An error occurred. The admin has been notified.", show_alert=True)
             await msg.edit_text(f"❌ Failed to create bot: {e}")
             await asyncio.sleep(2)
             await show_clone_menu(client, msg, user_id)
@@ -760,6 +731,7 @@ async def message_capture(client: Client, message: Message):
             await show_text_menu(orig_msg, bot_id)
         except Exception as e:
             await client.send_message(LOG_CHANNEL, f"⚠️ Update Start Text Error:\n\n<code>{e}</code>\n\nKindly check this message for assistance.")
+            await query.answer("❌ An error occurred. The admin has been notified.", show_alert=True)
             await orig_msg.edit_text(f"❌ Failed to update start text: {e}")
             await asyncio.sleep(2)
             await show_text_menu(orig_msg, bot_id)
@@ -795,6 +767,7 @@ async def message_capture(client: Client, message: Message):
             await show_photo_menu(orig_msg, bot_id)
         except Exception as e:
             await client.send_message(LOG_CHANNEL, f"⚠️ Update Photo Error:\n\n<code>{e}</code>\n\nKindly check this message for assistance.")
+            await query.answer("❌ An error occurred. The admin has been notified.", show_alert=True)
             await orig_msg.edit_text(f"❌ Failed to update start photo: {e}")
         finally:
             WAITING_FOR_CLONE_PHOTO.pop(user_id, None)
@@ -826,6 +799,7 @@ async def message_capture(client: Client, message: Message):
             await show_time_menu(orig_msg, bot_id)
         except Exception as e:
             await client.send_message(LOG_CHANNEL, f"⚠️ Update Auto Delete Time Error:\n\n<code>{e}</code>\n\nKindly check this message for assistance.")
+            await query.answer("❌ An error occurred. The admin has been notified.", show_alert=True)
             await orig_msg.edit_text(f"❌ Failed to update auto delete time: {e}")
             await asyncio.sleep(2)
             await show_time_menu(orig_msg, bot_id)
@@ -858,6 +832,7 @@ async def message_capture(client: Client, message: Message):
             await show_message_menu(orig_msg, bot_id)
         except Exception as e:
             await client.send_message(LOG_CHANNEL, f"⚠️ Update Auto Delete Message Error:\n\n<code>{e}</code>\n\nKindly check this message for assistance.")
+            await query.answer("❌ An error occurred. The admin has been notified.", show_alert=True)
             await orig_msg.edit_text(f"❌ Failed to update auto delete message: {e}")
             await asyncio.sleep(2)
             await show_message_menu(orig_msg, bot_id)

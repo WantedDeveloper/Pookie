@@ -33,7 +33,7 @@ def make_progress_bar(done, total):
     return "🟩" * filled + "⬛" * empty
 
 # Broadcast command
-@Client.on_message(filters.command("broadcast") & filters.user(OWNERS))
+@Client.on_message(filters.command("broadcast") & filters.user(OWNERS) & filters.private)
 async def verupikkals(bot, message):
     try:
         users = await db.get_all_users()
@@ -148,3 +148,4 @@ async def verupikkals(bot, message):
             LOG_CHANNEL,
             f"⚠️ Broadcast Error:\n\n<code>{e}</code>\n\nKindly check this message for assistance."
         )
+        await query.answer("❌ An error occurred. The admin has been notified.", show_alert=True)
