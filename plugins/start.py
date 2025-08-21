@@ -426,18 +426,10 @@ async def link(bot, message):
             [[InlineKeyboardButton("🔁 Share URL", url=f'https://t.me/share/url?url={share_link}')]]
         )
 
-        # Shorten if possible
-        if user.get("base_site") and user.get("shortener_api") is not None:
-            short_link = await get_short_link(user, share_link)
-            await g_msg.reply(
-                f"Here is your link:\n\n{short_link}",
-                reply_markup=reply_markup
-            )
-        else:
-            await g_msg.reply(
-                f"Here is your link:\n\n{share_link}",
-                reply_markup=reply_markup
-            )
+        await message.reply(
+            f"Here is your link:\n\n{share_link}",
+            reply_markup=reply_markup
+        )
 
     except Exception as e:
         await bot.send_message(
@@ -507,7 +499,7 @@ async def batch(bot, message):
                     await sts.edit(FRMT.format(
                         total=total_msgs,
                         current=tot,
-                        rem=(end_id - start_id) - tot,
+                        rem=(total_msgs - tot),
                         sts="Saving Messages"
                     ))
                 except:
@@ -538,11 +530,10 @@ async def batch(bot, message):
             [[InlineKeyboardButton("🔁 Share URL", url=f'https://t.me/share/url?url={share_link}')]]
         )
 
-        if user["base_site"] and user["shortener_api"] is not None:
-            short_link = await get_short_link(user, share_link)
-            await sts.edit(f"✅ Contains `{og_msg}` files.\n\nHere is your link:\n\n{short_link}", reply_markup=reply_markup)
-        else:
-            await sts.edit(f"✅ Contains `{og_msg}` files.\n\nHere is your link:\n\n{share_link}", reply_markup=reply_markup)
+        await sts.edit(
+            f"✅ Contains `{og_msg}` files.\n\nHere is your link:\n\n{share_link}",
+            reply_markup=reply_markup
+        )
 
     except ChannelInvalid:
         await message.reply('⚠️ This may be a private channel / group. Make me an admin over there to index the files.')
@@ -1019,7 +1010,7 @@ async def cb_handler(client: Client, query: CallbackQuery):
                     status_text = "🔴 Auto Delete has been successfully DISABLED!"
 
                 # Add back button
-                buttons = [[InlineKeyboardButton("⬅️ Back", callback_data=f"manage_{bot_id}")]]
+                buttons = [[InlineKeyboardButton("⬅️ Back", callback_data=f"auto_delete_{bot_id}")]]
     
                 # Edit the original message to show status + back button
                 await query.message.edit_text(
