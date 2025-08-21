@@ -1,8 +1,8 @@
-import logging, asyncio, json, base64, requests, datetime, time, motor.motor_asyncio
+import os, logging, asyncio, re, json, base64, requests, time, datetime, motor.motor_asyncio
 from validators import domain
 from pyrogram import Client, filters, enums
-from pyrogram.types import InlineKeyboardButton, InlineKeyboardMarkup, Message, CallbackQuery
-from pyrogram.errors import ChatAdminRequired, InputUserDeactivated, FloodWait, UserIsBlocked, PeerIdInvalid
+from pyrogram.types import *
+from pyrogram.errors import ChatAdminRequired, InputUserDeactivated, UserNotParticipant, FloodWait, UserIsBlocked, PeerIdInvalid
 from pyrogram.errors.exceptions.bad_request_400 import AccessTokenExpired, AccessTokenInvalid, ChannelInvalid, UsernameInvalid, UsernameNotModified
 from config import *
 from Script import script
