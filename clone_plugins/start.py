@@ -225,25 +225,8 @@ async def link(client: Client, message):
             if g_msg.text and g_msg.text.lower() == '/cancel':
                 return await message.reply('<b>🚫 Process has been cancelled.</b>')
 
-        string = None
 
-        # ✅ Handle text/captions
-        if g_msg.text:
-            string = 'text_' + g_msg.text
-        elif g_msg.caption:
-            string = 'text_' + g_msg.caption
-
-        # ✅ Handle any media with file_id
-        elif g_msg.media:
-            try:
-                file_id = getattr(g_msg, g_msg.media.value).file_id
-                string = f"{g_msg.media.value}_" + file_id
-            except Exception:
-                return await message.reply("⚠️ Could not extract file_id from this media.")
-
-        if not string:
-            return await message.reply("❌ Unsupported message type.")
-
+        string = f"msg_{message.id}"
         outstr = base64.urlsafe_b64encode(string.encode("ascii")).decode().strip("=")
 
         # Get user info
