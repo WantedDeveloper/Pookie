@@ -122,12 +122,15 @@ async def start(client, message):
             file_id = data
             pre = ""
 
-        pre, file_id = ((base64.urlsafe_b64decode(data + "=" * (-len(data) % 4))).decode("ascii")).split("_", 1)
-        msg = await client.send_cached_media(
-            chat_id=message.from_user.id,
-            file_id=file_id,
-            protect_content=True if pre == 'filep' else False,
-        )
+        try:
+            pre, file_id = ((base64.urlsafe_b64decode(data + "=" * (-len(data) % 4))).decode("ascii")).split("_", 1)
+            msg = await client.send_cached_media(
+                chat_id=message.from_user.id,
+                file_id=file_id,
+                protect_content=True if pre == 'filep' else False,
+            )
+        except Exception as e:
+            await message.reply("❌ Failed to retrieve media. It may be deleted or unavailable.")
         filetype = msg.media
         file = getattr(msg, filetype.value)
         title = '@PookieManagerBot  ' + ' '.join(filter(lambda x: not x.startswith('[') and not x.startswith('@'), file.file_name.split()))
