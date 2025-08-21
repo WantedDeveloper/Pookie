@@ -207,14 +207,14 @@ async def get_short_link(user, link):
         return data["shortenedUrl"]
 
 @Client.on_message(filters.command(['genlink']) & filters.user(ADMINS) & filters.private)
-async def link(client: Client, message):
+async def link(bot, message):
     try:
         # 🔽 Support reply-to-message
         if message.reply_to_message:
             g_msg = message.reply_to_message
         else:
             try:
-                g_msg = await client.ask(
+                g_msg = await bot.ask(
                     message.chat.id,
                     "📩 Please send me the message (file/text/media) to generate a shareable link.\n\nSend /cancel to stop.",
                     timeout=60
@@ -234,7 +234,7 @@ async def link(client: Client, message):
         user = await clonedb.get_user(user_id)
 
         # Bot username and share link
-        bot_username = (await client.get_me()).username
+        bot_username = (await bot.get_me()).username
         share_link = f"https://t.me/{bot_username}?start={outstr}"
 
         reply_markup = InlineKeyboardMarkup(
@@ -255,9 +255,95 @@ async def link(client: Client, message):
             )
 
     except Exception as e:
-        await client.send_message(
+        await bot.send_message(
             LOG_CHANNEL,
             f"⚠️ Clone Generate Link Error:\n\n<code>{e}</code>\n\nKindly check this message for assistance."
+        )
+
+@Client.on_message(filters.command(['batch']) & filters.user(ADMINS) & filters.private)
+async def batch(bot, message):
+    try:
+        username = (await bot.get_me()).username
+        
+        if " " not in message.text:
+            return await message.reply("Use correct format.\nExample /batch https://t.me/ex/10 https://t.me/ex/20.")
+        
+        links = message.text.strip().split(" ")
+        if len(links) != 3:
+            return await message.reply("Use correct format.\nExample /batch https://t.me/ex/10 https://t.me/ex/20.")
+        
+        cmd, first, last = links
+        regex = re.compile(r"(https://)?(t\.me/|telegram\.me/|telegram\.dog/)(c/)?(\d+|[a-zA-Z_0-9]+)/(\d+)$")
+        
+        match = regex.match(first)
+        if not match:
+            return await message.reply('Invalid link')
+        f_chat_id = match.group(4)
+        f_msg_id = int(match.group(5))
+        if f_chat_id.isnumeric():
+            f_chat_id = int("-100" + f_chat_id)
+
+        match = regex.match(last)
+        if not match:
+            return await message.reply('Invalid link')
+        l_chat_id = match.group(4)
+        l_msg_id = int(match.group(5))
+        if l_chat_id.isnumeric():
+            l_chat_id = int("-100" + l_chat_id)
+
+        if f_chat_id != l_chat_id:
+            return await message.reply("❌ Chat ids not matched.")
+        
+        chat_id = (await bot.get_chat(f_chat_id)).id
+
+        sts = await message.reply("Generating link for your message .\nThis may take time depending upon number of messages.")
+        FRMT = "Generating Link...**\nTotal Messages: {total}\nDone: {current}\nRemaining: {rem}\nStatus: {sts}"
+
+        outlist = []
+        og_msg = 0
+        tot = 0
+
+        async for msg in bot.iter_messages(f_chat_id, l_msg_id, f_msg_id):
+            tot += 1
+            if og_msg % 20 == 0:
+                try:
+                    await sts.edit(FRMT.format(total=l_msg_id-f_msg_id, current=tot, rem=((l_msg_id-f_msg_id) - tot), sts="Saving Messages"))
+                except:
+                    pass
+            if msg.empty or msg.service:
+                continue
+            file = {
+                "channel_id": f_chat_id,
+                "msg_id": msg.id
+            }
+            og_msg += 1
+            outlist.append(file)
+
+        string = json.dumps(outlist)
+        file_id = base64.urlsafe_b64encode(string.encode("ascii")).decode().strip("=")
+        
+        user_id = message.from_user.id
+        user = await clonedb.get_user(user_id)
+        share_link = f"https://t.me/{username}?start=BATCH-{file_id}"
+
+        reply_markup = InlineKeyboardMarkup(
+            [[InlineKeyboardButton("🔁 Share URL", url=f'https://t.me/share/url?url={share_link}')]]
+        )
+
+        if user["base_site"] and user["shortener_api"] is not None:
+            short_link = await get_short_link(user, share_link)
+            await sts.edit(f"✅ Contains `{og_msg}` files.\n\nHere is your link:\n\n{short_link}", reply_markup=reply_markup)
+        else:
+            await sts.edit(f"✅ Contains `{og_msg}` files.\n\nHere is your link:\n\n{share_link}", reply_markup=reply_markup)
+
+    except ChannelInvalid:
+        await message.reply('⚠️ This may be a private channel / group. Make me an admin over there to index the files.')
+    except (UsernameInvalid, UsernameNotModified):
+        await message.reply('⚠️ Invalid Link specified.')
+    except Exception as e:
+        await bot.send_message(
+            LOG_CHANNEL,
+            f"⚠️ Clone Batch Error:\n\n<code>{e}</code>\n\nKindly check this message for assistance."
         )
 
 # Broadcast sender with error handling
