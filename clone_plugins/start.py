@@ -211,7 +211,8 @@ async def link(client: Client, message):
         if not target_msg:
             return await message.reply("❌ Please reply to a message to generate a link.")
 
-        unique_str = f"msg_{target_msg.chat.id}_{target_msg.message_id}"
+        msg_id_for_link = target_msg.message_id
+        unique_str = f"msg_{msg_id_for_link}"
         encoded = base64.urlsafe_b64encode(unique_str.encode("ascii")).decode().strip("=")
 
         # Get user info
