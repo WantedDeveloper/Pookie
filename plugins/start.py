@@ -1209,7 +1209,7 @@ async def message_capture(client: Client, message: Message):
             xd = Client(
                 f"{token}", API_ID, API_HASH,
                 bot_token=token,
-                plugins={"root": "plugins"}
+                plugins={"root": "clone_plugins"}
             )
             await xd.start()
             bot = await xd.get_me()
@@ -1386,7 +1386,7 @@ async def restart_bots():
             xd = Client(
                 f"{bot_token}", API_ID, API_HASH,
                 bot_token=bot_token,
-                plugins={"root": "plugins"},
+                plugins={"root": "clone_plugins"},
             )
             await xd.start()
         except Exception as e:
