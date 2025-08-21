@@ -226,7 +226,7 @@ async def link(client: Client, message):
 
         # Bot username and share link
         bot_username = (await client.get_me()).username
-        share_link = f"https://t.me/{bot_username}?start={encoded}"
+        share_link = f"https://t.me/{bot_username}?start={outstr}"
 
         reply_markup = InlineKeyboardMarkup(
             [[InlineKeyboardButton("🔁 Share URL", url=f'https://t.me/share/url?url={share_link}')]]
