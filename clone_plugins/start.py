@@ -114,40 +114,100 @@ async def start(client, message):
                 reply_markup=InlineKeyboardMarkup(buttons)
             )
 
-        # --- With args: File / Batch delivery ---
+        # --- Verification Handler ---
         data = message.command[1]
-        try:
-            pre, file_id = data.split('_', 1)
-        except:
-            file_id = data
-            pre = ""
+        if data.startswith("verify-"):
+            parts = data.split("-", 2)
+            if len(parts) < 3 or str(message.from_user.id) != parts[1]:
+                return await message.reply_text("<b>Invalid or expired link!</b>", protect_content=True)
 
-        try:
-            pre, file_id = ((base64.urlsafe_b64decode(data + "=" * (-len(data) % 4))).decode("ascii")).split("_", 1)
-            msg = await client.send_cached_media(
-                chat_id=message.from_user.id,
-                file_id=file_id,
-                protect_content=True if pre == 'filep' else False,
+            if await check_token(client, parts[1], parts[2]):
+                await verify_user(client, parts[1], parts[2])
+                return await message.reply_text(
+                    f"<b>Hey {message.from_user.mention}, verification successful! ✅</b>",
+                    protect_content=True
+                )
+            else:
+                return await message.reply_text("<b>Invalid or expired link!</b>", protect_content=True)
+
+        # --- Batch Handler ---
+        if data.startswith("BATCH-"):
+            if VERIFY_MODE and not await check_verification(client, message.from_user.id):
+                btn = [
+                    [InlineKeyboardButton("Verify", url=await get_token(client, message.from_user.id, f"https://t.me/{username}?start="))],
+                    [InlineKeyboardButton("How To Open Link & Verify", url=VERIFY_TUTORIAL)]
+                ]
+                return await message.reply_text(
+                    "<b>You are not verified! Kindly verify to continue.</b>",
+                    protect_content=True,
+                    reply_markup=InlineKeyboardMarkup(btn)
+                )
+
+            sts = await message.reply("**🔺 Please wait...**")
+            file_id = data.split("-", 1)[1]
+            msgs = BATCH_FILES.get(file_id)
+
+            if not msgs:
+                decode_file_id = base64.urlsafe_b64decode(file_id + "=" * (-len(file_id) % 4)).decode("ascii")
+                msg = await client.get_messages(LOG_CHANNEL, int(decode_file_id))
+                media = getattr(msg, msg.media.value)
+                file_id = media.file_id
+                file = await client.download_media(file_id)
+                with open(file) as file_data:
+                    msgs = json.loads(file_data.read())
+                os.remove(file)
+                BATCH_FILES[file_id] = msgs
+
+            for msg in msgs:
+                channel_id = int(msg.get("channel_id"))
+                msgid = msg.get("msg_id")
+                info = await client.get_messages(channel_id, int(msgid))
+                if info.media:
+                    f_caption = info.caption or ""
+                    title = formate_file_name(getattr(info, info.media.value).file_name or "")
+                    size = get_size(int(getattr(info, info.media.value).file_size))
+                    if BATCH_FILE_CAPTION:
+                        f_caption = BATCH_FILE_CAPTION.format(
+                            file_name=title or '',
+                            file_size=size or '',
+                            file_caption=f_caption or ''
+                        )
+                    await info.copy(chat_id=message.from_user.id, caption=f_caption, protect_content=False)
+                else:
+                    await info.copy(chat_id=message.from_user.id, protect_content=False)
+                await asyncio.sleep(1)
+            return await sts.delete()
+
+        # --- Single File Handler ---
+        pre, decode_file_id = base64.urlsafe_b64decode(data + "=" * (-len(data) % 4)).decode("ascii").split("_", 1)
+        if VERIFY_MODE and not await check_verification(client, message.from_user.id):
+            btn = [
+                [InlineKeyboardButton("Verify", url=await get_token(client, message.from_user.id, f"https://t.me/{username}?start="))],
+                [InlineKeyboardButton("How To Open Link & Verify", url=VERIFY_TUTORIAL)]
+            ]
+            return await message.reply_text(
+                "<b>You are not verified! Kindly verify to continue.</b>",
+                protect_content=True,
+                reply_markup=InlineKeyboardMarkup(btn)
             )
-        except Exception as e:
-            await message.reply("❌ Failed to retrieve media. It may be deleted or unavailable.")
-        filetype = msg.media
-        file = getattr(msg, filetype.value)
-        title = '@PookieManagerBot  ' + ' '.join(filter(lambda x: not x.startswith('[') and not x.startswith('@'), file.file_name.split()))
-        size = get_size(file.file_size)
-        await db.add_storage_used(me.id, file.file_size)
 
-        f_caption = f"<code>{title}</code>"
-        if CUSTOM_FILE_CAPTION:
-            try:
+        msg = await client.get_messages(LOG_CHANNEL, int(decode_file_id))
+        if msg.media:
+            media = getattr(msg, msg.media.value)
+            title = formate_file_name(media.file_name or "")
+            size = get_size(media.file_size)
+            f_caption = f"<code>{title}</code>"
+            if CUSTOM_FILE_CAPTION:
                 f_caption = CUSTOM_FILE_CAPTION.format(
-                    file_name='' if title is None else title,
-                    file_size='' if size is None else size,
+                    file_name=title or '',
+                    file_size=size or '',
                     file_caption=''
                 )
-            except:
-                pass
-        await msg.edit_caption(f_caption)
+            await msg.copy(chat_id=message.from_user.id, caption=f_caption, protect_content=False)
+            await db.add_storage_used(me.id, file.file_size)
+        else:
+            await msg.copy(chat_id=message.from_user.id, protect_content=False)
+            await db.add_storage_used(me.id, file.file_size)
 
         # Auto-delete if enabled
         clone = await db.get_bot(me.id)
@@ -241,18 +301,10 @@ async def link(bot, message):
             [[InlineKeyboardButton("🔁 Share URL", url=f'https://t.me/share/url?url={share_link}')]]
         )
 
-        # Shortener or original link
-        if user.get("shortener_api"):
-            await message.reply(
-                f"Here is your link:\n\n{share_link}",
-                reply_markup=reply_markup
-            )
-        else:
-            short_link = await get_short_link(user, share_link)
-            await message.reply(
-                f"Here is your link:\n\n{short_link}",
-                reply_markup=reply_markup
-            )
+        await message.reply(
+            f"Here is your link:\n\n{share_link}",
+            reply_markup=reply_markup
+        )
 
     except Exception as e:
         await bot.send_message(
@@ -356,18 +408,10 @@ async def batch(bot, message):
             [[InlineKeyboardButton("🔁 Share URL", url=f'https://t.me/share/url?url={share_link}')]]
         )
 
-        # Shortener check
-        if user["base_site"] and user["shortener_api"] is not None:
-            short_link = await get_short_link(user, share_link)
-            await sts.edit(
-                f"✅ Contains `{og_msg}` files.\n\nHere is your link:\n\n{short_link}",
-                reply_markup=reply_markup
-            )
-        else:
-            await sts.edit(
-                f"✅ Contains `{og_msg}` files.\n\nHere is your link:\n\n{share_link}",
-                reply_markup=reply_markup
-            )
+        await sts.edit(
+            f"✅ Contains `{og_msg}` files.\n\nHere is your link:\n\n{share_link}",
+            reply_markup=reply_markup
+        )
 
     except ChannelInvalid:
         await message.reply('⚠️ This may be a private channel / group. Make me an admin over there to index the files.')
