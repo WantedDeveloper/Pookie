@@ -303,6 +303,8 @@ async def batch(bot, message):
         start_id = min(f_msg_id, l_msg_id)
         end_id = max(f_msg_id, l_msg_id)
 
+        total_msgs = (end_id - start_id) + 1
+
         sts = await message.reply(
             "⏳ Generating link for your messages...\n"
             "This may take time depending upon number of messages."
@@ -310,33 +312,29 @@ async def batch(bot, message):
         FRMT = "Generating Link...\n\nTotal: {total}\nDone: {current}\nRemaining: {rem}\nStatus: {sts}"
 
         outlist = []
-        total = end_id - start_id + 1
-        done = 0
+        og_msg = 0
+        tot = 0
 
-        # Fetch messages safely
-        async for msg in bot.iter_messages(
-            f_chat_id,
-            min_id=start_id - 1,
-            max_id=end_id + 1
-        ):
-            if not msg or msg.service:
-                continue
-
-            file = {"channel_id": f_chat_id, "msg_id": msg.id}
-            outlist.append(file)
-            done += 1
-
-            # Update status every 20 messages
-            if done % 20 == 0:
+        async for msg in bot.iter_messages(f_chat_id, end_id, start_id):
+            tot += 1
+            if og_msg % 20 == 0:
                 try:
                     await sts.edit(FRMT.format(
-                        total=total,
-                        current=done,
-                        rem=total - done,
+                        total=total_msgs,
+                        current=tot,
+                        rem=(end_id - start_id) - tot,
                         sts="Saving Messages"
                     ))
                 except:
                     pass
+            if msg.empty or msg.service:
+                continue
+            file = {
+                "channel_id": f_chat_id,
+                "msg_id": msg.id
+            }
+            og_msg += 1
+            outlist.append(file)
 
         # Convert to file_id
         string = json.dumps(outlist)
