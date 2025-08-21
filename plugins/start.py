@@ -1,25 +1,12 @@
-import os
-import logging
-import asyncio
-import re
-import json
-import base64
-import requests
-import time
-import datetime
-import motor.motor_asyncio
+import os, logging, asyncio, re, json, base64, requests, time, datetime, motor.motor_asyncio
 from validators import domain
-from Script import script
 from pyrogram import Client, filters, enums
+from pyrogram.types import *
 from pyrogram.errors import ChatAdminRequired, InputUserDeactivated, UserNotParticipant, FloodWait, UserIsBlocked, PeerIdInvalid
 from pyrogram.errors.exceptions.bad_request_400 import AccessTokenExpired, AccessTokenInvalid, ChannelInvalid, UsernameInvalid, UsernameNotModified
-from pyrogram.types import *
-from utils import verify_user, check_token, check_verification, get_token
 from config import *
-from urllib.parse import quote_plus
-from TechVJ.utils.file_properties import get_name, get_hash, get_media_file_size
-
-logger = logging.getLogger(__name__)
+from Script import script
+from utils import verify_user, check_token, check_verification, get_token
 
 class Database:
 
@@ -199,6 +186,8 @@ class Database:
         return count
 
 db = Database(DB_URI, DB_NAME)
+
+logger = logging.getLogger(__name__)
 
 BATCH_FILES = {}
 WAITING_FOR_TOKEN = {}
@@ -1113,7 +1102,7 @@ async def cb_handler(client: Client, query: CallbackQuery):
                 storage_free = storage_limit - storage_used
                 banned_users = len(clone.get("banned_users", []))
 
-                uptime = str(timedelta(seconds=int(time.time() - time.time())))
+                uptime = str(datetime.timedelta(seconds=int(time.time() - time.time())))
 
                 await query.answer(
                     f"📊 Status for @{clone.get('username')}\n\n"
