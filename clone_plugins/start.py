@@ -208,30 +208,15 @@ async def get_short_link(user, link):
 @Client.on_message(filters.command(['genlink']) & filters.user(ADMINS) & filters.private)
 async def link(client: Client, message):
     try:
-        # 🔽 Support reply-to-message
-        if message.reply_to_message:
-            g_msg = message.reply_to_message
-        else:
-            try:
-                g_msg = await bot.ask(
-                    message.chat.id,
-                    "📩 Please send me the message (file/text/media) to generate a shareable link.\n\nSend /cancel to stop.",
-                    timeout=60
-                )
-            except asyncio.TimeoutError:
-                return await message.reply("<b>⏰ Timeout! You didn’t send any message in 60s.</b>")
-
-            if g_msg.text and g_msg.text.lower() == '/cancel':
-                return await message.reply('<b>🚫 Process has been cancelled.</b>')
+        target_msg = message.reply_to_message
 
         # Copy received message to log channel
-        post = await message.copy(LOG_CHANNEL)
+        #post = await message.copy(LOG_CHANNEL)
 
         # Generate file ID + encoded string
         #file_id = str(post.id)
-        target_msg = message.reply_to_message
-        unique_str = f"msg_{target_msg.chat.id}_{target_msg.message_id}"
         #string = f"file_{g_msg}"
+        unique_str = f"msg_{target_msg.chat.id}_{target_msg.message_id}"
         encoded = base64.urlsafe_b64encode(unique_str.encode("ascii")).decode().strip("=")
 
         # Get user info
