@@ -818,7 +818,7 @@ async def show_moderator_menu(client, message, bot_id):
     except Exception as e:
         await client.send_message(
             LOG_CHANNEL,
-            f"⚠️ Show Moderator Menu Error:\n<code>{e}</code>\nClone Data: {clone}\n\nKindly check this message to get assistance.""
+            f"⚠️ Show Moderator Menu Error:\n<code>{e}</code>\nClone Data: {clone}\n\nKindly check this message to get assistance."
         )
 
 @Client.on_callback_query()
