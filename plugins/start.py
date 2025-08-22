@@ -769,22 +769,70 @@ async def show_time_menu(client, message, bot_id):
             f"⚠️ Show Time Menu Error:\n\n<code>{e}</code>\n\nKindly check this message to get assistance."
         )
 
-async def show_message_menu(client, message, bot_id):
+import json
+from pyrogram.types import InlineKeyboardButton, InlineKeyboardMarkup
+
+async def show_moderator_menu(client, message, bot_id):
     try:
+        # Fetch clone data from DB
+        clone_data = await db.get_clone_by_id(bot_id)
+
+        # Ensure clone is a dictionary
+        if not clone_data:
+            clone = {}
+        elif isinstance(clone_data, str):
+            try:
+                clone = json.loads(clone_data)
+            except json.JSONDecodeError:
+                clone = {}
+        elif isinstance(clone_data, dict):
+            clone = clone_data
+        else:
+            clone = {}
+
+        # Get moderators safely
+        moderators_raw = clone.get("moderators", [])
+        if isinstance(moderators_raw, str):
+            try:
+                moderators = json.loads(moderators_raw)
+            except json.JSONDecodeError:
+                moderators = []
+        elif isinstance(moderators_raw, list):
+            moderators = moderators_raw
+        else:
+            moderators = []
+
+        # Build buttons
         buttons = [
-            [InlineKeyboardButton('✏️ Edit', callback_data=f'edit_admessage_{bot_id}'),
-            InlineKeyboardButton('👁️ See', callback_data=f'see_admessage_{bot_id}'),
-            InlineKeyboardButton('🔄 Default', callback_data=f'default_admessage_{bot_id}')],
-            [InlineKeyboardButton('⬅️ Back', callback_data=f'auto_delete_{bot_id}')]
+            [
+                InlineKeyboardButton('➕ Add', callback_data=f'add_moderator_{bot_id}'),
+                InlineKeyboardButton('➖ Remove', callback_data=f'remove_moderator_{bot_id}'),
+                InlineKeyboardButton('🔁 Transfer', callback_data=f'transfer_moderator_{bot_id}')
+            ],
+            [
+                InlineKeyboardButton('⬅️ Back', callback_data=f'manage_{bot_id}')
+            ]
         ]
+
+        # Build text
+        if moderators:
+            mod_list = "\n".join(
+                [f"👤 {mod.get('name', mod.get('id', 'Unknown'))} (`{mod.get('id', 'N/A')}`)" for mod in moderators]
+            )
+            text = f"{script.MODERATOR_TXT}\n\n👥 **Current Moderators:**\n{mod_list}"
+        else:
+            text = script.MODERATOR_TXT
+
+        # Edit the message
         await message.edit_text(
-            text=script.AD_MSG_TXT,
+            text=text,
             reply_markup=InlineKeyboardMarkup(buttons)
         )
+
     except Exception as e:
         await client.send_message(
             LOG_CHANNEL,
-            f"⚠️ Show Message Menu Error:\n\n<code>{e}</code>\n\nKindly check this message to get assistance."
+            f"⚠️ Show Moderator Menu Error:\n\n<code>{e}</code>\n\nKindly check this message to get assistance."
         )
 
 async def show_moderator_menu(client, message, bot_id):
