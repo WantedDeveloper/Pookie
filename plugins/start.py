@@ -769,15 +769,12 @@ async def show_time_menu(client, message, bot_id):
             f"⚠️ Show Time Menu Error:\n\n<code>{e}</code>\n\nKindly check this message to get assistance."
         )
 
-import json
-from pyrogram.types import InlineKeyboardButton, InlineKeyboardMarkup
-
 async def show_moderator_menu(client, message, bot_id):
     try:
-        # Fetch clone data from DB
+        # Fetch clone data
         clone_data = await db.get_clone_by_id(bot_id)
 
-        # Ensure clone is a dictionary
+        # Convert clone to dict safely
         if not clone_data:
             clone = {}
         elif isinstance(clone_data, str):
@@ -802,6 +799,19 @@ async def show_moderator_menu(client, message, bot_id):
         else:
             moderators = []
 
+        # Build moderator display safely
+        mod_list_lines = []
+        for mod in moderators:
+            if isinstance(mod, dict):
+                name = mod.get('name', mod.get('id', 'Unknown'))
+                mod_id = mod.get('id', 'N/A')
+            else:  # mod is likely a string or number
+                name = str(mod)
+                mod_id = str(mod)
+            mod_list_lines.append(f"👤 {name} (`{mod_id}`)")
+
+        mod_list_text = "\n".join(mod_list_lines)
+
         # Build buttons
         buttons = [
             [
@@ -815,11 +825,8 @@ async def show_moderator_menu(client, message, bot_id):
         ]
 
         # Build text
-        if moderators:
-            mod_list = "\n".join(
-                [f"👤 {mod.get('name', mod.get('id', 'Unknown'))} (`{mod.get('id', 'N/A')}`)" for mod in moderators]
-            )
-            text = f"{script.MODERATOR_TXT}\n\n👥 **Current Moderators:**\n{mod_list}"
+        if mod_list_text:
+            text = f"{script.MODERATOR_TXT}\n\n👥 **Current Moderators:**\n{mod_list_text}"
         else:
             text = script.MODERATOR_TXT
 
