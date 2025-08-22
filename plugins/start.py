@@ -1169,7 +1169,7 @@ async def cb_handler(client: Client, query: CallbackQuery):
 
             # Remove Moderator
             elif action == "remove_mod":
-                await db.update_clone(bot_id, {"$pull": {"moderators": user_id}}, raw=True)
+                await db.update_clone(bot_id, {"$pull": {"moderators": str(user_id)}}, raw=True)
                 await query.answer("✅ Moderator removed!", show_alert=True)
                 await show_moderator_menu(client, query.message, bot_id)
 
@@ -1189,12 +1189,10 @@ async def cb_handler(client: Client, query: CallbackQuery):
             # Transfer Moderator
             elif action == "transfer_mod":
                 old_owner = clone.get("user_id")
+                await db.update_clone(bot_id, {"$set": {"user_id": user_id}}, raw=True)
                 await db.update_clone(bot_id, {
-                    "user_id": user_id
-                }, raw=True)
-                await db.update_clone(bot_id, {
-                    "$addToSet": {"moderators": old_owner},
-                    "$pull": {"moderators": user_id}
+                    "$addToSet": {"moderators": str(old_owner)},
+                    "$pull": {"moderators": str(user_id)}
                 }, raw=True)
                 await query.answer("✅ Ownership transferred!", show_alert=True)
                 await show_clone_menu(client, query.message, user_id)
