@@ -771,10 +771,15 @@ async def show_time_menu(client, message, bot_id):
 
 async def show_moderator_menu(client, message, bot_id):
     try:
-        # Fetch clone data
         clone_data = await db.get_clone_by_id(bot_id)
 
-        # Convert clone to dict safely
+        # Debug: log the type and value
+        await client.send_message(
+            LOG_CHANNEL,
+            f"DEBUG: clone_data type={type(clone_data)} value={clone_data}"
+        )
+
+        # Convert clone_data to dict if it's a string
         if not clone_data:
             clone = {}
         elif isinstance(clone_data, str):
@@ -787,7 +792,6 @@ async def show_moderator_menu(client, message, bot_id):
         else:
             clone = {}
 
-        # Get moderators safely
         moderators_raw = clone.get("moderators", [])
         if isinstance(moderators_raw, str):
             try:
@@ -799,38 +803,31 @@ async def show_moderator_menu(client, message, bot_id):
         else:
             moderators = []
 
-        # Build moderator display safely
         mod_list_lines = []
         for mod in moderators:
             if isinstance(mod, dict):
                 name = mod.get('name', mod.get('id', 'Unknown'))
                 mod_id = mod.get('id', 'N/A')
-            else:  # mod is likely a string or number
+            else:
                 name = str(mod)
                 mod_id = str(mod)
             mod_list_lines.append(f"👤 {name} (`{mod_id}`)")
 
         mod_list_text = "\n".join(mod_list_lines)
 
-        # Build buttons
         buttons = [
             [
                 InlineKeyboardButton('➕ Add', callback_data=f'add_moderator_{bot_id}'),
                 InlineKeyboardButton('➖ Remove', callback_data=f'remove_moderator_{bot_id}'),
                 InlineKeyboardButton('🔁 Transfer', callback_data=f'transfer_moderator_{bot_id}')
             ],
-            [
-                InlineKeyboardButton('⬅️ Back', callback_data=f'manage_{bot_id}')
-            ]
+            [InlineKeyboardButton('⬅️ Back', callback_data=f'manage_{bot_id}')]
         ]
 
-        # Build text
+        text = script.MODERATOR_TXT
         if mod_list_text:
-            text = f"{script.MODERATOR_TXT}\n\n👥 **Current Moderators:**\n{mod_list_text}"
-        else:
-            text = script.MODERATOR_TXT
+            text += f"\n\n👥 **Current Moderators:**\n{mod_list_text}"
 
-        # Edit the message
         await message.edit_text(
             text=text,
             reply_markup=InlineKeyboardMarkup(buttons)
