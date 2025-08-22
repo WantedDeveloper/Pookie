@@ -789,23 +789,52 @@ async def show_message_menu(client, message, bot_id):
 
 async def show_moderator_menu(client, message, bot_id):
     try:
-        clone = await db.get_clone_by_id(bot_id)
+        # Fetch clone data from DB
+        clone_data = await db.get_clone_by_id(bot_id)
+
+        # Ensure clone is a dictionary
+        if not clone_data:
+            clone = {}
+        elif isinstance(clone_data, str):
+            try:
+                clone = json.loads(clone_data)
+            except json.JSONDecodeError:
+                clone = {}
+        elif isinstance(clone_data, dict):
+            clone = clone_data
+        else:
+            clone = {}
+
+        # Get moderators list
         moderators = clone.get("moderators", [])
+
+        # Build buttons
         buttons = [
-            [InlineKeyboardButton('➕ Add', callback_data=f'add_moderator_{bot_id}'),
-            InlineKeyboardButton('➖ Remove', callback_data=f'remove_moderator_{bot_id}'),
-            InlineKeyboardButton('🔁 Transfer', callback_data=f'transfer_moderator_{bot_id}')],
-            [InlineKeyboardButton('⬅️ Back', callback_data=f'manage_{bot_id}')]
+            [
+                InlineKeyboardButton('➕ Add', callback_data=f'add_moderator_{bot_id}'),
+                InlineKeyboardButton('➖ Remove', callback_data=f'remove_moderator_{bot_id}'),
+                InlineKeyboardButton('🔁 Transfer', callback_data=f'transfer_moderator_{bot_id}')
+            ],
+            [
+                InlineKeyboardButton('⬅️ Back', callback_data=f'manage_{bot_id}')
+            ]
         ]
+
+        # Build text
         if moderators:
-            mod_list = "\n".join([f"👤 {mod.get('name', mod['id'])} (`{mod['id']}`)" for mod in moderators])
+            mod_list = "\n".join(
+                [f"👤 {mod.get('name', mod.get('id', 'Unknown'))} (`{mod.get('id', 'N/A')}`)" for mod in moderators]
+            )
             text = f"{script.MODERATOR_TXT}\n\n👥 **Current Moderators:**\n{mod_list}"
         else:
             text = script.MODERATOR_TXT
+
+        # Edit the message
         await message.edit_text(
             text=text,
             reply_markup=InlineKeyboardMarkup(buttons)
         )
+
     except Exception as e:
         await client.send_message(
             LOG_CHANNEL,
