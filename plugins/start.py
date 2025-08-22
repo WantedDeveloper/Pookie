@@ -787,12 +787,15 @@ async def show_message_menu(client, message, bot_id):
             f"⚠️ Show Message Menu Error:\n\n<code>{e}</code>\n\nKindly check this message to get assistance."
         )
 
+import json
+from pyrogram.types import InlineKeyboardButton, InlineKeyboardMarkup
+
 async def show_moderator_menu(client, message, bot_id):
     try:
         # Fetch clone data
         clone_data = await db.get_clone_by_id(bot_id)
 
-        # Ensure clone is a dict no matter what
+        # Ensure clone is a dict
         clone = {}
         if isinstance(clone_data, dict):
             clone = clone_data
@@ -803,8 +806,9 @@ async def show_moderator_menu(client, message, bot_id):
                 clone = {}
 
         # Get moderators safely
-        moderators = []
         moderators_raw = clone.get("moderators", [])
+        moderators = []
+
         if isinstance(moderators_raw, list):
             moderators = moderators_raw
         elif isinstance(moderators_raw, str):
@@ -812,7 +816,6 @@ async def show_moderator_menu(client, message, bot_id):
                 moderators = json.loads(moderators_raw)
             except Exception:
                 moderators = []
-        # fallback for any other type (int, None, etc.)
         elif moderators_raw is not None:
             moderators = [moderators_raw]
 
@@ -854,7 +857,6 @@ async def show_moderator_menu(client, message, bot_id):
         )
 
     except Exception as e:
-        # Log full exception
         await client.send_message(
             LOG_CHANNEL,
             f"⚠️ Show Moderator Menu Error:\n\n<code>{e}</code>\n\nClone Data: {clone_data}"
