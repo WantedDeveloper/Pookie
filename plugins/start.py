@@ -76,13 +76,13 @@ class Database:
         clone = await self.bot.find_one({'bot_id': int(bot_id)})
         return clone
 
-    async def get_clones_by_user(user_id):
-        user_id = str(user_id)  # ensure string type
+    async def get_clones_by_user(self, user_id):
+        user_id = str(user_id)
         clones = []
-        cursor = db.clones.find({
+        cursor = self.clones.find({
             "$or": [
-                {"user_id": user_id},           # owner
-                {"moderators": user_id}         # moderator
+                {"user_id": user_id},
+                {"moderators": user_id}
             ]
         })
         async for clone in cursor:
