@@ -708,7 +708,7 @@ async def show_clone_menu(client, message, user_id):
             f"⚠️ Show Clone Menu Error:\n\n<code>{e}</code>\n\nKindly check this message to get assistance."
         )
 
-async def show_text_menu(msg, bot_id):
+async def show_text_menu(client, message, bot_id):
     try:
         buttons = [
             [InlineKeyboardButton('✏️ Edit', callback_data=f'edit_text_{bot_id}'),
@@ -716,7 +716,7 @@ async def show_text_menu(msg, bot_id):
             InlineKeyboardButton('🔄 Default', callback_data=f'default_text_{bot_id}')],
             [InlineKeyboardButton('⬅️ Back', callback_data=f'start_message_{bot_id}')]
         ]
-        await msg.edit_text(
+        await message.edit_text(
             text=script.ST_TXT_TXT,
             reply_markup=InlineKeyboardMarkup(buttons)
         )
@@ -726,7 +726,7 @@ async def show_text_menu(msg, bot_id):
             f"⚠️ Show Text Menu Error:\n\n<code>{e}</code>\n\nKindly check this message to get assistance."
         )
 
-async def show_photo_menu(msg, bot_id):
+async def show_photo_menu(client, message, bot_id):
     try:
         buttons = [
             [InlineKeyboardButton('➕ Add', callback_data=f'add_photo_{bot_id}'),
@@ -734,7 +734,7 @@ async def show_photo_menu(msg, bot_id):
             InlineKeyboardButton('🗑️ Delete', callback_data=f'delete_photo_{bot_id}')],
             [InlineKeyboardButton('⬅️ Back', callback_data=f'start_message_{bot_id}')]
         ]
-        await msg.edit_text(
+        await message.edit_text(
             text=script.ST_PIC_TXT,
             reply_markup=InlineKeyboardMarkup(buttons)
         )
@@ -744,7 +744,7 @@ async def show_photo_menu(msg, bot_id):
             f"⚠️ Show Photo Menu Error:\n\n<code>{e}</code>\n\nKindly check this message to get assistance."
         )
 
-async def show_time_menu(msg, bot_id):
+async def show_time_menu(client, message, bot_id):
     try:
         buttons = [
             [InlineKeyboardButton('✏️ Edit', callback_data=f'edit_adtime_{bot_id}'),
@@ -752,7 +752,7 @@ async def show_time_menu(msg, bot_id):
             InlineKeyboardButton('🔄 Default', callback_data=f'default_adtime_{bot_id}')],
             [InlineKeyboardButton('⬅️ Back', callback_data=f'auto_delete_{bot_id}')]
         ]
-        await msg.edit_text(
+        await message.edit_text(
             text=script.AD_TIME_TXT,
             reply_markup=InlineKeyboardMarkup(buttons)
         )
@@ -762,7 +762,7 @@ async def show_time_menu(msg, bot_id):
             f"⚠️ Show Time Menu Error:\n\n<code>{e}</code>\n\nKindly check this message to get assistance."
         )
 
-async def show_message_menu(msg, bot_id):
+async def show_message_menu(client, message, bot_id):
     try:
         buttons = [
             [InlineKeyboardButton('✏️ Edit', callback_data=f'edit_admessage_{bot_id}'),
@@ -770,7 +770,7 @@ async def show_message_menu(msg, bot_id):
             InlineKeyboardButton('🔄 Default', callback_data=f'default_admessage_{bot_id}')],
             [InlineKeyboardButton('⬅️ Back', callback_data=f'auto_delete_{bot_id}')]
         ]
-        await msg.edit_text(
+        await message.edit_text(
             text=script.AD_MSG_TXT,
             reply_markup=InlineKeyboardMarkup(buttons)
         )
@@ -780,8 +780,9 @@ async def show_message_menu(msg, bot_id):
             f"⚠️ Show Message Menu Error:\n\n<code>{e}</code>\n\nKindly check this message to get assistance."
         )
 
-async def show_moderator_menu(msg, bot_id):
+async def show_moderator_menu(client, message, bot_id):
     try:
+        clone = await db.get_clone_by_id(bot_id)
         moderators = clone.get("moderators", [])
         buttons = [
             [InlineKeyboardButton('➕ Add', callback_data=f'add_moderator_{bot_id}'),
@@ -794,7 +795,7 @@ async def show_moderator_menu(msg, bot_id):
             text = f"{script.MODERATOR_TXT}\n\n👥 **Current Moderators:**\n{mod_list}"
         else:
             text = script.MODERATOR_TXT
-        await query.message.edit_text(
+        await message.edit_text(
             text=text,
             reply_markup=InlineKeyboardMarkup(buttons)
         )
@@ -909,7 +910,7 @@ async def cb_handler(client: Client, query: CallbackQuery):
 
             # Start Text Menu
             elif action == "start_text":
-                await show_text_menu(query.message, bot_id)
+                await show_text_menu(client, query.message, bot_id)
 
             # Edit Text
             elif action == "edit_text":
@@ -923,7 +924,7 @@ async def cb_handler(client: Client, query: CallbackQuery):
             # Cancel Edit Text
             elif action == "cancel_edit":
                 WAITING_FOR_WLC.pop(user_id, None)
-                await show_text_menu(query.message, bot_id)
+                await show_text_menu(client, query.message, bot_id)
 
             # See Start Text
             elif action == "see_text":
@@ -937,7 +938,7 @@ async def cb_handler(client: Client, query: CallbackQuery):
 
             # Start Photo Menu
             elif action == "start_photo":
-                await show_photo_menu(query.message, bot_id)
+                await show_photo_menu(client, query.message, bot_id)
 
             # Add Photo
             elif action == "add_photo":
@@ -953,7 +954,7 @@ async def cb_handler(client: Client, query: CallbackQuery):
             elif action == "cancel_add":
                 WAITING_FOR_CLONE_PHOTO.pop(user_id, None)
                 WAITING_FOR_CLONE_PHOTO_MSG.pop(user_id, None)
-                await show_photo_menu(query.message, bot_id)
+                await show_photo_menu(client, query.message, bot_id)
 
             # See Start Phito
             elif action == "see_photo":
@@ -1033,7 +1034,7 @@ async def cb_handler(client: Client, query: CallbackQuery):
 
             # Time Menu
             elif action == "ad_time":
-                await show_time_menu(query.message, bot_id)
+                await show_time_menu(client, query.message, bot_id)
 
             # Edit Message
             elif action == "edit_adtime":
@@ -1047,7 +1048,7 @@ async def cb_handler(client: Client, query: CallbackQuery):
             # Cancel Message
             elif action == "cancel_editadtime":
                 AUTO_DELETE_TIME.pop(user_id, None)
-                await show_time_menu(query.message, bot_id)
+                await show_time_menu(client, query.message, bot_id)
 
             # See Message
             elif action == "see_adtime":
@@ -1061,7 +1062,7 @@ async def cb_handler(client: Client, query: CallbackQuery):
 
             # Message Menu
             elif action == "ad_message":
-                await show_message_menu(query.message, bot_id)
+                await show_message_menu(client, query.message, bot_id)
 
             # Edit Message
             elif action == "edit_admessage":
@@ -1075,7 +1076,7 @@ async def cb_handler(client: Client, query: CallbackQuery):
             # Cancel Message
             elif action == "cancel_editadmessage":
                 AUTO_DELETE_MESSAGE.pop(user_id, None)
-                await show_message_menu(query.message, bot_id)
+                await show_message_menu(client, query.message, bot_id)
 
             # See Message
             elif action == "see_admessage":
@@ -1118,7 +1119,7 @@ async def cb_handler(client: Client, query: CallbackQuery):
 
             # Moderator Menu
             elif action == "moderator":
-                await show_moderator_menu(query.message, bot_id)
+                await show_moderator_menu(client, query.message, bot_id)
 
             # Add Moderator
             elif action == "add_moderator":
@@ -1132,7 +1133,7 @@ async def cb_handler(client: Client, query: CallbackQuery):
             # Cancel Message
             elif action == "cancel_addmoderator":
                 ADD_MODERATOR(user_id, None)
-                await show_moderator_menu(query.message, bot_id)
+                await show_moderator_menu(client, query.message, bot_id)
 
             # Remove Moderator Menu
             elif action == "remove_moderator":
@@ -1151,7 +1152,7 @@ async def cb_handler(client: Client, query: CallbackQuery):
             elif action == "remove_mod":
                 await db.update_clone(bot_id, {"$pull": {"moderators": user_id}})
                 await query.answer("✅ Moderator removed!", show_alert=True)
-                await show_moderator_menu(query.message, bot_id)
+                await show_moderator_menu(client, query.message, bot_id)
 
             # Transfer Moderator Menu
             elif action == "transfer_moderator":
@@ -1177,7 +1178,7 @@ async def cb_handler(client: Client, query: CallbackQuery):
                     "$pull": {"moderators": user_id}
                 })
                 await query.answer("✅ Ownership transferred!", show_alert=True)
-                await show_moderator_menu(query.message, bot_id)
+                await show_clone_menu(client, query.message, user_id)
 
             # Status
             elif action == "status":
@@ -1326,7 +1327,7 @@ async def message_capture(client: Client, message: Message):
         if not new_text:
             await orig_msg.edit_text("❌ You sent an empty message. Please send a valid start text.")
             await asyncio.sleep(2)
-            await show_text_menu(orig_msg, bot_id)
+            await show_text_menu(client, orig_msg, bot_id)
             WAITING_FOR_WLC.pop(user_id, None)
             return
 
@@ -1335,7 +1336,7 @@ async def message_capture(client: Client, message: Message):
             await db.update_clone(bot_id, {"wlc": new_text})
             await orig_msg.edit_text("✅ Successfully updated start text!")
             await asyncio.sleep(1)
-            await show_text_menu(orig_msg, bot_id)
+            await show_text_menu(client, orig_msg, bot_id)
         except Exception as e:
             await client.send_message(
                 LOG_CHANNEL,
@@ -1343,7 +1344,7 @@ async def message_capture(client: Client, message: Message):
             )
             await orig_msg.edit_text(f"❌ Failed to update start text: {e}")
             await asyncio.sleep(2)
-            await show_text_menu(orig_msg, bot_id)
+            await show_text_menu(client, orig_msg, bot_id)
         finally:
             WAITING_FOR_WLC.pop(user_id, None)
         return
@@ -1361,7 +1362,7 @@ async def message_capture(client: Client, message: Message):
         if not message.photo:
             await orig_msg.edit_text("❌ Please send a valid photo for your clone.")
             await asyncio.sleep(2)
-            await show_photo_menu(orig_msg, bot_id)
+            await show_photo_menu(client, orig_msg, bot_id)
             WAITING_FOR_CLONE_PHOTO.pop(user_id, None)
             WAITING_FOR_CLONE_PHOTO_MSG.pop(user_id, None)
             return
@@ -1373,7 +1374,7 @@ async def message_capture(client: Client, message: Message):
             await db.update_clone(bot_id, {"pics": file_path})
             await orig_msg.edit_text("✅ Successfully updated the start photo!")
             await asyncio.sleep(2)
-            await show_photo_menu(orig_msg, bot_id)
+            await show_photo_menu(client, orig_msg, bot_id)
         except Exception as e:
             await client.send_message(
                 LOG_CHANNEL,
@@ -1398,7 +1399,7 @@ async def message_capture(client: Client, message: Message):
         if not new_text:
             await orig_msg.edit_text("❌ You sent an empty message. Please send a valid start text.")
             await asyncio.sleep(2)
-            await show_time_menu(orig_msg, bot_id)
+            await show_time_menu(client, orig_msg, bot_id)
             AUTO_DELETE_TIME.pop(user_id, None)
             return
 
@@ -1407,7 +1408,7 @@ async def message_capture(client: Client, message: Message):
             await db.update_clone(bot_id, {"auto_delete_time": new_text})
             await orig_msg.edit_text("✅ Successfully updated auto delete time!")
             await asyncio.sleep(1)
-            await show_time_menu(orig_msg, bot_id)
+            await show_time_menu(client, orig_msg, bot_id)
         except Exception as e:
             await client.send_message(
                 LOG_CHANNEL,
@@ -1415,7 +1416,7 @@ async def message_capture(client: Client, message: Message):
             )
             await orig_msg.edit_text(f"❌ Failed to update auto delete time: {e}")
             await asyncio.sleep(2)
-            await show_time_menu(orig_msg, bot_id)
+            await show_time_menu(client, orig_msg, bot_id)
         finally:
             AUTO_DELETE_TIME.pop(user_id, None)
         return
@@ -1433,7 +1434,7 @@ async def message_capture(client: Client, message: Message):
         if not new_text:
             await orig_msg.edit_text("❌ You sent an empty message. Please send a valid start text.")
             await asyncio.sleep(2)
-            await show_message_menu(orig_msg, bot_id)
+            await show_message_menu(client, orig_msg, bot_id)
             AUTO_DELETE_MESSAGE.pop(user_id, None)
             return
 
@@ -1442,7 +1443,7 @@ async def message_capture(client: Client, message: Message):
             await db.update_clone(bot_id, {"auto_delete_msg": new_text})
             await orig_msg.edit_text("✅ Successfully updated auto delete message!")
             await asyncio.sleep(1)
-            await show_message_menu(orig_msg, bot_id)
+            await show_message_menu(client, orig_msg, bot_id)
         except Exception as e:
             await client.send_message(
                 LOG_CHANNEL,
@@ -1450,7 +1451,7 @@ async def message_capture(client: Client, message: Message):
             )
             await orig_msg.edit_text(f"❌ Failed to update auto delete message: {e}")
             await asyncio.sleep(2)
-            await show_message_menu(orig_msg, bot_id)
+            await show_message_menu(client, orig_msg, bot_id)
         finally:
             AUTO_DELETE_MESSAGE.pop(user_id, None)
         return
@@ -1468,7 +1469,7 @@ async def message_capture(client: Client, message: Message):
         if not new_text:
             await orig_msg.edit_text("❌ You sent an empty message. Please send a valid start text.")
             await asyncio.sleep(2)
-            await show_moderator_menu(orig_msg, bot_id)
+            await show_moderator_menu(client, orig_msg, bot_id)
             ADD_MODERATOR.pop(user_id, None)
             return
 
@@ -1477,7 +1478,7 @@ async def message_capture(client: Client, message: Message):
             await db.update_clone(bot_id, {"$addToSet": {"moderators": new_text}})
             await orig_msg.edit_text("✅ Successfully updated moderator!")
             await asyncio.sleep(1)
-            await show_moderator_menu(orig_msg, bot_id)
+            await show_moderator_menu(client, orig_msg, bot_id)
         except Exception as e:
             await client.send_message(
                 LOG_CHANNEL,
@@ -1485,7 +1486,7 @@ async def message_capture(client: Client, message: Message):
             )
             await orig_msg.edit_text(f"❌ Failed to update moderator: {e}")
             await asyncio.sleep(2)
-            await show_moderator_menu(orig_msg, bot_id)
+            await show_moderator_menu(client, orig_msg, bot_id)
         finally:
             ADD_MODERATOR.pop(user_id, None)
         return
