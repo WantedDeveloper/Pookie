@@ -1285,7 +1285,8 @@ async def cb_handler(client: Client, query: CallbackQuery):
                     return await query.answer("❌ Only the owner can transfer ownership!", show_alert=True)
 
                 mod_id = int(mod_id)
-                await db.update_clone(bot_id, {"user_id": mod_id}, raw=True)
+                await db.update_clone(bot_id, {"$set": {"user_id": mod_id}}, raw=True)
+
                 if str(old_owner) not in clone.get("moderators", []):
                     await db.update_clone(bot_id, {"$addToSet": {"moderators": str(old_owner)}}, raw=True)
 
