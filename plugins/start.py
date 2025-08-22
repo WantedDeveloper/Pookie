@@ -817,13 +817,13 @@ async def show_moderator_menu(client, message, bot_id):
         mod_list_lines = []
         for mod in moderators:
             try:
-                user_id_int = int(mod_id)
+                user_id_int = int(mod)
             except ValueError:
-                user_id_int = mod_id
+                user_id_int = mod
 
             user = await db.col.find_one({"id": user_id_int})
-            name = user.get("name") if user else mod_id
-            mod_list_lines.append(f"👤 {name} (`{mod_id}`)")
+            name = user.get("name") if user else mod
+            mod_list_lines.append(f"👤 {name} (`{mod}`)")
 
         mod_list_text = "\n".join(mod_list_lines)
 
@@ -1220,16 +1220,18 @@ async def cb_handler(client: Client, query: CallbackQuery):
                 if not moderators:
                     return await query.answer("❌ No moderators found!", show_alert=True)
 
-                for mod_id in moderators:
+                buttons = []
+
+                for mod in moderators:
                     try:
-                        user_id_int = int(mod_id)
+                        user_id_int = int(mod)
                     except ValueError:
-                        user_id_int = mod_id
+                        user_id_int = mod
 
                     user = await db.col.find_one({"id": user_id_int})
-                    name = user.get("name") if user else mod_id
+                    name = user.get("name") if user else mod
 
-                    buttons.append([InlineKeyboardButton(f"👤 {name}", callback_data=f"remove_mod_{bot_id}_{mod_id}")])
+                    buttons.append([InlineKeyboardButton(f"👤 {name}", callback_data=f"remove_mod_{bot_id}_{mod}")])
 
                 buttons.append([InlineKeyboardButton("⬅️ Back", callback_data=f"moderator_{bot_id}")])
                 await query.message.edit_text(
@@ -1253,16 +1255,18 @@ async def cb_handler(client: Client, query: CallbackQuery):
                 if not moderators:
                     return await query.answer("❌ No moderators found!", show_alert=True)
 
-                for mod_id in moderators:
+                buttons = []
+
+                for mod in moderators:
                     try:
-                        user_id_int = int(mod_id)
+                        user_id_int = int(mod)
                     except ValueError:
-                        user_id_int = mod_id
+                        user_id_int = mod
 
                     user = await db.col.find_one({"id": user_id_int})
-                    name = user.get("name") if user else mod_id
+                    name = user.get("name") if user else mod
 
-                    buttons.append([InlineKeyboardButton(f"👤 {name}", callback_data=f"transfer_mod_{bot_id}_{mod_id}")])
+                    buttons.append([InlineKeyboardButton(f"👤 {name}", callback_data=f"transfer_mod_{bot_id}_{mod}")])
 
                 buttons.append([InlineKeyboardButton("⬅️ Back", callback_data=f"moderator_{bot_id}")])
                 await query.message.edit_text(
