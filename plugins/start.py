@@ -769,129 +769,97 @@ async def show_time_menu(client, message, bot_id):
             f"⚠️ Show Time Menu Error:\n\n<code>{e}</code>\n\nKindly check this message to get assistance."
         )
 
-async def show_moderator_menu(client, message, bot_id):
+async def show_message_menu(client, message, bot_id):
     try:
-        clone_data = await db.get_clone_by_id(bot_id)
-
-        # Debug: log the type and value
+        buttons = [
+            [InlineKeyboardButton('✏️ Edit', callback_data=f'edit_admessage_{bot_id}'),
+            InlineKeyboardButton('👁️ See', callback_data=f'see_admessage_{bot_id}'),
+            InlineKeyboardButton('🔄 Default', callback_data=f'default_admessage_{bot_id}')],
+            [InlineKeyboardButton('⬅️ Back', callback_data=f'auto_delete_{bot_id}')]
+        ]
+        await message.edit_text(
+            text=script.AD_MSG_TXT,
+            reply_markup=InlineKeyboardMarkup(buttons)
+        )
+    except Exception as e:
         await client.send_message(
             LOG_CHANNEL,
-            f"DEBUG: clone_data type={type(clone_data)} value={clone_data}"
+            f"⚠️ Show Message Menu Error:\n\n<code>{e}</code>\n\nKindly check this message to get assistance."
         )
 
-        # Convert clone_data to dict if it's a string
-        if not clone_data:
-            clone = {}
+async def show_moderator_menu(client, message, bot_id):
+    try:
+        # Fetch clone data
+        clone_data = await db.get_clone_by_id(bot_id)
+
+        # Ensure clone is a dict no matter what
+        clone = {}
+        if isinstance(clone_data, dict):
+            clone = clone_data
         elif isinstance(clone_data, str):
             try:
                 clone = json.loads(clone_data)
-            except json.JSONDecodeError:
+            except Exception:
                 clone = {}
-        elif isinstance(clone_data, dict):
-            clone = clone_data
-        else:
-            clone = {}
 
+        # Get moderators safely
+        moderators = []
         moderators_raw = clone.get("moderators", [])
-        if isinstance(moderators_raw, str):
+        if isinstance(moderators_raw, list):
+            moderators = moderators_raw
+        elif isinstance(moderators_raw, str):
             try:
                 moderators = json.loads(moderators_raw)
-            except json.JSONDecodeError:
+            except Exception:
                 moderators = []
-        elif isinstance(moderators_raw, list):
-            moderators = moderators_raw
-        else:
-            moderators = []
+        # fallback for any other type (int, None, etc.)
+        elif moderators_raw is not None:
+            moderators = [moderators_raw]
 
+        # Build moderator display safely
         mod_list_lines = []
         for mod in moderators:
             if isinstance(mod, dict):
-                name = mod.get('name', mod.get('id', 'Unknown'))
-                mod_id = mod.get('id', 'N/A')
+                name = mod.get("name") or str(mod.get("id", "Unknown"))
+                mod_id = str(mod.get("id", "N/A"))
             else:
+                # handle string, int, or other types
                 name = str(mod)
                 mod_id = str(mod)
             mod_list_lines.append(f"👤 {name} (`{mod_id}`)")
 
         mod_list_text = "\n".join(mod_list_lines)
 
-        buttons = [
-            [
-                InlineKeyboardButton('➕ Add', callback_data=f'add_moderator_{bot_id}'),
-                InlineKeyboardButton('➖ Remove', callback_data=f'remove_moderator_{bot_id}'),
-                InlineKeyboardButton('🔁 Transfer', callback_data=f'transfer_moderator_{bot_id}')
-            ],
-            [InlineKeyboardButton('⬅️ Back', callback_data=f'manage_{bot_id}')]
-        ]
-
-        text = script.MODERATOR_TXT
-        if mod_list_text:
-            text += f"\n\n👥 **Current Moderators:**\n{mod_list_text}"
-
-        await message.edit_text(
-            text=text,
-            reply_markup=InlineKeyboardMarkup(buttons)
-        )
-
-    except Exception as e:
-        await client.send_message(
-            LOG_CHANNEL,
-            f"⚠️ Show Moderator Menu Error:\n\n<code>{e}</code>\n\nKindly check this message to get assistance."
-        )
-
-async def show_moderator_menu(client, message, bot_id):
-    try:
-        # Fetch clone data from DB
-        clone_data = await db.get_clone_by_id(bot_id)
-
-        # Ensure clone is a dictionary
-        if not clone_data:
-            clone = {}
-        elif isinstance(clone_data, str):
-            try:
-                clone = json.loads(clone_data)
-            except json.JSONDecodeError:
-                clone = {}
-        elif isinstance(clone_data, dict):
-            clone = clone_data
-        else:
-            clone = {}
-
-        # Get moderators list
-        moderators = clone.get("moderators", [])
-
         # Build buttons
         buttons = [
             [
-                InlineKeyboardButton('➕ Add', callback_data=f'add_moderator_{bot_id}'),
-                InlineKeyboardButton('➖ Remove', callback_data=f'remove_moderator_{bot_id}'),
-                InlineKeyboardButton('🔁 Transfer', callback_data=f'transfer_moderator_{bot_id}')
+                InlineKeyboardButton("➕ Add", callback_data=f"add_moderator_{bot_id}"),
+                InlineKeyboardButton("➖ Remove", callback_data=f"remove_moderator_{bot_id}"),
+                InlineKeyboardButton("🔁 Transfer", callback_data=f"transfer_moderator_{bot_id}")
             ],
             [
-                InlineKeyboardButton('⬅️ Back', callback_data=f'manage_{bot_id}')
+                InlineKeyboardButton("⬅️ Back", callback_data=f"manage_{bot_id}")
             ]
         ]
 
         # Build text
-        if moderators:
-            mod_list = "\n".join(
-                [f"👤 {mod.get('name', mod.get('id', 'Unknown'))} (`{mod.get('id', 'N/A')}`)" for mod in moderators]
-            )
-            text = f"{script.MODERATOR_TXT}\n\n👥 **Current Moderators:**\n{mod_list}"
-        else:
-            text = script.MODERATOR_TXT
+        text = script.MODERATOR_TXT
+        if mod_list_text:
+            text += f"\n\n👥 **Current Moderators:**\n{mod_list_text}"
 
-        # Edit the message
+        # Edit message
         await message.edit_text(
             text=text,
             reply_markup=InlineKeyboardMarkup(buttons)
         )
 
     except Exception as e:
+        # Log full exception
         await client.send_message(
             LOG_CHANNEL,
-            f"⚠️ Show Moderator Menu Error:\n\n<code>{e}</code>\n\nKindly check this message to get assistance."
+            f"⚠️ Show Moderator Menu Error:\n\n<code>{e}</code>\n\nClone Data: {clone_data}"
         )
+
 
 @Client.on_callback_query()
 async def cb_handler(client: Client, query: CallbackQuery):
