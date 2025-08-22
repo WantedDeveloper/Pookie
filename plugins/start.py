@@ -16,6 +16,7 @@ class Database:
         self.col = self.db.users
         self.bot = self.db.clone_bots
         self.settings = self.db.bot_settings
+        self.clones = self.db["clones"]
 
     def new_user(self, id, name):
         return dict(
