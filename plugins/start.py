@@ -16,7 +16,6 @@ class Database:
         self.col = self.db.users
         self.bot = self.db.clone_bots
         self.settings = self.db.bot_settings
-        self.clones = self.db["clones"]
 
     def new_user(self, id, name):
         return dict(
@@ -78,16 +77,26 @@ class Database:
         return clone
 
     async def get_clones_by_user(self, user_id):
-        user_id_str = str(user_id)  # convert everything to string
+        """
+        Fetch clones where user is owner (int) or a moderator (string).
+        """
         clones = []
-        cursor = self.clones.find({
+        user_id_str = str(user_id)  # moderator match as string
+        try:
+            user_id_int = int(user_id)  # owner match as int
+        except ValueError:
+            return []
+
+        cursor = self.bot.find({
             "$or": [
-                {"user_id": user_id_str},    # owner match as string
-                {"moderators": user_id_str}  # moderator match
+                {"user_id": user_id_int},    # owner
+                {"moderators": user_id_str}  # moderator
             ]
         })
+
         async for clone in cursor:
             clones.append(clone)
+
         return clones
 
     async def update_clone(self, bot_id, user_data):
