@@ -83,6 +83,13 @@ class Database:
     async def update_clone(self, bot_id, user_data):
         await self.bot.update_one({'bot_id': int(bot_id)}, {'$set': user_data}, upsert=True)
 
+    async def update_clone(self, bot_id, user_data: dict, raw=False):
+        if raw:
+            await self.bot.update_one({'bot_id': int(bot_id)}, user_data, upsert=True)
+        else:
+            await self.bot.update_one({'bot_id': int(bot_id)}, {'$set': user_data}, upsert=True)
+        
+
     async def delete_clone(self, bot_id):
         await self.bot.delete_one({'bot_id': int(bot_id)})
         #await self.settings.delete_many({'bot_id': int(bot_id)})
@@ -1150,7 +1157,7 @@ async def cb_handler(client: Client, query: CallbackQuery):
 
             # Remove Moderator
             elif action == "remove_mod":
-                await db.update_clone(bot_id, {"$pull": {"moderators": user_id}})
+                await db.update_clone(bot_id, {"$pull": {"moderators": user_id}}, raw=True)
                 await query.answer("✅ Moderator removed!", show_alert=True)
                 await show_moderator_menu(client, query.message, bot_id)
 
@@ -1172,11 +1179,11 @@ async def cb_handler(client: Client, query: CallbackQuery):
                 old_owner = clone.get("user_id")
                 await db.update_clone(bot_id, {
                     "user_id": user_id
-                })
+                }, raw=True)
                 await db.update_clone(bot_id, {
                     "$addToSet": {"moderators": old_owner},
                     "$pull": {"moderators": user_id}
-                })
+                }, raw=True)
                 await query.answer("✅ Ownership transferred!", show_alert=True)
                 await show_clone_menu(client, query.message, user_id)
 
@@ -1475,7 +1482,7 @@ async def message_capture(client: Client, message: Message):
 
         await orig_msg.edit_text("✏️ Updating your clone's moderator, please wait...")
         try:
-            await db.update_clone(bot_id, {"$addToSet": {"moderators": new_text}})
+            await db.update_clone(bot_id, {"$addToSet": {"moderators": new_text}}, raw=True)
             await orig_msg.edit_text("✅ Successfully updated moderator!")
             await asyncio.sleep(1)
             await show_moderator_menu(client, orig_msg, bot_id)
