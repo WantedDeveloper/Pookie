@@ -76,8 +76,17 @@ class Database:
         clone = await self.bot.find_one({'bot_id': int(bot_id)})
         return clone
 
-    async def get_clone(self, user_id):
-        clones = await self.bot.find({"user_id": int(user_id)}).to_list(length=100)
+    async def get_clones_by_user(user_id):
+        user_id = str(user_id)  # ensure string type
+        clones = []
+        cursor = db.clones.find({
+            "$or": [
+                {"user_id": user_id},           # owner
+                {"moderators": user_id}         # moderator
+            ]
+        })
+        async for clone in cursor:
+            clones.append(clone)
         return clones
 
     async def update_clone(self, bot_id, user_data):
@@ -689,19 +698,22 @@ async def broadcast(bot, message):
 
 async def show_clone_menu(client, message, user_id):
     try:
-        clones = await db.get_clone(user_id)
+        # Fetch clones where the user is owner or moderator
+        clones = await db.get_clones_by_user(user_id)
         buttons = []
 
         if clones:
-            # ✅ show list of clones
+            # ✅ Show list of accessible clones
             for clone in clones:
                 bot_name = clone.get("name", f"Clone {clone['bot_id']}")
-                buttons.append([InlineKeyboardButton(f'⚙️ {bot_name}', callback_data=f'manage_{clone["bot_id"]}')])
+                buttons.append([InlineKeyboardButton(
+                    f'⚙️ {bot_name}', callback_data=f'manage_{clone["bot_id"]}'
+                )])
         else:
-            # ✅ no clones, show Add Clone button
+            # ✅ No clones accessible, show Add Clone button
             buttons.append([InlineKeyboardButton("➕ Add Clone", callback_data="add_clone")])
 
-        # common back button
+        # Common back button
         buttons.append([InlineKeyboardButton('⬅️ Back', callback_data='start')])
 
         await message.edit_text(
@@ -712,7 +724,7 @@ async def show_clone_menu(client, message, user_id):
     except Exception as e:
         await client.send_message(
             LOG_CHANNEL,
-            f"⚠️ Show Clone Menu Error:\n\n<code>{e}</code>\n\nKindly check this message to get assistance."
+            f"⚠️ Show Clone Menu Error:\n\n<code>{e}</code>\n\nKindly check this message for assistance."
         )
 
 async def show_text_menu(client, message, bot_id):
@@ -1214,11 +1226,11 @@ async def cb_handler(client: Client, query: CallbackQuery):
             # Transfer Moderator
             elif action == "transfer_mod":
                 old_owner = clone.get("user_id")
-                await db.update_clone(bot_id, {"$set": {"user_id": user_id}}, raw=True)
+                await db.update_clone(bot_id, {"$set": {"user_id": mod_id}}, raw=True)
                 await db.update_clone(bot_id, {"$addToSet": {"moderators": str(old_owner)}}, raw=True)
-                await db.update_clone(bot_id, {"$pull": {"moderators": str(user_id)}}, raw=True)
+                await db.update_clone(bot_id, {"$pull": {"moderators": mod_id}}, raw=True)
                 await query.answer("✅ Ownership transferred!", show_alert=True)
-                await show_clone_menu(client, query.message, user_id)
+                await show_clone_menu(client, query.message, old_owner)
 
             # Status
             elif action == "status":
