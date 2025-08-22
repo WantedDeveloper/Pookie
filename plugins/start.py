@@ -1240,9 +1240,10 @@ async def cb_handler(client: Client, query: CallbackQuery):
                 moderators = clone.get("moderators", [])
                 if not moderators:
                     return await query.answer("❌ No moderators found!", show_alert=True)
-                old_owner = clone.get("user_id")
-                if user_id != old_owner:  # user_id is the one clicking the button
+                old_owner = int(clone.get("user_id"))
+                if int(user_id) != old_owner:
                     return await query.answer("❌ Only the owner can transfer ownership!", show_alert=True)
+                mod_id = int(mod_id)
                 await db.update_clone(bot_id, {"$set": {"user_id": mod_id}}, raw=True)
                 await db.update_clone(bot_id, {"$addToSet": {"moderators": str(old_owner)}}, raw=True)
                 await db.update_clone(bot_id, {"$pull": {"moderators": mod_id}}, raw=True)
