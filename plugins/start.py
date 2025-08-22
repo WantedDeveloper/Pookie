@@ -798,7 +798,7 @@ async def show_moderator_menu(client, message, bot_id):
             [InlineKeyboardButton('⬅️ Back', callback_data=f'manage_{bot_id}')]
         ]
         if moderators:
-            mod_list = "\n".join([f"👤 `{mod}`" for mod in moderators])
+            mod_list = "\n".join([f"👤 {mod.get('name', mod['id'])} (`{mod['id']}`)" for mod in moderators])
             text = f"{script.MODERATOR_TXT}\n\n👥 **Current Moderators:**\n{mod_list}"
         else:
             text = script.MODERATOR_TXT
@@ -898,7 +898,19 @@ async def cb_handler(client: Client, query: CallbackQuery):
             "moderator_", "add_moderator_", "cancel_addmoderator_", "remove_moderator_", "remove_mod_", "transfer_moderator_", "transfer_mod_",
             "status_", "activate_deactivate_", "restart_", "delete_", "delete_clone_"
         ]):
-            action, bot_id = query.data.rsplit("_", 1)
+            parts = query.data.split("_")
+            action = parts[0]  # e.g. "remove", "transfer", etc.
+
+            # handle special cases
+            if query.data.startswith("remove_mod_"):
+                _, _, bot_id, mod_id = parts
+                action = "remove_mod"
+            elif query.data.startswith("transfer_mod_"):
+                _, _, bot_id, mod_id = parts
+                action = "transfer_mod"
+            else:
+                action, bot_id = query.data.rsplit("_", 1)
+
             clone = await db.get_clone_by_id(bot_id)
 
             # Start Message Menu
@@ -1147,7 +1159,8 @@ async def cb_handler(client: Client, query: CallbackQuery):
                 moderators = clone.get("moderators", [])
                 if not moderators:
                     return await query.answer("❌ No moderators found!", show_alert=True)
-                buttons = [[InlineKeyboardButton(f"👤 {mod}", callback_data=f"remove_mod_{bot_id}_{mod}")]
+                buttons = [[InlineKeyboardButton(f"👤 {mod.get('name', mod['id'])}",
+                    callback_data=f"remove_mod_{bot_id}_{mod['id']}")]
                     for mod in moderators]
                 buttons.append([InlineKeyboardButton("⬅️ Back", callback_data=f"moderator_{bot_id}")])
                 await query.message.edit_text(
@@ -1166,7 +1179,8 @@ async def cb_handler(client: Client, query: CallbackQuery):
                 moderators = clone.get("moderators", [])
                 if not moderators:
                     return await query.answer("❌ No moderators found!", show_alert=True)
-                buttons = [[InlineKeyboardButton(f"👤 {mod}", callback_data=f"transfer_mod_{bot_id}_{mod}")]
+                buttons = [[InlineKeyboardButton(f"👤 {mod.get('name', mod['id'])}",
+                    callback_data=f"transfer_mod_{bot_id}_{mod['id']}")]
                     for mod in moderators]
                 buttons.append([InlineKeyboardButton("⬅️ Back", callback_data=f"moderator_{bot_id}")])
                 await query.message.edit_text(
