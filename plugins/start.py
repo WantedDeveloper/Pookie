@@ -791,25 +791,34 @@ async def show_moderator_menu(client, message, bot_id):
     try:
         clone = await db.get_clone_by_id(bot_id)
         moderators = clone.get("moderators", [])
+
+        # Build moderator list text
+        mod_list_lines = []
+        for mod in moderators:
+            mod_list_lines.append(f"👤 {mod}")  # mod is always string
+        mod_list_text = "\n".join(mod_list_lines)
+
+        # Buttons
         buttons = [
-            [InlineKeyboardButton('➕ Add', callback_data=f'add_moderator_{bot_id}'),
-            InlineKeyboardButton('➖ Remove', callback_data=f'remove_moderator_{bot_id}'),
-            InlineKeyboardButton('🔁 Transfer', callback_data=f'transfer_moderator_{bot_id}')],
-            [InlineKeyboardButton('⬅️ Back', callback_data=f'manage_{bot_id}')]
+            [
+                InlineKeyboardButton("➕ Add", callback_data=f"add_moderator_{bot_id}"),
+                InlineKeyboardButton("➖ Remove", callback_data=f"remove_moderator_{bot_id}"),
+                InlineKeyboardButton("🔁 Transfer", callback_data=f"transfer_moderator_{bot_id}")
+            ],
+            [InlineKeyboardButton("⬅️ Back", callback_data=f"manage_{bot_id}")]
         ]
-        if moderators:
-            mod_list = "\n".join([f"👤 `{mod}`" for mod in moderators])
-            text = f"{script.MODERATOR_TXT}\n\n👥 **Current Moderators:**\n{mod_list}"
-        else:
-            text = script.MODERATOR_TXT
-        await message.edit_text(
-            text=text,
-            reply_markup=InlineKeyboardMarkup(buttons)
-        )
+
+        # Menu text
+        text = script.MODERATOR_TXT
+        if mod_list_text:
+            text += f"\n\n👥 **Current Moderators:**\n{mod_list_text}"
+
+        await message.edit_text(text=text, reply_markup=InlineKeyboardMarkup(buttons))
+
     except Exception as e:
         await client.send_message(
             LOG_CHANNEL,
-            f"⚠️ Show Moderator Menu Error:\n\n<code>{e}</code>\n\nKindly check this message to get assistance."
+            f"⚠️ Show Moderator Menu Error:\n<code>{e}</code>\nClone Data: {clone}\n\nKindly check this message to get assistance.""
         )
 
 @Client.on_callback_query()
@@ -898,18 +907,34 @@ async def cb_handler(client: Client, query: CallbackQuery):
             "moderator_", "add_moderator_", "cancel_addmoderator_", "remove_moderator_", "remove_mod_", "transfer_moderator_", "transfer_mod_",
             "status_", "activate_deactivate_", "restart_", "delete_", "delete_clone_"
         ]):
-            parts = query.data.split("_")
-            action = parts[0]  # e.g. "remove", "transfer", etc.
+            data = query.data
 
-            # handle special cases
-            if query.data.startswith("remove_mod_"):
-                _, _, bot_id, mod_id = parts
+            # Default values
+            action = None
+            bot_id = None
+            mod_id = None
+
+            if data.startswith("remove_mod_"):
+                _, _, bot_id, mod_id = data.split("_", 3)
                 action = "remove_mod"
-            elif query.data.startswith("transfer_mod_"):
-                _, _, bot_id, mod_id = parts
+            elif data.startswith("transfer_mod_"):
+                _, _, bot_id, mod_id = data.split("_", 3)
                 action = "transfer_mod"
+            elif data.startswith("add_moderator_"):
+                _, _, bot_id = data.split("_", 2)
+                action = "add_moderator"
+            elif data.startswith("cancel_addmoderator_"):
+                _, _, bot_id = data.split("_", 2)
+                action = "cancel_addmoderator"
+            elif data.startswith("remove_moderator_"):
+                _, _, bot_id = data.split("_", 2)
+                action = "remove_moderator"
+            elif data.startswith("transfer_moderator_"):
+                _, _, bot_id = data.split("_", 2)
+                action = "transfer_moderator"
             else:
-                action, bot_id = query.data.rsplit("_", 1)
+                # fallback: split last part as bot_id
+                action, bot_id = data.rsplit("_", 1)
 
             clone = await db.get_clone_by_id(bot_id)
 
@@ -1169,7 +1194,7 @@ async def cb_handler(client: Client, query: CallbackQuery):
 
             # Remove Moderator
             elif action == "remove_mod":
-                await db.update_clone(bot_id, {"$pull": {"moderators": str(user_id)}}, raw=True)
+                await db.update_clone(bot_id, {"$pull": {"moderators": mod_id}}, raw=True)
                 await query.answer("✅ Moderator removed!", show_alert=True)
                 await show_moderator_menu(client, query.message, bot_id)
 
@@ -1190,10 +1215,8 @@ async def cb_handler(client: Client, query: CallbackQuery):
             elif action == "transfer_mod":
                 old_owner = clone.get("user_id")
                 await db.update_clone(bot_id, {"$set": {"user_id": user_id}}, raw=True)
-                await db.update_clone(bot_id, {
-                    "$addToSet": {"moderators": str(old_owner)},
-                    "$pull": {"moderators": str(user_id)}
-                }, raw=True)
+                await db.update_clone(bot_id, {"$addToSet": {"moderators": str(old_owner)}}, raw=True)
+                await db.update_clone(bot_id, {"$pull": {"moderators": str(user_id)}}, raw=True)
                 await query.answer("✅ Ownership transferred!", show_alert=True)
                 await show_clone_menu(client, query.message, user_id)
 
