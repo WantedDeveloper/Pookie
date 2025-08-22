@@ -79,26 +79,25 @@ class Database:
 
     async def get_clones_by_user(self, user_id):
         """
-        Fetch clones where the user is owner (int) or a moderator (string).
+        Fetch clones where user is owner (int) or a moderator (string).
         """
         clones = []
 
-        # Convert user_id for moderator check (string)
-        user_id_str = str(user_id)
-        # Keep integer for owner check
+        # Convert user_id for owner match
         try:
             user_id_int = int(user_id)
         except ValueError:
-            user_id_int = None
+            return []  # invalid user_id
+
+        # Convert user_id for moderator match
+        user_id_str = str(user_id)
 
         query = {
             "$or": [
-                {"moderators": user_id_str}  # moderator match
+                {"user_id": user_id_int},   # owner match
+                {"moderators": user_id_str} # moderator match
             ]
         }
-
-        if user_id_int is not None:
-            query["$or"].append({"user_id": user_id_int})  # owner match
 
         cursor = self.clones.find(query)
         async for clone in cursor:
@@ -113,7 +112,6 @@ class Database:
             await self.bot.update_one({'bot_id': int(bot_id)}, user_data, upsert=True)
         else:
             await self.bot.update_one({'bot_id': int(bot_id)}, {'$set': user_data}, upsert=True)
-        
 
     async def delete_clone(self, bot_id):
         await self.bot.delete_one({'bot_id': int(bot_id)})
