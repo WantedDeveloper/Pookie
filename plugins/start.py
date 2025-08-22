@@ -78,34 +78,15 @@ class Database:
         return clone
 
     async def get_clones_by_user(self, user_id):
-        """
-        Fetch clones where user is owner (int) or a moderator (string).
-        """
+        user_id_str = str(user_id)  # convert everything to string
         clones = []
-
-        # Convert user_id for owner match
-        try:
-            user_id_int = int(user_id)
-        except ValueError:
-            return []  # invalid user_id
-
-        # Convert user_id for moderator match
-        user_id_str = str(user_id)
-
-        query = {
+        cursor = self.clones.find({
             "$or": [
-                {"user_id": user_id_int},   # owner match
-                {"moderators": user_id_str} # moderator match
+                {"user_id": user_id_str},    # owner match as string
+                {"moderators": user_id_str}  # moderator match
             ]
-        }
-
-        cursor = self.clones.find(query)
-        clones = []
-
-        print("DEBUG QUERY:", query)
-
+        })
         async for clone in cursor:
-            print("DEBUG FOUND CLONE:", clone)
             clones.append(clone)
         return clones
 
