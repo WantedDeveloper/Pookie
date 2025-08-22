@@ -816,7 +816,15 @@ async def show_moderator_menu(client, message, bot_id):
         # Build moderator list text
         mod_list_lines = []
         for mod in moderators:
-            mod_list_lines.append(f"👤 {mod}")  # mod is always string
+            try:
+                user_id_int = int(mod_id)
+            except ValueError:
+                user_id_int = mod_id
+
+            user = await db.col.find_one({"id": user_id_int})
+            name = user.get("name") if user else mod_id
+            mod_list_lines.append(f"👤 {name} (`{mod_id}`)")
+
         mod_list_text = "\n".join(mod_list_lines)
 
         # Buttons
@@ -1066,6 +1074,7 @@ async def cb_handler(client: Client, query: CallbackQuery):
                 current = clone.get("auto_delete", False)
                 time_set = clone.get("auto_delete_time", 30)
                 msg_set = clone.get("auto_delete_msg", script.AD_TXT)
+
                 if current:
                     buttons = [
                         [InlineKeyboardButton("⏱ Time", callback_data=f"ad_time_{bot_id}"),
@@ -1087,10 +1096,12 @@ async def cb_handler(client: Client, query: CallbackQuery):
             elif action == "ad_status":
                 new_value = not clone.get("auto_delete", False)
                 await db.update_clone(bot_id, {"auto_delete": new_value})
+
                 if new_value:
                     status_text = "🟢 Auto Delete has been successfully ENABLED!"
                 else:
                     status_text = "🔴 Auto Delete has been successfully DISABLED!"
+
                 buttons = [[InlineKeyboardButton("⬅️ Back", callback_data=f"auto_delete_{bot_id}")]]
                 await query.message.edit_text(
                     text=status_text,
@@ -1162,6 +1173,7 @@ async def cb_handler(client: Client, query: CallbackQuery):
                 else:
                     buttons = [[InlineKeyboardButton("✅ Enable", callback_data=f"fp_status_{bot_id}")]]
                     status = "🔴 Disabled"
+
                 buttons.append([InlineKeyboardButton("⬅️ Back", callback_data=f"manage_{bot_id}")])
                 await query.message.edit_text(
                     text=script.FORWARD_TXT.format(status=f"{status}"),
@@ -1172,10 +1184,12 @@ async def cb_handler(client: Client, query: CallbackQuery):
             elif action == "fp_status":
                 new_value = not clone.get("forward_protect", False)
                 await db.update_clone(bot_id, {"forward_protect": new_value})
+
                 if new_value:
                     status_text = "🟢 Forward Protect has been successfully ENABLED!"
                 else:
                     status_text = "🔴 Forward Protect has been successfully DISABLED!"
+
                 buttons = [[InlineKeyboardButton("⬅️ Back", callback_data=f"forward_protect_{bot_id}")]]
                 await query.message.edit_text(
                     text=status_text,
@@ -1205,8 +1219,18 @@ async def cb_handler(client: Client, query: CallbackQuery):
                 moderators = clone.get("moderators", [])
                 if not moderators:
                     return await query.answer("❌ No moderators found!", show_alert=True)
-                buttons = [[InlineKeyboardButton(f"👤 {mod}", callback_data=f"remove_mod_{bot_id}_{mod}")]
-                    for mod in moderators]
+
+                for mod_id in moderators:
+                    try:
+                        user_id_int = int(mod_id)
+                    except ValueError:
+                        user_id_int = mod_id
+
+                    user = await db.col.find_one({"id": user_id_int})
+                    name = user.get("name") if user else mod_id
+
+                    buttons.append([InlineKeyboardButton(f"👤 {name}", callback_data=f"remove_mod_{bot_id}_{mod_id}")])
+
                 buttons.append([InlineKeyboardButton("⬅️ Back", callback_data=f"moderator_{bot_id}")])
                 await query.message.edit_text(
                     "👥 Select a moderator to remove:",
@@ -1218,6 +1242,7 @@ async def cb_handler(client: Client, query: CallbackQuery):
                 moderators = clone.get("moderators", [])
                 if not moderators:
                     return await query.answer("❌ No moderators found!", show_alert=True)
+
                 await db.update_clone(bot_id, {"$pull": {"moderators": mod_id}}, raw=True)
                 await query.answer("✅ Moderator removed!", show_alert=True)
                 await show_moderator_menu(client, query.message, bot_id)
@@ -1227,9 +1252,19 @@ async def cb_handler(client: Client, query: CallbackQuery):
                 moderators = clone.get("moderators", [])
                 if not moderators:
                     return await query.answer("❌ No moderators found!", show_alert=True)
-                buttons = [[InlineKeyboardButton(f"👤 {mod}", callback_data=f"transfer_mod_{bot_id}_{mod}")]
-                    for mod in moderators]
-                buttons.append([InlineKeyboardButton("⬅️ Back", callback_data=f"moderator_{bot_id}")])
+
+                for mod_id in moderators:
+                    try:
+                        user_id_int = int(mod_id)
+                    except ValueError:
+                        user_id_int = mod_id
+
+                    user = await db.col.find_one({"id": user_id_int})
+                    name = user.get("name") if user else mod_id
+
+                    buttons.append([InlineKeyboardButton(f"👤 {name}", callback_data=f"transfer_mod_{bot_id}_{mod_id}")])
+
+                 buttons.append([InlineKeyboardButton("⬅️ Back", callback_data=f"moderator_{bot_id}")])
                 await query.message.edit_text(
                     "🔁 Select a moderator to transfer ownership:",
                     reply_markup=InlineKeyboardMarkup(buttons)
@@ -1240,13 +1275,17 @@ async def cb_handler(client: Client, query: CallbackQuery):
                 moderators = clone.get("moderators", [])
                 if not moderators:
                     return await query.answer("❌ No moderators found!", show_alert=True)
+
                 old_owner = int(clone.get("user_id"))
                 if int(user_id) != old_owner:
                     return await query.answer("❌ Only the owner can transfer ownership!", show_alert=True)
+
                 mod_id = int(mod_id)
-                await db.update_clone(bot_id, {"$set": {"user_id": mod_id}}, raw=True)
-                await db.update_clone(bot_id, {"$addToSet": {"moderators": str(old_owner)}}, raw=True)
-                await db.update_clone(bot_id, {"$pull": {"moderators": mod_id}}, raw=True)
+                await db.update_clone(bot_id, {"user_id": mod_id}, raw=True)
+                if str(old_owner) not in clone.get("moderators", []):
+                    await db.update_clone(bot_id, {"$addToSet": {"moderators": str(old_owner)}}, raw=True)
+
+                await db.update_clone(bot_id, {"$pull": {"moderators": str(mod_id)}}, raw=True)
                 await query.answer("✅ Ownership transferred!", show_alert=True)
                 await show_clone_menu(client, query.message, old_owner)
 
@@ -1281,6 +1320,7 @@ async def cb_handler(client: Client, query: CallbackQuery):
                     await asyncio.sleep(0.5)
                     bar = '▓' * i + '░' * (10 - i)
                     await query.message.edit_text(f"🔄 Restarting clone bot `@{clone['username']}`...\n[{bar}] {i*10}%")
+
                 await query.message.edit_text(f"✅ Clone bot `@{clone['username']}` restarted successfully!")
                 await asyncio.sleep(2)
                 await show_clone_menu(client, query.message, user_id)
