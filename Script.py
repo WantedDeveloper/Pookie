@@ -107,7 +107,9 @@ You can customize the alert message about auto-delete that is sent last to users
 
     FORWARD_TXT = """<u>✨ FORWARD PROTECTION</u>
 
-Restrict Clone users from forwarding messages from shareable link."""
+Restrict Clone users from forwarding messages from shareable link.
+
+Current Status: {status}"""
 
     MODERATOR_TXT = """<u>✨ MODERATOR</u>
 
