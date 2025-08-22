@@ -1264,7 +1264,7 @@ async def cb_handler(client: Client, query: CallbackQuery):
 
                     buttons.append([InlineKeyboardButton(f"👤 {name}", callback_data=f"transfer_mod_{bot_id}_{mod_id}")])
 
-                 buttons.append([InlineKeyboardButton("⬅️ Back", callback_data=f"moderator_{bot_id}")])
+                buttons.append([InlineKeyboardButton("⬅️ Back", callback_data=f"moderator_{bot_id}")])
                 await query.message.edit_text(
                     "🔁 Select a moderator to transfer ownership:",
                     reply_markup=InlineKeyboardMarkup(buttons)
