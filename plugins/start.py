@@ -1215,6 +1215,9 @@ async def cb_handler(client: Client, query: CallbackQuery):
 
             # Remove Moderator
             elif action == "remove_mod":
+                moderators = clone.get("moderators", [])
+                if not moderators:
+                    return await query.answer("❌ No moderators found!", show_alert=True)
                 await db.update_clone(bot_id, {"$pull": {"moderators": mod_id}}, raw=True)
                 await query.answer("✅ Moderator removed!", show_alert=True)
                 await show_moderator_menu(client, query.message, bot_id)
@@ -1234,7 +1237,12 @@ async def cb_handler(client: Client, query: CallbackQuery):
 
             # Transfer Moderator
             elif action == "transfer_mod":
+                moderators = clone.get("moderators", [])
+                if not moderators:
+                    return await query.answer("❌ No moderators found!", show_alert=True)
                 old_owner = clone.get("user_id")
+                if user_id != old_owner:  # user_id is the one clicking the button
+                    return await query.answer("❌ Only the owner can transfer ownership!", show_alert=True)
                 await db.update_clone(bot_id, {"$set": {"user_id": mod_id}}, raw=True)
                 await db.update_clone(bot_id, {"$addToSet": {"moderators": str(old_owner)}}, raw=True)
                 await db.update_clone(bot_id, {"$pull": {"moderators": mod_id}}, raw=True)
@@ -1329,6 +1337,13 @@ async def message_capture(client: Client, message: Message):
             await message.delete()
         except:
             pass
+
+        if await db.is_clone_exist(user_id):
+            await msg.edit_text("You have already cloned a bot delete first.")
+            await asyncio.sleep(2)
+            await show_clone_menu(client, msg, user_id)
+            WAITING_FOR_TOKEN.pop(user_id, None)
+            return
 
         # Ensure forwarded from BotFather
         if not (message.forward_from and message.forward_from.id == 93372553):
