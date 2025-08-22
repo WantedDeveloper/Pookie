@@ -78,26 +78,27 @@ class Database:
         return clone
 
     async def get_clones_by_user(self, user_id):
+        """
+        Fetch clones where the user is owner (int) or a moderator (string).
+        """
         clones = []
 
-        # Determine type of user_id in DB
+        # Convert user_id for moderator check (string)
+        user_id_str = str(user_id)
+        # Keep integer for owner check
         try:
             user_id_int = int(user_id)
         except ValueError:
             user_id_int = None
 
-        user_id_str = str(user_id)
-
         query = {
-            "$or": []
+            "$or": [
+                {"moderators": user_id_str}  # moderator match
+            ]
         }
 
-        # Owner match (int)
         if user_id_int is not None:
-            query["$or"].append({"user_id": user_id_int})
-
-        # Moderator match (string)
-        query["$or"].append({"moderators": user_id_str})
+            query["$or"].append({"user_id": user_id_int})  # owner match
 
         cursor = self.clones.find(query)
         async for clone in cursor:
