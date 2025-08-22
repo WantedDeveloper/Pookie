@@ -100,7 +100,12 @@ class Database:
         }
 
         cursor = self.clones.find(query)
+        clones = []
+
+        print("DEBUG QUERY:", query)
+
         async for clone in cursor:
+            print("DEBUG FOUND CLONE:", clone)
             clones.append(clone)
         return clones
 
