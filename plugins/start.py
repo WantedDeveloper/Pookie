@@ -804,7 +804,7 @@ async def show_token_menu(client, message, bot_id):
         renew_log = clone.get("access_token_renew_log", {})
 
         # Get today's renewal count
-        today = datetime.now().strftime("%Y-%m-%d")
+        today = datetime.datetime.now().strftime("%Y-%m-%d")
         today_count = renew_log.get(today, 0)
 
         if current:
@@ -1691,6 +1691,8 @@ async def message_capture(client: Client, message: Message):
                 f"⚠️ Update Photo Error:\n\n<code>{e}</code>\n\nKindly check this message for assistance."
             )
             await orig_msg.edit_text(f"❌ Failed to update start photo: {e}")
+            await asyncio.sleep(2)
+            await show_photo_menu(client, orig_msg, bot_id)
         finally:
             WAITING_FOR_CLONE_PHOTO.pop(user_id, None)
             WAITING_FOR_CLONE_PHOTO_MSG.pop(user_id, None)
