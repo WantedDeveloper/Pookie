@@ -793,7 +793,7 @@ async def show_token_menu(client, message, bot_id):
             status = "🔴 Disabled"
 
         buttons.append([InlineKeyboardButton("⬅️ Back", callback_data=f"manage_{bot_id}")])
-        await query.message.edit_text(
+        await message.edit_text(
             text=script.TOKEN_TXT.format(status=f"{status}"),
             reply_markup=InlineKeyboardMarkup(buttons)
         )
@@ -1550,9 +1550,8 @@ async def message_capture(client: Client, message: Message):
 
         await orig_msg.edit_text("📸 Updating your clone's photo, please wait...")
         try:
-            os.makedirs("photos", exist_ok=True)  # ensure folder exists
-            file_path = await message.download(f"photos/{bot_id}.jpg")
-            await db.update_clone(bot_id, {"pics": file_path})
+            file_id = message.photo.file_id
+            await db.update_clone(bot_id, {"pics": file_id})
             await orig_msg.edit_text("✅ Successfully updated the start photo!")
             await asyncio.sleep(2)
             await show_photo_menu(client, orig_msg, bot_id)
