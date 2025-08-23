@@ -1716,12 +1716,13 @@ async def message_capture(client: Client, message: Message):
             return
 
         if step == "link":
-            ACCESS_TOKEN[user_id] = (orig_msg, bot_id, "api", new_text)  
+            ACCESS_TOKEN[user_id]["shorten_link"] = new_text
+            ACCESS_TOKEN[user_id]["step"] = "api"
             await orig_msg.edit_text("✅ Shorten link saved!\n\nNow please send your **API key**:")
 
         # Step: API Key
         elif step == "api":
-            shorten_link = ACCESS_TOKEN[user_id][3]
+            shorten_link = data["shorten_link"]
             api_key = new_text
 
             await orig_msg.edit_text("✏️ Updating your clone's access token, please wait...")
