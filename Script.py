@@ -87,7 +87,9 @@ You can add up to 4 channels."""
 
     TOKEN_TXT = """<u>✨ ACCESS TOKEN</u>
 
-Users need to pass a shortened link to gain special access to messages from all clone shareable links. This access will be valid for the next custom validity period."""
+Users need to pass a shortened link to gain special access to messages from all clone shareable links. This access will be valid for the next custom validity period.
+
+Current Status: {status}"""
 
     AD_TXT = """<u>⚠️ IMPORTANT:</u>
 
