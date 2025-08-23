@@ -91,6 +91,10 @@ Users need to pass a shortened link to gain special access to messages from all 
 
 Current Status: {status}"""
 
+    AT_TIME_TXT = """<u>✨ ACCESS TOKEN VALIDITY</u>
+
+You can customize the special access validty about access-token that is remove ads to users when they access the links."""
+
     AD_TXT = """<u>⚠️ IMPORTANT:</u>
 
 All Messages will be deleted after {time}. Please save or forward these messages to your personal saved messages to avoid losing them!"""
@@ -101,11 +105,11 @@ Current Status: {status}"""
 
     AD_TIME_TXT = """<u>✨ AUTO DELETE TIME</u>
 
-You can customize the alert time about auto-delete that is sent last to users when they access the links"""
+You can customize the alert time about auto-delete that is sent last to users when they access the links."""
 
     AD_MSG_TXT = """<u>✨ AUTO DELETE MESSAGE</u>
 
-You can customize the alert message about auto-delete that is sent last to users when they access the links"""
+You can customize the alert message about auto-delete that is sent last to users when they access the links."""
 
     FORWARD_TXT = """<u>✨ FORWARD PROTECTION</u>
 
