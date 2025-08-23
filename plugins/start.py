@@ -816,7 +816,7 @@ async def show_token_menu(client, message, bot_id):
             status = (
                 f"🟢 Enabled\n\n"
                 f"🔗 Shorten Link: {shorten_link or 'Not Set'}\n"
-                f"🛠 Shorten API: {shorten_api or 'Not Set'}"
+                f"🛠 Shorten API: {shorten_api or 'Not Set'}\n"
                 f"⏱ Validity: {validity} hour\n"
                 f"🔄 Renewed Today: {today_count} times\n\n"
             )
@@ -1222,7 +1222,7 @@ async def cb_handler(client: Client, query: CallbackQuery):
                 await show_tutorial_menu(client, query.message, bot_id)
 
             # Add Access Token Tutorial
-            elif action == "add_attutorial_":
+            elif action == "add_attutorial":
                 ACCESS_TOKEN_TUTORIAL[user_id] = (query.message, bot_id)
                 buttons = [[InlineKeyboardButton('❌ Cancel', callback_data=f'cancel_editadmessage_{bot_id}')]]
                 await query.message.edit_text(
@@ -1680,7 +1680,7 @@ async def message_capture(client: Client, message: Message):
 
         await orig_msg.edit_text("📸 Updating your clone's photo, please wait...")
         try:
-            file_id = message.photo[-1].file_id
+            file_id = message.photo.file_id
             await db.update_clone(bot_id, {"pics": file_id})
             await orig_msg.edit_text("✅ Successfully updated the start photo!")
             await asyncio.sleep(2)
