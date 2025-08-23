@@ -58,11 +58,14 @@ class Database:
             'access_token': False,
             'shorten_link': None,
             'shorten_api': None,
+            'access_token_validity': 24,
+            'access_token_renew_log': {},
+            'access_token_tutorial': None,
             # Premium User
             
             # Auto Delete
             'auto_delete': False,
-            'auto_delete_time': 30,
+            'auto_delete_time': 1,
             'auto_delete_msg': script.AD_TXT,
             # Forward Protect
             'forward_protect': False,
@@ -219,6 +222,8 @@ WAITING_FOR_WLC = {}
 WAITING_FOR_CLONE_PHOTO = {}
 WAITING_FOR_CLONE_PHOTO_MSG = {}
 ACCESS_TOKEN = {}
+ACCESS_TOKEN_VALIDITY = {}
+ACCESS_TOKEN_TUTORIAL = {}
 AUTO_DELETE_TIME = {}
 AUTO_DELETE_MESSAGE = {}
 ADD_MODERATOR = {}
@@ -246,6 +251,11 @@ def formate_file_name(file_name):
 @Client.on_message(filters.command("start") & filters.private & filters.incoming)
 async def start(client, message):
     try:
+        try:
+            await message.delete()
+        except:
+            pass
+
         username = client.me.username
 
         # --- Save user in DB ---
@@ -416,9 +426,13 @@ async def base_site_handler(client, m: Message):
 @Client.on_message(filters.command(['genlink']) & filters.user(OWNERS) & filters.private)
 async def link(bot, message):
     try:
+        try:
+            await message.delete()
+        except:
+            pass
+
         username = (await bot.get_me()).username
 
-        # 🔽 Support reply-to-message
         if message.reply_to_message:
             g_msg = message.reply_to_message
         else:
@@ -466,7 +480,13 @@ async def link(bot, message):
 @Client.on_message(filters.command(['batch']) & filters.user(OWNERS) & filters.private)
 async def batch(bot, message):
     try:
+        try:
+            await message.delete()
+        except:
+            pass
+
         username = (await bot.get_me()).username
+
         usage_text = f"Use correct format.\nExample:\n/batch https://t.me/{username}/10 https://t.me/{username}/20"
 
         # Check format
@@ -601,9 +621,13 @@ def make_progress_bar(done, total):
 @Client.on_message(filters.command("broadcast") & filters.user(OWNERS) & filters.private)
 async def broadcast(bot, message):
     try:
+        try:
+            await message.delete()
+        except:
+            pass
+
         users = await db.get_all_users()
 
-        # 🔽 Support reply-to-message
         if message.reply_to_message:
             b_msg = message.reply_to_message
         else:
@@ -702,12 +726,6 @@ async def broadcast(bot, message):
 
         await sts.edit(final_text)
 
-        # Log summary to LOG_CHANNEL for all admins
-        #try:
-            #await bot.send_message(LOG_CHANNEL, f"📢 **Broadcast Summary**\n\n{final_text}")
-        #except:
-            #pass
-
     except Exception as e:
         await bot.send_message(
             LOG_CHANNEL,
@@ -780,6 +798,14 @@ async def show_token_menu(client, message, bot_id):
     try:
         clone = await db.get_clone_by_id(bot_id)
         current = clone.get("access_token", False)
+        shorten_link = clone.get("shorten_link", None)
+        shorten_api = clone.get("shorten_api", None)
+        validity = clone.get("access_token_validity", 24)
+        renew_log = clone.get("access_token_renew_log", {})
+
+        # Get today's renewal count
+        today = datetime.now().strftime("%Y-%m-%d")
+        today_count = renew_log.get(today, 0)
 
         if current:
             buttons = [
@@ -787,7 +813,13 @@ async def show_token_menu(client, message, bot_id):
                 InlineKeyboardButton("📝 Tutorial", callback_data=f"at_tutorial_{bot_id}"),
                 InlineKeyboardButton("❌ Disable", callback_data=f"at_status_{bot_id}")]
             ]
-            status = f"🟢 Enabled\n\n⏱ Validity: {time_set} minutes\n\n📝 Tutorial: {msg_set.format(time=f'{time_set} minutes')}"
+            status = (
+                f"🟢 Enabled\n\n"
+                f"🔗 Shorten Link: {shorten_link or 'Not Set'}\n"
+                f"🛠 Shorten API: {shorten_api or 'Not Set'}"
+                f"⏱ Validity: {validity} hour\n"
+                f"🔄 Renewed Today: {today_count} times\n\n"
+            )
         else:
             buttons = [[InlineKeyboardButton("✅ Enable", callback_data=f"at_status_{bot_id}")]]
             status = "🔴 Disabled"
@@ -801,6 +833,42 @@ async def show_token_menu(client, message, bot_id):
         await client.send_message(
             LOG_CHANNEL,
             f"⚠️ Show Token Menu Error:\n\n<code>{e}</code>\n\nKindly check this message to get assistance."
+        )
+
+async def show_validity_menu(client, message, bot_id):
+    try:
+        buttons = [
+            [InlineKeyboardButton('✏️ Edit', callback_data=f'edit_atvalidity_{bot_id}'),
+            InlineKeyboardButton('👁️ See', callback_data=f'see_atvalidity_{bot_id}'),
+            InlineKeyboardButton('🔄 Default', callback_data=f'default_atvalidity_{bot_id}')],
+            [InlineKeyboardButton('⬅️ Back', callback_data=f'access_token_{bot_id}')]
+        ]
+        await message.edit_text(
+            text=script.AT_TIME_TXT,
+            reply_markup=InlineKeyboardMarkup(buttons)
+        )
+    except Exception as e:
+        await client.send_message(
+            LOG_CHANNEL,
+            f"⚠️ Show Validity Menu Error:\n\n<code>{e}</code>\n\nKindly check this message to get assistance."
+        )
+
+async def show_tutorial_menu(client, message, bot_id):
+    try:
+        buttons = [
+            [InlineKeyboardButton('➕ Add', callback_data=f'add_attutorial_{bot_id}'),
+            InlineKeyboardButton('👁️ See', callback_data=f'see_attutorial_{bot_id}'),
+            InlineKeyboardButton('🗑️ Delete', callback_data=f'delete_attutorial_{bot_id}')],
+            [InlineKeyboardButton('⬅️ Back', callback_data=f'access_token_{bot_id}')]
+        ]
+        await message.edit_text(
+            text=script.ST_PIC_TXT,
+            reply_markup=InlineKeyboardMarkup(buttons)
+        )
+    except Exception as e:
+        await client.send_message(
+            LOG_CHANNEL,
+            f"⚠️ Show Tutorial Menu Error:\n\n<code>{e}</code>\n\nKindly check this message to get assistance."
         )
 
 async def show_time_menu(client, message, bot_id):
@@ -962,7 +1030,7 @@ async def cb_handler(client: Client, query: CallbackQuery):
         elif any(query.data.startswith(prefix) for prefix in [
             "start_message_", "start_text_", "edit_text_", "cancel_edit_", "see_text_", "default_text_", "start_photo_", "add_photo_", "cancel_add_", "see_photo_", "delete_photo_",
             "force_subscribe_",
-            "access_token_", "at_status_", "cancel_editat_", "at_validty_", "at_tutorial_",
+            "access_token_", "at_status_", "cancel_at_", "at_validty_", "edit_atvalidity_", "cancel_editatvalidity_", "see_atvalidity_", "default_atvalidity_", "at_tutorial_", "add_attutorial_", "cancel_addattutorial_", "see_attutorial_", "delete_attutorial_",
             "premium_user_",
             "auto_delete_", "ad_status_", "ad_time_", "edit_adtime_", "cancel_editadtime_", "see_adtime_", "default_adtime_", "ad_message_", "edit_admessage_", "cancel_editadmessage_", "see_admessage_", "default_admessage_",
             "forward_protect_", "fp_status_",
@@ -1046,7 +1114,7 @@ async def cb_handler(client: Client, query: CallbackQuery):
             elif action == "start_photo":
                 await show_photo_menu(client, query.message, bot_id)
 
-            # Add Photo
+            # Add Start Photo
             elif action == "add_photo":
                 WAITING_FOR_CLONE_PHOTO[user_id] = bot_id
                 WAITING_FOR_CLONE_PHOTO_MSG[user_id] = query.message
@@ -1062,18 +1130,22 @@ async def cb_handler(client: Client, query: CallbackQuery):
                 WAITING_FOR_CLONE_PHOTO_MSG.pop(user_id, None)
                 await show_photo_menu(client, query.message, bot_id)
 
-            # See Start Phito
+            # See Start Photo
             elif action == "see_photo":
                 start_photo = clone.get("pics", None)
                 if start_photo:
-                    await query.message.reply_photo(
-                        photo=start_photo,
-                        caption=f"🖼 Current Start Photo for @{clone.get('username')}"
+                    buttons = [[InlineKeyboardButton("⬅️ Back", callback_data=f"start_photo_{bot_id}")]]
+                    await query.message.edit_media(
+                        media=InputMediaPhoto(
+                            media=start_photo,
+                            caption=f"🖼 Current Start Photo for @{clone.get('username')}"
+                        ),
+                        reply_markup=InlineKeyboardMarkup(buttons)
                     )
                 else:
                     await query.answer("❌ No start photo set for this clone.", show_alert=True)
 
-            # Delete Photo
+            # Delete Start Photo
             elif action == "delete_photo":
                 await db.update_clone(bot_id, {"pics": None})
                 await query.answer("✨ Successfully deleted your clone start photo.", show_alert=True)
@@ -1090,7 +1162,7 @@ async def cb_handler(client: Client, query: CallbackQuery):
             elif action == "access_token":
                 await show_token_menu(client, query.message, bot_id)
 
-            # Status
+            # Access Token Status
             elif action == "at_status":
                 new_value = not clone.get("access_token", False)
                 await db.update_clone(bot_id, {"access_token": new_value})
@@ -1111,10 +1183,67 @@ async def cb_handler(client: Client, query: CallbackQuery):
                     reply_markup=InlineKeyboardMarkup(buttons)
                 )
 
-            # Cancel Token
-            elif action == "cancel_editat":
+            # Cancel Access Token
+            elif action == "cancel_at":
                 ACCESS_TOKEN.pop(user_id, None)
                 await show_token_menu(client, query.message, bot_id)
+
+            # Access Token Validity Menu
+            elif action == "at_validty":
+                await show_validity_menu(client, query.message, bot_id)
+
+            # Edit Access Token Validity
+            elif action == "edit_atvalidity":
+                ACCESS_TOKEN_VALIDITY[user_id] = (query.message, bot_id)
+                buttons = [[InlineKeyboardButton('❌ Cancel', callback_data=f'cancel_editatvalidity_{bot_id}')]]
+                await query.message.edit_text(
+                    text="⏱ Send me new auto delete time in **hour** (e.g. `24` for 1 day).",
+                    reply_markup=InlineKeyboardMarkup(buttons)
+                )
+
+            # Cancel Access Token Validity
+            elif action == "cancel_editatvalidity":
+                ACCESS_TOKEN_VALIDITY.pop(user_id, None)
+                await show_validity_menu(client, query.message, bot_id)
+
+            # See Access Token Validity
+            elif action == "see_atvalidity":
+                at_validity = clone.get("access_token_validity", 24)
+                unit = "hour" if at_validity == 24 else "hours"
+                await query.answer(f"📝 Current Access Token Validity:\n\n{at_validity} {unit}", show_alert=True)
+
+            # Default Access Token Validity
+            elif action == "default_atvalidity":
+                await db.update_clone(bot_id, {"access_token_validity": 24})
+                await query.answer(f"🔄 Access token validity reset to default.", show_alert=True)
+
+            # Access Token Tutorial
+            elif action == "at_tutorial":
+                await show_tutorial_menu(client, query.message, bot_id)
+
+            # Add Access Token Tutorial
+            elif action == "add_attutorial_":
+                ACCESS_TOKEN_TUTORIAL[user_id] = (query.message, bot_id)
+                buttons = [[InlineKeyboardButton('❌ Cancel', callback_data=f'cancel_editadmessage_{bot_id}')]]
+                await query.message.edit_text(
+                    text="📝 Send me the new access token tutorial link.",
+                    reply_markup=InlineKeyboardMarkup(buttons)
+                )
+
+            # Cancel Access Token Tutorial
+            elif action == "cancel_addattutorial":
+                ACCESS_TOKEN_TUTORIAL.pop(user_id, None)
+                await show_tutorial_menu(client, query.message, bot_id)
+
+            # See Access Token Tutorial
+            elif action == "see_attutorial":
+                ad_message = clone.get("access_token_tutorial", None)
+                await query.answer(f"📝 Current Access Token Tutorial:\n\n{ad_message}", show_alert=True)
+
+            # Delete Access Token Tutorial
+            elif action == "delete_attutorial":
+                await db.update_clone(bot_id, {"access_token_tutorial": None})
+                await query.answer("✨ Successfully deleted your clone access token tutorial link.", show_alert=True)
 
             # Premium User
             elif action == "premium_user":
@@ -1127,7 +1256,7 @@ async def cb_handler(client: Client, query: CallbackQuery):
             # Auto Delete Menu
             elif action == "auto_delete":
                 current = clone.get("auto_delete", False)
-                time_set = clone.get("auto_delete_time", 30)
+                time_set = clone.get("auto_delete_time", 1)
                 msg_set = clone.get("auto_delete_msg", script.AD_TXT)
 
                 if current:
@@ -1136,7 +1265,7 @@ async def cb_handler(client: Client, query: CallbackQuery):
                         InlineKeyboardButton("📝 Message", callback_data=f"ad_message_{bot_id}"),
                         InlineKeyboardButton("❌ Disable", callback_data=f"ad_status_{bot_id}")]
                     ]
-                    status = f"🟢 Enabled\n\n⏱ Time: {time_set} minutes\n\n📝 Message: {msg_set.format(time=f'{time_set} minutes')}"
+                    status = f"🟢 Enabled\n\n⏱ Time: {time_set} hour\n\n📝 Message: {msg_set.format(time=f'{time_set} hour')}"
                 else:
                     buttons = [[InlineKeyboardButton("✅ Enable", callback_data=f"ad_status_{bot_id}")]]
                     status = "🔴 Disabled"
@@ -1147,7 +1276,7 @@ async def cb_handler(client: Client, query: CallbackQuery):
                     reply_markup=InlineKeyboardMarkup(buttons)
                 )
 
-            # Status
+            # Auto Delete Status
             elif action == "ad_status":
                 new_value = not clone.get("auto_delete", False)
                 await db.update_clone(bot_id, {"auto_delete": new_value})
@@ -1163,39 +1292,40 @@ async def cb_handler(client: Client, query: CallbackQuery):
                     reply_markup=InlineKeyboardMarkup(buttons)
                 )
 
-            # Time Menu
+            # Auto Delete Time Menu
             elif action == "ad_time":
                 await show_time_menu(client, query.message, bot_id)
 
-            # Edit Message
+            # Edit Auto Delete Time
             elif action == "edit_adtime":
                 AUTO_DELETE_TIME[user_id] = (query.message, bot_id)
                 buttons = [[InlineKeyboardButton('❌ Cancel', callback_data=f'cancel_editadtime_{bot_id}')]]
                 await query.message.edit_text(
-                    text="⏱ Send me new auto delete time in **minutes** (e.g. `60` for 1 hour).",
+                    text="⏱ Send me new auto delete time in **hour** (e.g. `24` for 1 day).",
                     reply_markup=InlineKeyboardMarkup(buttons)
                 )
 
-            # Cancel Message
+            # Cancel Auto Delete Time
             elif action == "cancel_editadtime":
                 AUTO_DELETE_TIME.pop(user_id, None)
                 await show_time_menu(client, query.message, bot_id)
 
-            # See Message
+            # See Auto Delete Time
             elif action == "see_adtime":
-                ad_time = clone.get("auto_delete_time", 30)
-                await query.answer(f"📝 Current Auto Delete Time:\n\n{ad_time} minutes", show_alert=True)
+                ad_time = clone.get("auto_delete_time", 1)
+                unit = "hour" if ad_time == 1 else "hours"
+                await query.answer(f"📝 Current Auto Delete Time:\n\n{ad_time} {unit}", show_alert=True)
 
-            # Default Time
+            # Default Auto Delete Time
             elif action == "default_adtime":
-                await db.update_clone(bot_id, {"auto_delete_time": 30})
-                await query.answer(f"🔄 Auto delete message reset to default.", show_alert=True)
+                await db.update_clone(bot_id, {"auto_delete_time": 1})
+                await query.answer(f"🔄 Auto delete time reset to default.", show_alert=True)
 
-            # Message Menu
+            # Auto Delete Message Menu
             elif action == "ad_message":
                 await show_message_menu(client, query.message, bot_id)
 
-            # Edit Message
+            # Edit Auto Delete Message
             elif action == "edit_admessage":
                 AUTO_DELETE_MESSAGE[user_id] = (query.message, bot_id)
                 buttons = [[InlineKeyboardButton('❌ Cancel', callback_data=f'cancel_editadmessage_{bot_id}')]]
@@ -1204,17 +1334,17 @@ async def cb_handler(client: Client, query: CallbackQuery):
                     reply_markup=InlineKeyboardMarkup(buttons)
                 )
 
-            # Cancel Message
+            # Cancel Auto Delete Message
             elif action == "cancel_editadmessage":
                 AUTO_DELETE_MESSAGE.pop(user_id, None)
                 await show_message_menu(client, query.message, bot_id)
 
-            # See Message
+            # See Auto Delete Message
             elif action == "see_admessage":
                 ad_message = clone.get("auto_delete_msg", script.AD_TXT)
                 await query.answer(f"📝 Current Auto Delete Message:\n\n{ad_message}", show_alert=True)
 
-            # Default Message
+            # Default Auto Delete Message
             elif action == "default_admessage":
                 await db.update_clone(bot_id, {"auto_delete_msg": script.AD_TXT})
                 await query.answer(f"🔄 Auto delete message reset to default.", show_alert=True)
@@ -1235,7 +1365,7 @@ async def cb_handler(client: Client, query: CallbackQuery):
                     reply_markup=InlineKeyboardMarkup(buttons)
                 )
 
-            # Status
+            # Forward Protect Status
             elif action == "fp_status":
                 new_value = not clone.get("forward_protect", False)
                 await db.update_clone(bot_id, {"forward_protect": new_value})
@@ -1264,7 +1394,7 @@ async def cb_handler(client: Client, query: CallbackQuery):
                     reply_markup=InlineKeyboardMarkup(buttons)
                 )
 
-            # Cancel Message
+            # Cancel Moderator
             elif action == "cancel_addmoderator":
                 ADD_MODERATOR(user_id, None)
                 await show_moderator_menu(client, query.message, bot_id)
@@ -1516,7 +1646,7 @@ async def message_capture(client: Client, message: Message):
         try:
             await db.update_clone(bot_id, {"wlc": new_text})
             await orig_msg.edit_text("✅ Successfully updated start text!")
-            await asyncio.sleep(1)
+            await asyncio.sleep(2)
             await show_text_menu(client, orig_msg, bot_id)
         except Exception as e:
             await client.send_message(
@@ -1550,7 +1680,7 @@ async def message_capture(client: Client, message: Message):
 
         await orig_msg.edit_text("📸 Updating your clone's photo, please wait...")
         try:
-            file_id = message.photo.file_id
+            file_id = message.photo[-1].file_id
             await db.update_clone(bot_id, {"pics": file_id})
             await orig_msg.edit_text("✅ Successfully updated the start photo!")
             await asyncio.sleep(2)
@@ -1584,7 +1714,6 @@ async def message_capture(client: Client, message: Message):
             return
 
         if step == "link":
-            # Save shorten link temporarily
             ACCESS_TOKEN[user_id] = (orig_msg, bot_id, "api", new_text)  
             await orig_msg.edit_text("✅ Shorten link saved!\n\nNow please send your **API key**:")
 
@@ -1597,7 +1726,7 @@ async def message_capture(client: Client, message: Message):
             try:
                 await db.update_clone(bot_id, {"shorten_link": shorten_link, "shorten_api": api_key})
                 await orig_msg.edit_text("✅ Successfully updated access token!")
-                await asyncio.sleep(1)
+                await asyncio.sleep(2)
                 await show_token_menu(client, orig_msg, bot_id)
             except Exception as e:
                 await client.send_message(
@@ -1611,9 +1740,46 @@ async def message_capture(client: Client, message: Message):
                 ACCESS_TOKEN.pop(user_id, None)
             return
 
-    # Auto Delete Time Handler
-    if user_id in AUTO_DELETE_TIME:
-        orig_msg, bot_id = AUTO_DELETE_TIME[user_id]
+    # Access Token Validity Handler
+    if user_id in ACCESS_TOKEN_VALIDITY:
+        orig_msg, bot_id = ACCESS_TOKEN_VALIDITY[user_id]
+
+        try:
+            await message.delete()
+        except:
+            pass
+
+        new_text = message.text.strip() if message.text else ""
+        if not new_text.isdigit():
+            await orig_msg.edit_text("❌ Please send a valid number (hours).")
+            await asyncio.sleep(2)
+            await show_validity_menu(client, orig_msg, bot_id)
+            ACCESS_TOKEN_VALIDITY.pop(user_id, None)
+            return
+
+        await orig_msg.edit_text("✏️ Updating your clone's access token validity, please wait...")
+        try:
+            hours = int(new_text)
+            await db.update_clone(bot_id, {"access_token_validity": hours})
+            unit = "hour" if hours == 24 else "hours"
+            await orig_msg.edit_text(f"✅ Access token validity updated to {hours} {unit}.")
+            await asyncio.sleep(2)
+            await access_token_validity(client, orig_msg, bot_id)
+        except Exception as e:
+            await client.send_message(
+                LOG_CHANNEL,
+                f"⚠️ Update Access Token Validity Error:\n\n<code>{e}</code>\n\nKindly check this message for assistance."
+            )
+            await orig_msg.edit_text(f"❌ Failed to update access token validity: {e}")
+            await asyncio.sleep(2)
+            await access_token_validity(client, orig_msg, bot_id)
+        finally:
+            ACCESS_TOKEN_VALIDITY.pop(user_id, None)
+        return
+
+    # Access Token Tutorial Handler
+    if user_id in ACCESS_TOKEN_TUTORIAL:
+        orig_msg, bot_id = ACCESS_TOKEN_TUTORIAL[user_id]
 
         try:
             await message.delete()
@@ -1624,15 +1790,52 @@ async def message_capture(client: Client, message: Message):
         if not new_text:
             await orig_msg.edit_text("❌ You sent an empty message. Please send a valid start text.")
             await asyncio.sleep(2)
+            await show_tutorial_menu(client, orig_msg, bot_id)
+            ACCESS_TOKEN_TUTORIAL.pop(user_id, None)
+            return
+
+        await orig_msg.edit_text("✏️ Updating your clone's access token tutorial link, please wait...")
+        try:
+            await db.update_clone(bot_id, {"access_token_tutorial": new_text})
+            await orig_msg.edit_text("✅ Successfully updated access token tutorial link!")
+            await asyncio.sleep(2)
+            await show_tutorial_menu(client, orig_msg, bot_id)
+        except Exception as e:
+            await client.send_message(
+                LOG_CHANNEL,
+                f"⚠️ Update Access Token Tutorial Error:\n\n<code>{e}</code>\n\nKindly check this message for assistance."
+            )
+            await orig_msg.edit_text(f"❌ Failed to update access token tutorial link: {e}")
+            await asyncio.sleep(2)
+            await show_tutorial_menu(client, orig_msg, bot_id)
+        finally:
+            ACCESS_TOKEN_TUTORIAL.pop(user_id, None)
+        return
+
+    # Auto Delete Time Handler
+    if user_id in AUTO_DELETE_TIME:
+        orig_msg, bot_id = AUTO_DELETE_TIME[user_id]
+
+        try:
+            await message.delete()
+        except:
+            pass
+
+        new_text = message.text.strip() if message.text else ""
+        if not new_text.isdigit():
+            await orig_msg.edit_text("❌ Please send a valid number (hours).")
+            await asyncio.sleep(2)
             await show_time_menu(client, orig_msg, bot_id)
             AUTO_DELETE_TIME.pop(user_id, None)
             return
 
         await orig_msg.edit_text("✏️ Updating your clone's auto delete time, please wait...")
         try:
-            await db.update_clone(bot_id, {"auto_delete_time": new_text})
-            await orig_msg.edit_text("✅ Successfully updated auto delete time!")
-            await asyncio.sleep(1)
+            hours = int(new_text)
+            await db.update_clone(bot_id, {"auto_delete_time": hours})
+            unit = "hour" if hours == 1 else "hours"
+            await orig_msg.edit_text(f"✅ Auto delete time updated to {hours} {unit}.")
+            await asyncio.sleep(2)
             await show_time_menu(client, orig_msg, bot_id)
         except Exception as e:
             await client.send_message(
@@ -1667,7 +1870,7 @@ async def message_capture(client: Client, message: Message):
         try:
             await db.update_clone(bot_id, {"auto_delete_msg": new_text})
             await orig_msg.edit_text("✅ Successfully updated auto delete message!")
-            await asyncio.sleep(1)
+            await asyncio.sleep(2)
             await show_message_menu(client, orig_msg, bot_id)
         except Exception as e:
             await client.send_message(
@@ -1702,7 +1905,7 @@ async def message_capture(client: Client, message: Message):
         try:
             await db.update_clone(bot_id, {"$addToSet": {"moderators": new_text}}, raw=True)
             await orig_msg.edit_text("✅ Successfully updated moderator!")
-            await asyncio.sleep(1)
+            await asyncio.sleep(2)
             await show_moderator_menu(client, orig_msg, bot_id)
         except Exception as e:
             await client.send_message(
