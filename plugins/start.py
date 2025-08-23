@@ -778,6 +778,7 @@ async def show_photo_menu(client, message, bot_id):
 
 async def show_token_menu(client, message, bot_id):
     try:
+        clone = await db.get_clone_by_id(bot_id)
         current = clone.get("access_token", False)
 
         if current:
