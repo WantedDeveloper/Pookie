@@ -1700,7 +1700,10 @@ async def message_capture(client: Client, message: Message):
 
     # Acess Token Handler
     if user_id in ACCESS_TOKEN:
-        orig_msg, bot_id, step = ACCESS_TOKEN[user_id]
+        data = ACCESS_TOKEN[user_id]
+        orig_msg = data["orig_msg"]
+        bot_id = data["bot_id"]
+        step = data["step"]
 
         try:
             await message.delete()
