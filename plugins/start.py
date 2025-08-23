@@ -1291,6 +1291,10 @@ async def cb_handler(client: Client, query: CallbackQuery):
                     await db.update_clone(bot_id, {"$addToSet": {"moderators": str(old_owner)}}, raw=True)
 
                 await db.update_clone(bot_id, {"$pull": {"moderators": str(mod_id)}}, raw=True)
+                await client.send_message(
+                    mod_id,
+                    f"✅ You are now the owner of the bot **{clone.get('name')}** (ID: {clone.get('bot_id')})"
+                )
                 await query.answer("✅ Ownership transferred!", show_alert=True)
                 await show_clone_menu(client, query.message, old_owner)
 
