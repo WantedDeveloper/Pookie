@@ -204,7 +204,6 @@ BATCH_FILES = {}
 CLONE_TOKEN = {}
 START_TEXT = {}
 START_PHOTO = {}
-CLONE_WAITING_PHOTO = {}
 CAPTION_TEXT = {}
 HEADER_TEXT = {}
 FOOTER_TEXT = {}
@@ -1199,26 +1198,6 @@ async def cb_handler(client: Client, query: CallbackQuery):
         
             # Add Start Photo
             elif action == "add_photo":
-                """clone_token = clone.get("token")
-
-                if not clone_token:
-                    return await query.message.edit_text("❌ Clone bot token not found!")
-
-                clone_bot = Client("clone_temp", api_id=API_ID, api_hash=API_HASH, bot_token=clone_token)
-                await clone_bot.start()
-
-                # Send message to clone bot
-                await clone_bot.send_message(
-                    clone["user_id"],
-                    "📸 Please send me the **start photo** for your clone."
-                )
-
-                CLONE_WAITING_PHOTO[clone["user_id"]] = {
-                    "bot_id": clone["bot_id"],
-                    "clone_bot": clone_bot,
-                    "orig_msg": query.message
-                }"""
-
                 START_PHOTO[user_id] = (query.message, bot_id)
                 buttons = [[InlineKeyboardButton('❌ Cancel', callback_data=f'cancel_addphoto_{bot_id}')]]
                 await query.message.edit_text(
@@ -1228,11 +1207,6 @@ async def cb_handler(client: Client, query: CallbackQuery):
 
             # Cancel Add Photo
             elif action == "cancel_addphoto":
-                """if user_id in CLONE_WAITING_PHOTO:
-                    clone_bot = CLONE_WAITING_PHOTO[user_id]["clone_bot"]
-                    await clone_bot.stop()
-                    CLONE_WAITING_PHOTO.pop(user_id, None)"""
-
                 START_PHOTO.pop(user_id, None)
                 await show_photo_menu(client, query.message, bot_id)
         
@@ -1240,20 +1214,7 @@ async def cb_handler(client: Client, query: CallbackQuery):
             elif action == "see_photo":
                 start_photo = clone.get("pics", None)
                 if start_photo:
-                    clone_token = clone.get("token")
-
-                    if not clone_token:
-                        return await query.message.edit_text("❌ Clone bot token not found!")
-
-                    clone_bot = Client("clone_temp", api_id=API_ID, api_hash=API_HASH, bot_token=clone_token)
-                    await clone_bot.start()
-
-                    owner_id = clone.get("user_id")
-                    await clone_bot.send_message(owner_id, "📸 Here is your current **start photo** for this clone:")
-
-                    await clone_bot.send_photo(owner_id, photo=start_photo)
-                    await query.answer("✅ Clone bot has sent the start photo.", show_alert=True)
-                    await clone_bot.stop()
+                    
                 else:
                     await query.answer("❌ No start photo set for this clone.", show_alert=True)
 
