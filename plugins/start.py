@@ -1204,7 +1204,7 @@ async def cb_handler(client: Client, query: CallbackQuery):
                 if not clone_token:
                     return await query.message.edit_text("❌ Clone bot token not found!")
 
-                clone_bot = Client("clone_temp", bot_token=clone_token)
+                clone_bot = Client("clone_temp", api_id=API_ID, api_hash=API_HASH, bot_token=clone_token)
                 await clone_bot.start()
 
                 # Send message to clone bot
@@ -1255,8 +1255,12 @@ async def cb_handler(client: Client, query: CallbackQuery):
 
             # Delete Start Photo
             elif action == "delete_photo":
-                await db.update_clone(bot_id, {"pics": None})
-                await query.answer("✨ Successfully deleted your clone start photo.", show_alert=True)
+                start_photo = clone.get("pics", None)
+                if start_photo:
+                    await db.update_clone(bot_id, {"pics": None})
+                    await query.answer("✨ Successfully deleted your clone start photo.", show_alert=True)
+                else:
+                    await query.answer("❌ No start photo set for this clone.", show_alert=True)
 
             # Caption Menu
             elif action == "caption":
@@ -1286,8 +1290,12 @@ async def cb_handler(client: Client, query: CallbackQuery):
 
             # Delete Caption
             elif action == "delete_caption":
-                await db.update_clone(bot_id, {"caption": ""})
-                await query.answer("✨ Successfully deleted your caption text.", show_alert=True)
+                caption = clone.get("caption", "")
+                if caption:
+                    await db.update_clone(bot_id, {"caption": ""})
+                    await query.answer("✨ Successfully deleted your caption text.", show_alert=True)
+                else:
+                    await query.answer("❌ No caption text set for this clone.", show_alert=True)
 
             # Header Menu
             elif action == "header":
@@ -1317,8 +1325,12 @@ async def cb_handler(client: Client, query: CallbackQuery):
 
             # Delete Header
             elif action == "delete_header":
-                await db.update_clone(bot_id, {"header": ""})
-                await query.answer("✨ Successfully deleted your header text.", show_alert=True)
+                header = clone.get("header", "")
+                if header:
+                    await db.update_clone(bot_id, {"header": ""})
+                    await query.answer("✨ Successfully deleted your header text.", show_alert=True)
+                else:
+                    await query.answer("❌ No header text set for this clone.", show_alert=True)
 
             # Footer Menu
             elif action == "footer":
@@ -1348,8 +1360,12 @@ async def cb_handler(client: Client, query: CallbackQuery):
 
             # Delete Footer
             elif action == "delete_footer":
-                await db.update_clone(bot_id, {"footer": ""})
-                await query.answer("✨ Successfully deleted your footer text.", show_alert=True)
+                footer = clone.get("footer", "")
+                if footer:
+                    await db.update_clone(bot_id, {"footer": ""})
+                    await query.answer("✨ Successfully deleted your footer text.", show_alert=True)
+                else:
+                    await query.answer("❌ No footer text set for this clone.", show_alert=True)
 
             # Force Subscribe
             elif action == "force_subscribe":
@@ -1448,12 +1464,19 @@ async def cb_handler(client: Client, query: CallbackQuery):
             # See Access Token Tutorial
             elif action == "see_attutorial":
                 at_tutorial = clone.get("access_token_tutorial", None)
-                await query.answer(f"📝 Current Access Token Tutorial:\n\n{at_tutorial}", show_alert=True)
+                if at_tutorial:
+                    await query.answer(f"📝 Current Access Token Tutorial:\n\n{at_tutorial}", show_alert=True)
+                else:
+                    await query.answer("❌ No access token tutorial set for this clone.", show_alert=True)
 
             # Delete Access Token Tutorial
             elif action == "delete_attutorial":
-                await db.update_clone(bot_id, {"access_token_tutorial": None})
-                await query.answer("✨ Successfully deleted your clone access token tutorial link.", show_alert=True)
+                at_tutorial = clone.get("access_token_tutorial", None)
+                if at_tutorial:
+                    await db.update_clone(bot_id, {"access_token_tutorial": None})
+                    await query.answer("✨ Successfully deleted your clone access token tutorial link.", show_alert=True)
+                else:
+                    await query.answer("❌ No access token tutorial set for this clone.", show_alert=True)
 
             # Premium User
             elif action == "premium_user":
