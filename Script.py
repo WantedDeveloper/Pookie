@@ -87,13 +87,13 @@ You can add a custom caption to your media messages instead of its original capt
 '{file_size}' : File size
 '{caption}' : Orginal Caption"""
 
-    BUTTON_TXT = """
+    BUTTON_TXT = """None
 """
 
-    HEADER_TXT = """
+    HEADER_TXT = """None
 """
 
-    FOOTER_TXT = """
+    FOOTER_TXT = """None
 """
 
     FSUB_TXT = """<u>**✨ FORCE SUBSCRIBE**</u>
@@ -132,7 +132,7 @@ You can customize the alert message about auto-delete that is sent last to users
 
 All Messages will be deleted after {time}. Please save or forward these messages to your personal saved messages to avoid losing them!"""
 
-    PREMIUM_TXT = """
+    PREMIUM_TXT = """None
 """
 
     FORWARD_TXT = """<u>**✨ FORWARD PROTECTION**</u>
