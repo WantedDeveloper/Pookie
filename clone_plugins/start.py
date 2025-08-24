@@ -101,7 +101,6 @@ async def start(client, message):
             clone = await db.get_bot(me.id)
             start_text = clone.get("wlc") or script.START_TXT
             start_pic = clone.get("pics") or None
-            print("DEBUG start_pic =", start_pic)
 
             if start_pic:
                 return await message.reply_photo(
