@@ -1118,6 +1118,7 @@ async def cb_handler(client: Client, query: CallbackQuery):
             "moderator_", "add_moderator_", "cancel_addmoderator_", "remove_moderator_", "remove_mod_", "transfer_moderator_", "transfer_mod_",
             "status_", "activate_deactivate_", "restart_", "delete_", "delete_clone_"
         ]):
+
             data = query.data
 
             # Default values
@@ -1195,66 +1196,28 @@ async def cb_handler(client: Client, query: CallbackQuery):
 
             # Start Photo Menu
             elif action == "start_photo":
-                await show_photo_menu(client, query.message, bot_id)
+                #await show_photo_menu(client, query.message, bot_id)
+                await query.answer("soon...", show_alert=True)
         
             # Add Start Photo
             elif action == "add_photo":
-                clone_token = clone.get("token")
-
-                if not clone_token:
-                    return await query.message.edit_text("❌ Clone bot token not found!")
-
-                clone_bot = Client(f"clone_temp_{bot_id}", api_id=API_ID, api_hash=API_HASH, bot_token=clone_token)
-                await clone_bot.start()
-
-                # Send message to clone bot
-                owner_id = clone.get("user_id")
-                await clone_bot.send_message(
-                    owner_id,
-                    "📸 Please send me the **start photo** for your clone."
-                )
-
-                CLONE_WAITING_PHOTO[owner_id] = {
-                    "bot_id": clone["bot_id"],
-                    "clone_bot": clone_bot,
-                    "orig_msg": query.message  # main bot message to update later
-                }
-
-                #START_PHOTO[user_id] = (query.message, bot_id)
+                START_PHOTO[user_id] = (query.message, bot_id)
                 buttons = [[InlineKeyboardButton('❌ Cancel', callback_data=f'cancel_addphoto_{bot_id}')]]
                 await query.message.edit_text(
-                    text="Send your new **start photo** via clone bot.",
+                    text="Send your new **start photo**.",
                     reply_markup=InlineKeyboardMarkup(buttons)
                 )
 
             # Cancel Add Photo
             elif action == "cancel_addphoto":
-                if user_id in CLONE_WAITING_PHOTO:
-                    clone_bot = CLONE_WAITING_PHOTO[user_id]["clone_bot"]
-                    await clone_bot.stop()
-                    CLONE_WAITING_PHOTO.pop(user_id, None)
-
-                #START_PHOTO.pop(user_id, None)
+                START_PHOTO.pop(user_id, None)
                 await show_photo_menu(client, query.message, bot_id)
         
             # See Start Photo
             elif action == "see_photo":
                 start_photo = clone.get("pics", None)
                 if start_photo:
-                    clone_token = clone.get("token")
-
-                    if not clone_token:
-                        return await query.message.edit_text("❌ Clone bot token not found!")
-
-                    clone_bot = Client("clone_temp", api_id=API_ID, api_hash=API_HASH, bot_token=clone_token)
-                    await clone_bot.start()
-
-                    owner_id = clone.get("user_id")
-                    await clone_bot.send_message(owner_id, "📸 Here is your current **start photo** for this clone:")
-
-                    await clone_bot.send_photo(owner_id, photo=start_photo)
                     await query.answer("✅ Clone bot has sent the start photo.", show_alert=True)
-                    await clone_bot.stop()
                 else:
                     await query.answer("❌ No start photo set for this clone.", show_alert=True)
 
@@ -1902,7 +1865,7 @@ async def message_capture(client: Client, message: Message):
         return
 
     # Start Photo Handler
-    """if user_id in START_PHOTO:
+    if user_id in START_PHOTO:
         orig_msg, bot_id = START_PHOTO[user_id]
 
         try:
@@ -1935,7 +1898,7 @@ async def message_capture(client: Client, message: Message):
             await show_photo_menu(client, orig_msg, bot_id)
         finally:
             START_PHOTO.pop(user_id, None)
-        return"""
+        return
 
     # Caption Handler
     if user_id in CAPTION_TEXT:
