@@ -409,9 +409,6 @@ async def link(bot, message):
         string = f"file_{file_id}"
         outstr = base64.urlsafe_b64encode(string.encode("ascii")).decode().strip("=")
 
-        user_id = message.from_user.id
-        user = await db.get_user(user_id)
-
         # Generate share link
         share_link = f"https://t.me/{username}?start={outstr}"
 
@@ -522,8 +519,6 @@ async def batch(bot, message):
         string = str(post.id)
         file_id = base64.urlsafe_b64encode(string.encode("ascii")).decode().strip("=")
         
-        user_id = message.from_user.id
-        user = await db.get_user(user_id)
         share_link = f"https://t.me/{username}?start=BATCH-{file_id}"
 
         reply_markup = InlineKeyboardMarkup(
