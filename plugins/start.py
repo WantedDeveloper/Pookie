@@ -1214,7 +1214,7 @@ async def cb_handler(client: Client, query: CallbackQuery):
             elif action == "see_photo":
                 start_photo = clone.get("pics", None)
                 if start_photo:
-                    
+                    await query.answer("❌ No start photo set for this clone.", show_alert=True)
                 else:
                     await query.answer("❌ No start photo set for this clone.", show_alert=True)
 
