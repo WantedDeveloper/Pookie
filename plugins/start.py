@@ -1172,7 +1172,7 @@ async def cb_handler(client: Client, query: CallbackQuery):
                     await query.answer("❌ No start photo set for this clone.", show_alert=True)
 
             # Caption Menu
-            elif action == "caption":
+            elif action == "start_caption":
                 await show_caption_menu(client, query.message, bot_id)
 
             # Add Caption
