@@ -261,6 +261,7 @@ async def link(bot, message):
             [[InlineKeyboardButton("🔁 Share URL", url=f'https://t.me/share/url?url={share_link}')]]
         )
 
+        bot_id = (await bot.get_me()).id
         clone = await db.get_clone_by_id(bot_id)
 
         header = clone.get("header", "")
@@ -382,6 +383,7 @@ async def batch(bot, message):
             [[InlineKeyboardButton("🔁 Share URL", url=f'https://t.me/share/url?url={share_link}')]]
         )
 
+        bot_id = (await bot.get_me()).id
         clone = await db.get_clone_by_id(bot_id)
 
         header = clone.get("header", "")
