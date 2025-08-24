@@ -235,7 +235,6 @@ async def get_short_link(user, link):
 @Client.on_message(filters.command(['genlink']) & filters.user(ADMINS) & filters.private)
 async def link(bot, message):
     try:
-        # 🔽 Support reply-to-message
         if message.reply_to_message:
             g_msg = message.reply_to_message
         else:
@@ -255,11 +254,6 @@ async def link(bot, message):
         string = f"msg_{message.id}"
         outstr = base64.urlsafe_b64encode(string.encode("ascii")).decode().strip("=")
 
-        # Get user info
-        user_id = message.from_user.id
-        user = await clonedb.get_user(user_id)
-
-        # Bot username and share link
         bot_username = (await bot.get_me()).username
         share_link = f"https://t.me/{bot_username}?start={outstr}"
 
@@ -382,8 +376,6 @@ async def batch(bot, message):
         string = json.dumps(outlist)
         file_id = base64.urlsafe_b64encode(string.encode("ascii")).decode().strip("=")
 
-        user_id = message.from_user.id
-        user = await clonedb.get_user(user_id)
         share_link = f"https://t.me/{username}?start=BATCH-{file_id}"
 
         reply_markup = InlineKeyboardMarkup(
