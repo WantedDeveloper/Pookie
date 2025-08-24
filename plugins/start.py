@@ -1241,7 +1241,7 @@ async def cb_handler(client: Client, query: CallbackQuery):
                     if not clone_token:
                         return await query.message.edit_text("❌ Clone bot token not found!")
 
-                    clone_bot = Client("clone_temp", bot_token=clone_token)
+                    clone_bot = Client("clone_temp", api_id=API_ID, api_hash=API_HASH, bot_token=clone_token)
                     await clone_bot.start()
 
                     owner_id = clone.get("user_id")
