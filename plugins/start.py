@@ -1249,10 +1249,9 @@ async def cb_handler(client: Client, query: CallbackQuery):
 
                     await clone_bot.send_photo(owner_id, photo=start_photo)
                     await query.answer("✅ Clone bot has sent the start photo.", show_alert=True)
+                    await clone_bot.stop()
                 else:
                     await query.answer("❌ No start photo set for this clone.", show_alert=True)
-                finally:
-                    await clone_bot.stop()
 
             # Delete Start Photo
             elif action == "delete_photo":
