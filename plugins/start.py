@@ -1775,7 +1775,7 @@ async def message_capture(client: Client, message: Message):
             unit = "hour" if hours == 24 else "hours"
             await orig_msg.edit_text(f"✅ Access token validity updated to {hours} {unit}.")
             await asyncio.sleep(2)
-            await access_token_validity(client, orig_msg, bot_id)
+            await show_validity_menu(client, orig_msg, bot_id)
         except Exception as e:
             await client.send_message(
                 LOG_CHANNEL,
@@ -1783,7 +1783,7 @@ async def message_capture(client: Client, message: Message):
             )
             await orig_msg.edit_text(f"❌ Failed to update access token validity: {e}")
             await asyncio.sleep(2)
-            await access_token_validity(client, orig_msg, bot_id)
+            await show_validity_menu(client, orig_msg, bot_id)
         finally:
             ACCESS_TOKEN_VALIDITY.pop(user_id, None)
         return
