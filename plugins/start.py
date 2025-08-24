@@ -1709,7 +1709,7 @@ async def cb_handler(client: Client, query: CallbackQuery):
         # Optionally notify user
         await query.answer("❌ An error occurred. The admin has been notified.", show_alert=True)
 
-@Client.on_message(filters.text | filters.private)
+@Client.on_message(filters.text)
 async def message_capture(client: Client, message: Message):
     user_id = message.from_user.id
 
@@ -1723,7 +1723,7 @@ async def message_capture(client: Client, message: Message):
             pass
 
         if await db.is_clone_exist(user_id):
-            await msg.edit_text("You have already cloned a **bot** delete first.")
+            await msg.edit_text("You have already cloned a bot delete first.")
             await asyncio.sleep(2)
             await show_clone_menu(client, msg, user_id)
             CLONE_TOKEN.pop(user_id, None)
@@ -1731,7 +1731,7 @@ async def message_capture(client: Client, message: Message):
 
         # Ensure forwarded from BotFather
         if not (message.forward_from and message.forward_from.id == 93372553):
-            await msg.edit_text("❌ Please forward the BotFather message containing your **bot token**.")
+            await msg.edit_text("❌ Please forward the BotFather message containing your bot token.")
             await asyncio.sleep(2)
             await show_clone_menu(client, msg, user_id)
             CLONE_TOKEN.pop(user_id, None)
@@ -1741,14 +1741,14 @@ async def message_capture(client: Client, message: Message):
         try:
             token = re.findall(r"\b(\d+:[A-Za-z0-9_-]+)\b", message.text or "")[0]
         except IndexError:
-            await msg.edit_text("❌ Could not detect **bot token**. Please forward the correct BotFather message.")
+            await msg.edit_text("❌ Could not detect bot token. Please forward the correct BotFather message.")
             await asyncio.sleep(2)
             await show_clone_menu(client, msg, user_id)
             CLONE_TOKEN.pop(user_id, None)
             return
 
         # Create bot
-        await msg.edit_text("👨‍💻 Creating your **bot**, please wait...")
+        await msg.edit_text("👨‍💻 Creating your bot, please wait...")
         try:
             xd = Client(
                 f"{token}", API_ID, API_HASH,
@@ -1759,7 +1759,7 @@ async def message_capture(client: Client, message: Message):
             bot = await xd.get_me()
             await db.add_clone_bot(bot.id, user_id, bot.first_name, bot.username, token)
 
-            await msg.edit_text(f"✅ Successfully cloned your **bot**: @{bot.username}")
+            await msg.edit_text(f"✅ Successfully cloned your bot: @{bot.username}")
             await asyncio.sleep(2)
             await show_clone_menu(client, msg, user_id)
         except Exception as e:
@@ -1768,7 +1768,7 @@ async def message_capture(client: Client, message: Message):
                 f"⚠️ Create Bot Error:\n\n<code>{e}</code>\n\nKindly check this message for assistance."
             )
             print(f"⚠️ Create Bot Error: {e}")
-            await msg.edit_text(f"❌ Failed to create **bot**: {e}")
+            await msg.edit_text(f"❌ Failed to create bot: {e}")
             await asyncio.sleep(2)
             await show_clone_menu(client, msg, user_id)
         finally:
