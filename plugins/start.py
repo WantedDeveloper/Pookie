@@ -1648,10 +1648,9 @@ async def message_capture(client: Client, message: Message):
 
         await orig_msg.edit_text("📸 Updating your clone's photo, please wait...")
         try:
-            photo = message.photo
-            file_id = photo.file_id if hasattr(photo, "file_id") else photo[-1].file_id
-            print(file_id)
-            await db.update_clone(bot_id, {"pics": file_id})
+            file = await client.get_file(photo.file_id)
+            file_link = f"https://api.telegram.org/file/bot{client.me.bot_token}/{file.file_path}"
+            await db.update_clone(bot_id, {"pics": file_link})
             await orig_msg.edit_text("✅ Successfully updated the start photo!")
             await asyncio.sleep(2)
             await show_photo_menu(client, orig_msg, bot_id)
