@@ -1168,10 +1168,15 @@ async def cb_handler(client: Client, query: CallbackQuery):
                 await db.update_clone(bot_id, {"access_token": new_value})
 
                 if new_value:
-                    ACCESS_TOKEN[user_id] = (query.message, bot_id)
-                    status_text = "🟢 Access Token has been successfully ENABLED!"
-                    text = '❌ Cancel'
-                    callback = f'cancel_editat_{bot_id}'
+                    ACCESS_TOKEN[user_id] = {
+                        "orig_msg": query.message,
+                        "bot_id": bot_id,
+                        "step": "link",
+                        "shorten_link": None
+                    }
+                    status_text = "🔗 Please send your **Shorten Link** now."
+                    text = "❌ Cancel"
+                    callback = f"cancel_at_{bot_id}"
                 else:
                     status_text = "🔴 Access Token has been successfully DISABLED!"
                     text = "⬅️ Back"
