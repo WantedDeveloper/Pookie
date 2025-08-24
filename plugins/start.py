@@ -1650,6 +1650,7 @@ async def message_capture(client: Client, message: Message):
         try:
             photo = message.photo
             file_id = photo.file_id if hasattr(photo, "file_id") else photo[-1].file_id
+            print(file_id)
             await db.update_clone(bot_id, {"pics": file_id})
             await orig_msg.edit_text("✅ Successfully updated the start photo!")
             await asyncio.sleep(2)
