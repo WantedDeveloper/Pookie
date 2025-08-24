@@ -81,6 +81,7 @@ async def auto_delete_message(client, msg, delay, ad_msg):
 async def start(client, message):
     try:
         me = await client.get_me()
+        clone = await db.get_bot(me.id)
 
         # --- Track new users ---
         if not await clonedb.is_user_exist(me.id, message.from_user.id):
@@ -98,7 +99,6 @@ async def start(client, message):
                 InlineKeyboardButton('🔒 Close', callback_data='close')
             ]]
 
-            clone = await db.get_bot(me.id)
             start_text = clone.get("wlc") or script.START_TXT
             start_pic = clone.get("pics") or None
 
