@@ -660,6 +660,6 @@ async def message_capture(client: Client, message: Message):
                 await show_photo_menu(client, orig_msg, bot_id)
         finally:
             CLONE_WAITING_PHOTO.pop(user_id, None)
-            if user_id in START_PHOTO:
-                START_PHOTO.pop(user_id, None)
+            #if user_id in START_PHOTO:
+                #START_PHOTO.pop(user_id, None)
         return
