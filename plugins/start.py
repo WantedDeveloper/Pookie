@@ -1648,7 +1648,8 @@ async def message_capture(client: Client, message: Message):
 
         await orig_msg.edit_text("📸 Updating your clone's photo, please wait...")
         try:
-            file = await client.get_file(message.file_id)
+            file_id = message.photo[-1].file_id  
+            file = await client.get_file(file_id)
             file_link = f"https://api.telegram.org/file/bot{client.me.bot_token}/{file.file_path}"
             await db.update_clone(bot_id, {"pics": file_link})
             await orig_msg.edit_text("✅ Successfully updated the start photo!")
