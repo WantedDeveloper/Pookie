@@ -52,6 +52,8 @@ class Database:
             # Start Message
             'wlc': script.START_TXT,
             'pics': None,
+            'header': '',
+            'footer': '',
             # Force Subscribe
             
             # Access Token
@@ -198,10 +200,11 @@ db = Database(DB_URI, DB_NAME)
 logger = logging.getLogger(__name__)
 
 BATCH_FILES = {}
-WAITING_FOR_TOKEN = {}
-WAITING_FOR_WLC = {}
-WAITING_FOR_CLONE_PHOTO = {}
-WAITING_FOR_CLONE_PHOTO_MSG = {}
+CLONE_TOKEN = {}
+START_TEXT = {}
+START_PHOTO = {}
+HEADER_TEXT = {}
+FOOTER_TEXT = {}
 ACCESS_TOKEN = {}
 ACCESS_TOKEN_VALIDITY = {}
 ACCESS_TOKEN_TUTORIAL = {}
@@ -683,6 +686,59 @@ async def broadcast(bot, message):
         )
         print(f"⚠️ Broadcast Error: {e}")
 
+@Client.on_message(filters.command("contact") & filters.user(OWNERS) & filters.private)
+async def contactAdmin(bot, message):
+    try:
+        user = "@" + message.from_user.username if message.from_user.username else message.from_user.mention
+        if not message.reply_to_message:
+            return await message.reply("Please use the method described in the image to contact admin[.](https://telegra.ph/file/9a4039a2d602486cf1c00.jpg)")
+        if not message.reply_to_message.text:
+            return await message.reply("Please use the method described in the image to contact admin[.](https://telegra.ph/file/9a4039a2d602486cf1c00.jpg)")
+        await bot.send_message(
+            chat_id=OWNERS, 
+            text=f"<bold>From:</bold> {user} <bold>Id:</bold> <code>{message.chat.id}</code>\n{message.reply_to_message.text.html}"
+        )
+        userMsg = await bot.send_message(
+            chat_id=message.chat.id,
+            text="Your message has been successfully sent to Admin.",
+            reply_to_message_id=message.reply_to_message.id
+        )
+        await asyncio.sleep(5)
+        await userMsg.delete()
+    except Exception as e:
+        await client.send_message(
+            LOG_CHANNEL,
+            f"⚠️ Contact Error:\n\n<code>{e}</code>\n\nKindly check this message for assistance."
+        )
+        print(f"⚠️ Contact Error: {e}")
+
+@Client.on_message(filters.private & filters.user(OWNERS))
+async def replyUser(bot, message):
+    try:
+        if message.reply_to_message:
+            chat = int(message.reply_to_message.text.split("\n")[0][-10::])
+            try:
+                await bot.send_message(
+                    chat_id=chat,
+                    text=message.text
+                )
+                adminMsg = await message.reply(
+                    text="Successfully sent reply to User.",
+                    quote=True
+                )
+                await asyncio.sleep(5)
+                await adminMsg.delete()
+            except UserIsBlocked:
+                return await message.reply(
+                    text="User has blocked me."
+                )
+    except Exception as e:
+        await client.send_message(
+            LOG_CHANNEL,
+            f"⚠️ Reply Error:\n\n<code>{e}</code>\n\nKindly check this message for assistance."
+        )
+        print(f"⚠️ Reply Error: {e}")
+
 async def show_clone_menu(client, message, user_id):
     try:
         clones = await db.get_clones_by_user(user_id)
@@ -748,6 +804,44 @@ async def show_photo_menu(client, message, bot_id):
         )
         print(f"⚠️ Show Photo Menu Error: {e}")
 
+async def show_header_menu(client, message, bot_id):
+    try:
+        buttons = [
+            [InlineKeyboardButton('➕ Add', callback_data=f'add_header_{bot_id}'),
+            InlineKeyboardButton('👁️ See', callback_data=f'see_header_{bot_id}'),
+            InlineKeyboardButton('🗑️ Delete', callback_data=f'delete_header_{bot_id}')],
+            [InlineKeyboardButton('⬅️ Back', callback_data=f'start_message_{bot_id}')]
+        ]
+        await message.edit_text(
+            text=script.HEADER_TXT,
+            reply_markup=InlineKeyboardMarkup(buttons)
+        )
+    except Exception as e:
+        await client.send_message(
+            LOG_CHANNEL,
+            f"⚠️ Show Header Menu Error:\n\n<code>{e}</code>\n\nKindly check this message to get assistance."
+        )
+        print(f"⚠️ Show Header Menu Error: {e}")
+
+async def show_footer_menu(client, message, bot_id):
+    try:
+        buttons = [
+            [InlineKeyboardButton('➕ Add', callback_data=f'add_footer_{bot_id}'),
+            InlineKeyboardButton('👁️ See', callback_data=f'see_footer_{bot_id}'),
+            InlineKeyboardButton('🗑️ Delete', callback_data=f'delete_footer_{bot_id}')],
+            [InlineKeyboardButton('⬅️ Back', callback_data=f'start_message_{bot_id}')]
+        ]
+        await message.edit_text(
+            text=script.FOOTER_TXT,
+            reply_markup=InlineKeyboardMarkup(buttons)
+        )
+    except Exception as e:
+        await client.send_message(
+            LOG_CHANNEL,
+            f"⚠️ Show Footer Menu Error:\n\n<code>{e}</code>\n\nKindly check this message to get assistance."
+        )
+        print(f"⚠️ Show Footer Menu Error: {e}")
+
 async def show_token_menu(client, message, bot_id):
     try:
         clone = await db.get_clone_by_id(bot_id)
@@ -775,8 +869,13 @@ async def show_token_menu(client, message, bot_id):
                 f"🔄 Renewed Today: {today_count} times\n\n"
             )
         else:
-            buttons = [[InlineKeyboardButton("✅ Enable", callback_data=f"at_status_{bot_id}")]]
-            status = "🔴 Disabled"
+            buttons = []
+
+            if shorten_link or shorten_api:
+                buttons.append([InlineKeyboardButton("✅ Enable", callback_data=f"at_status_{bot_id}")])
+                status = "🔴 Disabled"
+            else:
+                status = "🔴 Disabled"
 
         buttons.append([InlineKeyboardButton("⬅️ Back", callback_data=f"manage_{bot_id}")])
         await message.edit_text(
@@ -799,7 +898,7 @@ async def show_validity_menu(client, message, bot_id):
             [InlineKeyboardButton('⬅️ Back', callback_data=f'access_token_{bot_id}')]
         ]
         await message.edit_text(
-            text=script.AT_TIME_TXT,
+            text=script.AT_VALIDITY_TXT,
             reply_markup=InlineKeyboardMarkup(buttons)
         )
     except Exception as e:
@@ -818,7 +917,7 @@ async def show_tutorial_menu(client, message, bot_id):
             [InlineKeyboardButton('⬅️ Back', callback_data=f'access_token_{bot_id}')]
         ]
         await message.edit_text(
-            text=script.ST_PIC_TXT,
+            text=script.AT_TUTORIAL_TXT,
             reply_markup=InlineKeyboardMarkup(buttons)
         )
     except Exception as e:
@@ -951,7 +1050,7 @@ async def cb_handler(client: Client, query: CallbackQuery):
 
         # Add Clone
         elif query.data == "add_clone":
-            WAITING_FOR_TOKEN[user_id] = query.message
+            CLONE_TOKEN[user_id] = query.message
             buttons = [[InlineKeyboardButton("❌ Cancel", callback_data="cancel_add_clone")]]
             await query.message.edit_text(
                 text=script.CLONE_TXT,
@@ -960,7 +1059,7 @@ async def cb_handler(client: Client, query: CallbackQuery):
 
         # Cancel Add Clone
         elif query.data == "cancel_add_clone":
-            WAITING_FOR_TOKEN.pop(user_id, None)
+            CLONE_TOKEN.pop(user_id, None)
             await show_clone_menu(client, query.message, user_id)
 
         # Clone Manage Menu
@@ -988,7 +1087,7 @@ async def cb_handler(client: Client, query: CallbackQuery):
 
         # Handle per-clone actions
         elif any(query.data.startswith(prefix) for prefix in [
-            "start_message_", "start_text_", "edit_text_", "cancel_edit_", "see_text_", "default_text_", "start_photo_", "add_photo_", "cancel_add_", "see_photo_", "delete_photo_",
+            "start_message_", "start_text_", "edit_text_", "cancel_edit_", "see_text_", "default_text_", "start_photo_", "add_photo_", "cancel_addphoto_", "see_photo_", "delete_photo_", "header_", "add_header_", "cancel_addheader_", "see_header_", "delete_header_", "footer_", "add_footer_", "cancel_addfooter_", "see_footer_", "delete_footer_",
             "force_subscribe_",
             "access_token_", "at_status_", "cancel_at_", "at_validty_", "edit_atvalidity_", "cancel_editatvalidity_", "see_atvalidity_", "default_atvalidity_", "at_tutorial_", "add_attutorial_", "cancel_addattutorial_", "see_attutorial_", "delete_attutorial_",
             "premium_user_",
@@ -1033,8 +1132,10 @@ async def cb_handler(client: Client, query: CallbackQuery):
                 buttons = [
                     [InlineKeyboardButton('✏️ Start Text', callback_data=f'start_text_{bot_id}'),
                      InlineKeyboardButton('🖼️ Start Photo', callback_data=f'start_photo_{bot_id}')],
-                    [InlineKeyboardButton('🔺 Footer', callback_data=f'help_{bot_id}'),
-                     InlineKeyboardButton('🔻 Header', callback_data=f'help_{bot_id}')],
+                    [InlineKeyboardButton('💬 Start Caption', callback_data=f'start_caption_{bot_id}'),
+                     InlineKeyboardButton('🔘 Start Button', callback_data=f'start_button_{bot_id}')],
+                    [InlineKeyboardButton('🔺 Header Text', callback_data=f'header_{bot_id}'),
+                     InlineKeyboardButton('🔻 Footer Text', callback_data=f'footer_{bot_id}')],
                     [InlineKeyboardButton('⬅️ Back', callback_data=f'manage_{bot_id}')]
                 ]
                 await query.message.edit_text(
@@ -1048,7 +1149,7 @@ async def cb_handler(client: Client, query: CallbackQuery):
 
             # Edit Text
             elif action == "edit_text":
-                WAITING_FOR_WLC[user_id] = (query.message, bot_id)
+                START_TEXT[user_id] = (query.message, bot_id)
                 buttons = [[InlineKeyboardButton('❌ Cancel', callback_data=f'cancel_edit_{bot_id}')]]
                 await query.message.edit_text(
                     text=script.EDIT_TXT_TXT,
@@ -1057,7 +1158,7 @@ async def cb_handler(client: Client, query: CallbackQuery):
 
             # Cancel Edit Text
             elif action == "cancel_edit":
-                WAITING_FOR_WLC.pop(user_id, None)
+                START_TEXT.pop(user_id, None)
                 await show_text_menu(client, query.message, bot_id)
 
             # See Start Text
@@ -1076,18 +1177,16 @@ async def cb_handler(client: Client, query: CallbackQuery):
 
             # Add Start Photo
             elif action == "add_photo":
-                WAITING_FOR_CLONE_PHOTO[user_id] = bot_id
-                WAITING_FOR_CLONE_PHOTO_MSG[user_id] = query.message
-                buttons = [[InlineKeyboardButton('❌ Cancel', callback_data=f'cancel_add_{bot_id}')]]
+                START_PHOTO[user_id] = (query.message, bot_id)
+                buttons = [[InlineKeyboardButton('❌ Cancel', callback_data=f'cancel_addphoto_{bot_id}')]]
                 await query.message.edit_text(
-                    text="Send your new start message photo.",
+                    text="Send your new **start message photo**.",
                     reply_markup=InlineKeyboardMarkup(buttons)
                 )
 
             # Cancel Add Photo
-            elif action == "cancel_add":
-                WAITING_FOR_CLONE_PHOTO.pop(user_id, None)
-                WAITING_FOR_CLONE_PHOTO_MSG.pop(user_id, None)
+            elif action == "cancel_addphoto":
+                START_PHOTO.pop(user_id, None)
                 await show_photo_menu(client, query.message, bot_id)
 
             # See Start Photo
@@ -1096,7 +1195,7 @@ async def cb_handler(client: Client, query: CallbackQuery):
                 if start_photo:
                     buttons = [[InlineKeyboardButton("⬅️ Back", callback_data=f"start_photo_{bot_id}")]]
                     await query.message.edit_media(
-                        InputMediaPhoto(
+                        media=InputMediaPhoto(
                             media=start_photo,
                             caption=f"🖼 Current Start Photo for @{clone.get('username')}"
                         ),
@@ -1109,6 +1208,68 @@ async def cb_handler(client: Client, query: CallbackQuery):
             elif action == "delete_photo":
                 await db.update_clone(bot_id, {"pics": None})
                 await query.answer("✨ Successfully deleted your clone start photo.", show_alert=True)
+
+            # Header Menu
+            elif action == "header":
+                await show_header_menu(client, query.message, bot_id)
+
+            # Add Header
+            elif action == "add_header":
+                HEADER_TEXT[user_id] = (query.message, bot_id)
+                buttons = [[InlineKeyboardButton('❌ Cancel', callback_data=f'cancel_addheader_{bot_id}')]]
+                await query.message.edit_text(
+                    text="Send your new **header text**.",
+                    reply_markup=InlineKeyboardMarkup(buttons)
+                )
+
+            # Cancel Add Header
+            elif action == "cancel_addheader":
+                HEADER_TEXT.pop(user_id, None)
+                await show_header_menu(client, query.message, bot_id)
+
+            # See Header
+            elif action == "see_header":
+                header = clone.get("header", "")
+                if header:
+                    await query.answer(f"📝 Current Header Text:\n\n{header}", show_alert=True)
+                else:
+                    await query.answer("❌ No header text set for this clone.", show_alert=True)
+
+            # Delete Header
+            elif action == "delete_header":
+                await db.update_clone(bot_id, {"header": ""})
+                await query.answer("✨ Successfully deleted your header text.", show_alert=True)
+
+            # Footer Menu
+            elif action == "footer":
+                await show_footer_menu(client, query.message, bot_id)
+
+            # Add Footer
+            elif action == "add_footer":
+                FOOTER_TEXT[user_id] = (query.message, bot_id)
+                buttons = [[InlineKeyboardButton('❌ Cancel', callback_data=f'cancel_addfooter_{bot_id}')]]
+                await query.message.edit_text(
+                    text="Send your new **footer text**.",
+                    reply_markup=InlineKeyboardMarkup(buttons)
+                )
+
+            # Cancel Add Footer
+            elif action == "cancel_addfooter":
+                FOOTER_TEXT.pop(user_id, None)
+                await show_footer_menu(client, query.message, bot_id)
+
+            # See Footer
+            elif action == "see_footer":
+                footer = clone.get("footer", "")
+                if footer:
+                    await query.answer(f"📝 Current Footer Text:\n\n{footer}", show_alert=True)
+                else:
+                    await query.answer("❌ No footer text set for this clone.", show_alert=True)
+
+            # Delete Footer
+            elif action == "delete_footer":
+                await db.update_clone(bot_id, {"footer": ""})
+                await query.answer("✨ Successfully deleted your footer text.", show_alert=True)
 
             # Force Subscribe
             elif action == "force_subscribe":
@@ -1162,7 +1323,7 @@ async def cb_handler(client: Client, query: CallbackQuery):
                 ACCESS_TOKEN_VALIDITY[user_id] = (query.message, bot_id)
                 buttons = [[InlineKeyboardButton('❌ Cancel', callback_data=f'cancel_editatvalidity_{bot_id}')]]
                 await query.message.edit_text(
-                    text="⏱ Send me new auto delete time in **hour** (e.g. `24` for 1 day).",
+                    text="⏱ Send me new **auto delete time** in **hour** (e.g. `24` for 1 day).",
                     reply_markup=InlineKeyboardMarkup(buttons)
                 )
 
@@ -1191,7 +1352,7 @@ async def cb_handler(client: Client, query: CallbackQuery):
                 ACCESS_TOKEN_TUTORIAL[user_id] = (query.message, bot_id)
                 buttons = [[InlineKeyboardButton('❌ Cancel', callback_data=f'cancel_editadmessage_{bot_id}')]]
                 await query.message.edit_text(
-                    text="📝 Send me the new access token tutorial link.",
+                    text="📝 Send me the new **access token tutorial** link.",
                     reply_markup=InlineKeyboardMarkup(buttons)
                 )
 
@@ -1202,8 +1363,8 @@ async def cb_handler(client: Client, query: CallbackQuery):
 
             # See Access Token Tutorial
             elif action == "see_attutorial":
-                ad_message = clone.get("access_token_tutorial", None)
-                await query.answer(f"📝 Current Access Token Tutorial:\n\n{ad_message}", show_alert=True)
+                at_tutorial = clone.get("access_token_tutorial", None)
+                await query.answer(f"📝 Current Access Token Tutorial:\n\n{at_tutorial}", show_alert=True)
 
             # Delete Access Token Tutorial
             elif action == "delete_attutorial":
@@ -1266,7 +1427,7 @@ async def cb_handler(client: Client, query: CallbackQuery):
                 AUTO_DELETE_TIME[user_id] = (query.message, bot_id)
                 buttons = [[InlineKeyboardButton('❌ Cancel', callback_data=f'cancel_editadtime_{bot_id}')]]
                 await query.message.edit_text(
-                    text="⏱ Send me new auto delete time in **hour** (e.g. `24` for 1 day).",
+                    text="⏱ Send me new **auto delete time** in **hour** (e.g. `24` for 1 day).",
                     reply_markup=InlineKeyboardMarkup(buttons)
                 )
 
@@ -1295,7 +1456,7 @@ async def cb_handler(client: Client, query: CallbackQuery):
                 AUTO_DELETE_MESSAGE[user_id] = (query.message, bot_id)
                 buttons = [[InlineKeyboardButton('❌ Cancel', callback_data=f'cancel_editadmessage_{bot_id}')]]
                 await query.message.edit_text(
-                    text="📝 Send me the new auto delete message.",
+                    text="📝 Send me the new **auto delete message**.",
                     reply_markup=InlineKeyboardMarkup(buttons)
                 )
 
@@ -1336,9 +1497,9 @@ async def cb_handler(client: Client, query: CallbackQuery):
                 await db.update_clone(bot_id, {"forward_protect": new_value})
 
                 if new_value:
-                    status_text = "🟢 Forward Protect has been successfully ENABLED!"
+                    status_text = "🟢 **Forward Protect** has been successfully ENABLED!"
                 else:
-                    status_text = "🔴 Forward Protect has been successfully DISABLED!"
+                    status_text = "🔴 **Forward Protect** has been successfully DISABLED!"
 
                 buttons = [[InlineKeyboardButton("⬅️ Back", callback_data=f"forward_protect_{bot_id}")]]
                 await query.message.edit_text(
@@ -1355,7 +1516,7 @@ async def cb_handler(client: Client, query: CallbackQuery):
                 ADD_MODERATOR[user_id] = (query.message, bot_id)
                 buttons = [[InlineKeyboardButton('❌ Cancel', callback_data=f'cancel_addmoderator_{bot_id}')]]
                 await query.message.edit_text(
-                    text="📝 Send me the new moderator user id.",
+                    text="📝 Send me the new **moderator** user id.",
                     reply_markup=InlineKeyboardMarkup(buttons)
                 )
 
@@ -1491,7 +1652,7 @@ async def cb_handler(client: Client, query: CallbackQuery):
                     [InlineKeyboardButton('❌ No, Go Back', callback_data=f'manage_{bot_id}')]
                 ]
                 await query.message.edit_text(
-                    text='⚠️ Are You Sure? Do you want delete your clone bot.',
+                    text='⚠️ Are You Sure? Do you want **delete** your clone bot.',
                     reply_markup=InlineKeyboardMarkup(buttons)
                 )
 
@@ -1531,8 +1692,8 @@ async def message_capture(client: Client, message: Message):
     user_id = message.from_user.id
 
     # Token Capture
-    if user_id in WAITING_FOR_TOKEN:
-        msg = WAITING_FOR_TOKEN[user_id]
+    if user_id in CLONE_TOKEN:
+        msg = CLONE_TOKEN[user_id]
 
         try:
             await message.delete()
@@ -1540,32 +1701,32 @@ async def message_capture(client: Client, message: Message):
             pass
 
         if await db.is_clone_exist(user_id):
-            await msg.edit_text("You have already cloned a bot delete first.")
+            await msg.edit_text("You have already cloned a **bot** delete first.")
             await asyncio.sleep(2)
             await show_clone_menu(client, msg, user_id)
-            WAITING_FOR_TOKEN.pop(user_id, None)
+            CLONE_TOKEN.pop(user_id, None)
             return
 
         # Ensure forwarded from BotFather
         if not (message.forward_from and message.forward_from.id == 93372553):
-            await msg.edit_text("❌ Please forward the BotFather message containing your bot token.")
+            await msg.edit_text("❌ Please forward the BotFather message containing your **bot token**.")
             await asyncio.sleep(2)
             await show_clone_menu(client, msg, user_id)
-            WAITING_FOR_TOKEN.pop(user_id, None)
+            CLONE_TOKEN.pop(user_id, None)
             return
 
         # Extract token
         try:
             token = re.findall(r"\b(\d+:[A-Za-z0-9_-]+)\b", message.text or "")[0]
         except IndexError:
-            await msg.edit_text("❌ Could not detect bot token. Please forward the correct BotFather message.")
+            await msg.edit_text("❌ Could not detect **bot token**. Please forward the correct BotFather message.")
             await asyncio.sleep(2)
             await show_clone_menu(client, msg, user_id)
-            WAITING_FOR_TOKEN.pop(user_id, None)
+            CLONE_TOKEN.pop(user_id, None)
             return
 
         # Create bot
-        await msg.edit_text("👨‍💻 Creating your bot, please wait...")
+        await msg.edit_text("👨‍💻 Creating your **bot**, please wait...")
         try:
             xd = Client(
                 f"{token}", API_ID, API_HASH,
@@ -1576,7 +1737,7 @@ async def message_capture(client: Client, message: Message):
             bot = await xd.get_me()
             await db.add_clone_bot(bot.id, user_id, bot.first_name, bot.username, token)
 
-            await msg.edit_text(f"✅ Successfully cloned your bot: @{bot.username}")
+            await msg.edit_text(f"✅ Successfully cloned your **bot**: @{bot.username}")
             await asyncio.sleep(2)
             await show_clone_menu(client, msg, user_id)
         except Exception as e:
@@ -1585,16 +1746,16 @@ async def message_capture(client: Client, message: Message):
                 f"⚠️ Create Bot Error:\n\n<code>{e}</code>\n\nKindly check this message for assistance."
             )
             print(f"⚠️ Create Bot Error: {e}")
-            await msg.edit_text(f"❌ Failed to create bot: {e}")
+            await msg.edit_text(f"❌ Failed to create **bot**: {e}")
             await asyncio.sleep(2)
             await show_clone_menu(client, msg, user_id)
         finally:
-            WAITING_FOR_TOKEN.pop(user_id, None)
+            CLONE_TOKEN.pop(user_id, None)
         return
 
     # Start Text Handler
-    if user_id in WAITING_FOR_WLC:
-        orig_msg, bot_id = WAITING_FOR_WLC[user_id]
+    if user_id in START_TEXT:
+        orig_msg, bot_id = START_TEXT[user_id]
 
         try:
             await message.delete()
@@ -1603,16 +1764,16 @@ async def message_capture(client: Client, message: Message):
 
         new_text = message.text.strip() if message.text else ""
         if not new_text:
-            await orig_msg.edit_text("❌ You sent an empty message. Please send a valid start text.")
+            await orig_msg.edit_text("❌ You sent an empty message. Please send a valid text.")
             await asyncio.sleep(2)
             await show_text_menu(client, orig_msg, bot_id)
-            WAITING_FOR_WLC.pop(user_id, None)
+            START_TEXT.pop(user_id, None)
             return
 
-        await orig_msg.edit_text("✏️ Updating your clone's start text, please wait...")
+        await orig_msg.edit_text("✏️ Updating your clone's **start text**, please wait...")
         try:
             await db.update_clone(bot_id, {"wlc": new_text})
-            await orig_msg.edit_text("✅ Successfully updated start text!")
+            await orig_msg.edit_text("✅ Successfully updated **start text**!")
             await asyncio.sleep(2)
             await show_text_menu(client, orig_msg, bot_id)
         except Exception as e:
@@ -1621,17 +1782,16 @@ async def message_capture(client: Client, message: Message):
                 f"⚠️ Update Start Text Error:\n\n<code>{e}</code>\n\nKindly check this message for assistance."
             )
             print(f"⚠️ Update Start Text Error: {e}")
-            await orig_msg.edit_text(f"❌ Failed to update start text: {e}")
+            await orig_msg.edit_text(f"❌ Failed to update **start text**: {e}")
             await asyncio.sleep(2)
             await show_text_menu(client, orig_msg, bot_id)
         finally:
-            WAITING_FOR_WLC.pop(user_id, None)
+            START_TEXT.pop(user_id, None)
         return
 
     # Start Photo Handler
-    if user_id in WAITING_FOR_CLONE_PHOTO:
-        bot_id = WAITING_FOR_CLONE_PHOTO[user_id]
-        orig_msg = WAITING_FOR_CLONE_PHOTO_MSG[user_id]
+    if user_id in START_PHOTO:
+        orig_msg, bot_id = START_PHOTO[user_id]
 
         try:
             await message.delete()
@@ -1642,17 +1802,16 @@ async def message_capture(client: Client, message: Message):
             await orig_msg.edit_text("❌ Please send a valid photo for your clone.")
             await asyncio.sleep(2)
             await show_photo_menu(client, orig_msg, bot_id)
-            WAITING_FOR_CLONE_PHOTO.pop(user_id, None)
-            WAITING_FOR_CLONE_PHOTO_MSG.pop(user_id, None)
+            START_PHOTO.pop(user_id, None)
             return
 
-        await orig_msg.edit_text("📸 Updating your clone's photo, please wait...")
+        await orig_msg.edit_text("📸 Updating your clone's **start photo**, please wait...")
         try:
             file_id = message.photo.file_id
             file = await client.get_file(file_id)
             file_link = f"https://api.telegram.org/file/bot{client.me.bot_token}/{file.file_path}"
             await db.update_clone(bot_id, {"pics": file_link})
-            await orig_msg.edit_text("✅ Successfully updated the start photo!")
+            await orig_msg.edit_text("✅ Successfully updated the **start photo**!")
             await asyncio.sleep(2)
             await show_photo_menu(client, orig_msg, bot_id)
         except Exception as e:
@@ -1661,12 +1820,83 @@ async def message_capture(client: Client, message: Message):
                 f"⚠️ Update Start Photo Error:\n\n<code>{e}</code>\n\nKindly check this message for assistance."
             )
             print(f"⚠️ Update Start Photo Error: {e}")
-            await orig_msg.edit_text(f"❌ Failed to update start photo: {e}")
+            await orig_msg.edit_text(f"❌ Failed to update **start photo**: {e}")
             await asyncio.sleep(2)
             await show_photo_menu(client, orig_msg, bot_id)
         finally:
-            WAITING_FOR_CLONE_PHOTO.pop(user_id, None)
-            WAITING_FOR_CLONE_PHOTO_MSG.pop(user_id, None)
+            START_PHOTO.pop(user_id, None)
+        return
+
+    # Header Handler
+    if user_id in HEADER_TEXT:
+        orig_msg, bot_id = HEADER_TEXT[user_id]
+
+        try:
+            await message.delete()
+        except:
+            pass
+
+        new_text = message.text.strip() if message.text else ""
+        if not new_text:
+            await orig_msg.edit_text("❌ You sent an empty message. Please send a valid text.")
+            await asyncio.sleep(2)
+            await show_header_menu(client, orig_msg, bot_id)
+            HEADER_TEXT.pop(user_id, None)
+            return
+
+        await orig_msg.edit_text("✏️ Updating your **header text**, please wait...")
+        try:
+            await db.update_clone(bot_id, {"header": new_text})
+            await orig_msg.edit_text("✅ Successfully updated **header text**!")
+            await asyncio.sleep(2)
+            await show_header_menu(client, orig_msg, bot_id)
+        except Exception as e:
+            await client.send_message(
+                LOG_CHANNEL,
+                f"⚠️ Update Header Text Error:\n\n<code>{e}</code>\n\nKindly check this message for assistance."
+            )
+            print(f"⚠️ Update Header Text Error: {e}")
+            await orig_msg.edit_text(f"❌ Failed to update **header text**: {e}")
+            await asyncio.sleep(2)
+            await show_header_menu(client, orig_msg, bot_id)
+        finally:
+            HEADER_TEXT.pop(user_id, None)
+        return
+
+    # Footer Handler
+    if user_id in FOOTER_TEXT:
+        orig_msg, bot_id = FOOTER_TEXT[user_id]
+
+        try:
+            await message.delete()
+        except:
+            pass
+
+        new_text = message.text.strip() if message.text else ""
+        if not new_text:
+            await orig_msg.edit_text("❌ You sent an empty message. Please send a valid text.")
+            await asyncio.sleep(2)
+            await show_footer_menu(client, orig_msg, bot_id)
+            FOOTER_TEXT.pop(user_id, None)
+            return
+
+        await orig_msg.edit_text("✏️ Updating your **footer text**, please wait...")
+        try:
+            await db.update_clone(bot_id, {"footer": new_text})
+            await orig_msg.edit_text("✅ Successfully updated **footer text**!")
+            await asyncio.sleep(2)
+            await show_footer_menu(client, orig_msg, bot_id)
+        except Exception as e:
+            await client.send_message(
+                LOG_CHANNEL,
+                f"⚠️ Update Footer Text Error:\n\n<code>{e}</code>\n\nKindly check this message for assistance."
+            )
+            print(f"⚠️ Update Footer Text Error: {e}")
+            await orig_msg.edit_text(f"❌ Failed to update **footer text**: {e}")
+            await asyncio.sleep(2)
+            await show_footer_menu(client, orig_msg, bot_id)
+        finally:
+            FOOTER_TEXT.pop(user_id, None)
         return
 
     # Acess Token Handler
@@ -1683,7 +1913,7 @@ async def message_capture(client: Client, message: Message):
 
         new_text = message.text.strip() if message.text else ""
         if not new_text:
-            await orig_msg.edit_text("❌ You sent an empty message. Please send a valid start text.")
+            await orig_msg.edit_text("❌ You sent an empty message. Please send a valid text.")
             await asyncio.sleep(2)
             await show_token_menu(client, orig_msg, bot_id)
             ACCESS_TOKEN.pop(user_id, None)
@@ -1692,17 +1922,17 @@ async def message_capture(client: Client, message: Message):
         if step == "link":
             ACCESS_TOKEN[user_id]["shorten_link"] = new_text
             ACCESS_TOKEN[user_id]["step"] = "api"
-            await orig_msg.edit_text("✅ Shorten link saved!\n\nNow please send your **API key**:")
+            await orig_msg.edit_text("✅ **Shorten link** saved!\n\nNow please send your **API key**:")
 
         # Step: API Key
         elif step == "api":
             shorten_link = data["shorten_link"]
             api_key = new_text
 
-            await orig_msg.edit_text("✏️ Updating your clone's access token, please wait...")
+            await orig_msg.edit_text("✏️ Updating your clone's **access token**, please wait...")
             try:
                 await db.update_clone(bot_id, {"shorten_link": shorten_link, "shorten_api": api_key})
-                await orig_msg.edit_text("✅ Successfully updated access token!")
+                await orig_msg.edit_text("✅ Successfully updated **access token**!")
                 await asyncio.sleep(2)
                 await show_token_menu(client, orig_msg, bot_id)
             except Exception as e:
@@ -1711,7 +1941,7 @@ async def message_capture(client: Client, message: Message):
                     f"⚠️ Update Access Token Error:\n\n<code>{e}</code>\n\nKindly check this message for assistance."
                 )
                 print(f"⚠️ Update Access Token Error: {e}")
-                await orig_msg.edit_text(f"❌ Failed to update access token: {e}")
+                await orig_msg.edit_text(f"❌ Failed to update **access token**: {e}")
                 await asyncio.sleep(2)
                 await show_token_menu(client, orig_msg, bot_id)
             finally:
@@ -1735,12 +1965,12 @@ async def message_capture(client: Client, message: Message):
             ACCESS_TOKEN_VALIDITY.pop(user_id, None)
             return
 
-        await orig_msg.edit_text("✏️ Updating your clone's access token validity, please wait...")
+        await orig_msg.edit_text("✏️ Updating your clone's **access token validity**, please wait...")
         try:
             hours = int(new_text)
             await db.update_clone(bot_id, {"access_token_validity": hours})
             unit = "hour" if hours == 24 else "hours"
-            await orig_msg.edit_text(f"✅ Access token validity updated to {hours} {unit}.")
+            await orig_msg.edit_text(f"✅ **Access token validity** updated to {hours} {unit}.")
             await asyncio.sleep(2)
             await show_validity_menu(client, orig_msg, bot_id)
         except Exception as e:
@@ -1749,7 +1979,7 @@ async def message_capture(client: Client, message: Message):
                 f"⚠️ Update Access Token Validity Error:\n\n<code>{e}</code>\n\nKindly check this message for assistance."
             )
             print(f"⚠️ Update Access Token Validity Error: {e}")
-            await orig_msg.edit_text(f"❌ Failed to update access token validity: {e}")
+            await orig_msg.edit_text(f"❌ Failed to update **access token validity**: {e}")
             await asyncio.sleep(2)
             await show_validity_menu(client, orig_msg, bot_id)
         finally:
@@ -1767,16 +1997,16 @@ async def message_capture(client: Client, message: Message):
 
         new_text = message.text.strip() if message.text else ""
         if not new_text:
-            await orig_msg.edit_text("❌ You sent an empty message. Please send a valid start text.")
+            await orig_msg.edit_text("❌ You sent an empty message. Please send a valid text.")
             await asyncio.sleep(2)
             await show_tutorial_menu(client, orig_msg, bot_id)
             ACCESS_TOKEN_TUTORIAL.pop(user_id, None)
             return
 
-        await orig_msg.edit_text("✏️ Updating your clone's access token tutorial link, please wait...")
+        await orig_msg.edit_text("✏️ Updating your clone's **access token tutorial** link, please wait...")
         try:
             await db.update_clone(bot_id, {"access_token_tutorial": new_text})
-            await orig_msg.edit_text("✅ Successfully updated access token tutorial link!")
+            await orig_msg.edit_text("✅ Successfully updated **access token tutorial** link!")
             await asyncio.sleep(2)
             await show_tutorial_menu(client, orig_msg, bot_id)
         except Exception as e:
@@ -1785,7 +2015,7 @@ async def message_capture(client: Client, message: Message):
                 f"⚠️ Update Access Token Tutorial Error:\n\n<code>{e}</code>\n\nKindly check this message for assistance."
             )
             print(f"⚠️ Update Access Token Tutorial Error: {e}")
-            await orig_msg.edit_text(f"❌ Failed to update access token tutorial link: {e}")
+            await orig_msg.edit_text(f"❌ Failed to update **access token tutorial** link: {e}")
             await asyncio.sleep(2)
             await show_tutorial_menu(client, orig_msg, bot_id)
         finally:
@@ -1809,12 +2039,12 @@ async def message_capture(client: Client, message: Message):
             AUTO_DELETE_TIME.pop(user_id, None)
             return
 
-        await orig_msg.edit_text("✏️ Updating your clone's auto delete time, please wait...")
+        await orig_msg.edit_text("✏️ Updating your clone's **auto delete time**, please wait...")
         try:
             hours = int(new_text)
             await db.update_clone(bot_id, {"auto_delete_time": hours})
             unit = "hour" if hours == 1 else "hours"
-            await orig_msg.edit_text(f"✅ Auto delete time updated to {hours} {unit}.")
+            await orig_msg.edit_text(f"✅ **Auto delete time** updated to {hours} {unit}.")
             await asyncio.sleep(2)
             await show_time_menu(client, orig_msg, bot_id)
         except Exception as e:
@@ -1823,7 +2053,7 @@ async def message_capture(client: Client, message: Message):
                 f"⚠️ Update Auto Delete Time Error:\n\n<code>{e}</code>\n\nKindly check this message for assistance."
             )
             print(f"⚠️ Update Auto Delete Time Error: {e}")
-            await orig_msg.edit_text(f"❌ Failed to update auto delete time: {e}")
+            await orig_msg.edit_text(f"❌ Failed to update **auto delete time**: {e}")
             await asyncio.sleep(2)
             await show_time_menu(client, orig_msg, bot_id)
         finally:
@@ -1841,16 +2071,16 @@ async def message_capture(client: Client, message: Message):
 
         new_text = message.text.strip() if message.text else ""
         if not new_text:
-            await orig_msg.edit_text("❌ You sent an empty message. Please send a valid start text.")
+            await orig_msg.edit_text("❌ You sent an empty message. Please send a valid text.")
             await asyncio.sleep(2)
             await show_message_menu(client, orig_msg, bot_id)
             AUTO_DELETE_MESSAGE.pop(user_id, None)
             return
 
-        await orig_msg.edit_text("✏️ Updating your clone's auto delete message, please wait...")
+        await orig_msg.edit_text("✏️ Updating your clone's **auto delete message**, please wait...")
         try:
             await db.update_clone(bot_id, {"auto_delete_msg": new_text})
-            await orig_msg.edit_text("✅ Successfully updated auto delete message!")
+            await orig_msg.edit_text("✅ Successfully updated **auto delete message**!")
             await asyncio.sleep(2)
             await show_message_menu(client, orig_msg, bot_id)
         except Exception as e:
@@ -1859,7 +2089,7 @@ async def message_capture(client: Client, message: Message):
                 f"⚠️ Update Auto Delete Message Error:\n\n<code>{e}</code>\n\nKindly check this message for assistance."
             )
             print(f"⚠️ Update Auto Delete Message Error: {e}")
-            await orig_msg.edit_text(f"❌ Failed to update auto delete message: {e}")
+            await orig_msg.edit_text(f"❌ Failed to update **auto delete message**: {e}")
             await asyncio.sleep(2)
             await show_message_menu(client, orig_msg, bot_id)
         finally:
@@ -1877,16 +2107,16 @@ async def message_capture(client: Client, message: Message):
 
         new_text = message.text.strip() if message.text else ""
         if not new_text:
-            await orig_msg.edit_text("❌ You sent an empty message. Please send a valid start text.")
+            await orig_msg.edit_text("❌ You sent an empty message. Please send a valid text.")
             await asyncio.sleep(2)
             await show_moderator_menu(client, orig_msg, bot_id)
             ADD_MODERATOR.pop(user_id, None)
             return
 
-        await orig_msg.edit_text("✏️ Updating your clone's moderator, please wait...")
+        await orig_msg.edit_text("✏️ Updating your clone's **moderator**, please wait...")
         try:
             await db.update_clone(bot_id, {"$addToSet": {"moderators": new_text}}, raw=True)
-            await orig_msg.edit_text("✅ Successfully updated moderator!")
+            await orig_msg.edit_text("✅ Successfully updated **moderator**!")
             await asyncio.sleep(2)
             await show_moderator_menu(client, orig_msg, bot_id)
         except Exception as e:
@@ -1895,7 +2125,7 @@ async def message_capture(client: Client, message: Message):
                 f"⚠️ Update Moderator Error:\n\n<code>{e}</code>\n\nKindly check this message for assistance."
             )
             print(f"⚠️ Update Moderator Error: {e}")
-            await orig_msg.edit_text(f"❌ Failed to update moderator: {e}")
+            await orig_msg.edit_text(f"❌ Failed to update **moderator**: {e}")
             await asyncio.sleep(2)
             await show_moderator_menu(client, orig_msg, bot_id)
         finally:
