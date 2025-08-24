@@ -6,7 +6,7 @@ from pyrogram.errors import ChatAdminRequired, InputUserDeactivated, UserNotPart
 from pyrogram.errors.exceptions.bad_request_400 import AccessTokenExpired, AccessTokenInvalid, ChannelInvalid, UsernameInvalid, UsernameNotModified
 from config import *
 from Script import script
-from plugins.start import db
+from plugins.start import db, START_PHOTO, CLONE_WAITING_PHOTO, show_photo_menu
 
 class Database:
     
@@ -267,8 +267,23 @@ async def link(bot, message):
             [[InlineKeyboardButton("🔁 Share URL", url=f'https://t.me/share/url?url={share_link}')]]
         )
 
+        clone = await db.get_clone_by_id(bot_id)
+
+        header = clone.get("header", "")
+        footer = clone.get("footer", "")
+
+        text = ""
+
+        if header:
+            text += f"{header}\n\n"
+
+        text += f"Here is your link:\n\n{share_link}"
+
+        if footer:
+            text += f"\n\n{footer}"
+
         await message.reply(
-            f"Here is your link:\n\n{share_link}",
+            text,
             reply_markup=reply_markup
         )
 
@@ -375,8 +390,23 @@ async def batch(bot, message):
             [[InlineKeyboardButton("🔁 Share URL", url=f'https://t.me/share/url?url={share_link}')]]
         )
 
+        clone = await db.get_clone_by_id(bot_id)
+
+        header = clone.get("header", "")
+        footer = clone.get("footer", "")
+
+        text = ""
+
+        if header:
+            text += f"{header}\n\n"
+
+        text += f"✅ Contains `{og_msg}` files.\n\nHere is your link:\n\n{share_link}",
+
+        if footer:
+            text += f"\n\n{footer}"
+
         await sts.edit(
-            f"✅ Contains `{og_msg}` files.\n\nHere is your link:\n\n{share_link}",
+            text,
             reply_markup=reply_markup
         )
 
@@ -583,3 +613,53 @@ async def cb_handler(client: Client, query: CallbackQuery):
         print(f"⚠️ Clone Callback Handler Error: {e}")
         # Optionally notify user
         await query.answer("❌ An error occurred. The admin has been notified.", show_alert=True)
+
+@Client.on_message(filters.photo)
+async def message_capture(client: Client, message: Message):
+    user_id = message.from_user.id
+
+    if user_id in CLONE_WAITING_PHOTO:
+        data = CLONE_WAITING_PHOTO[user_id]
+        bot_id = data["bot_id"]
+        orig_msg = data.get("orig_msg")  # main bot message
+        clone_bot = data["clone_bot"]
+
+        try:
+            await message.delete()
+        except:
+            pass
+
+        if not message.photo:
+            if orig_msg:
+                await orig_msg.edit_text("❌ Please send a valid photo for your clone.")
+                await asyncio.sleep(2)
+                await show_photo_menu(client, orig_msg, bot_id)
+            await message.reply("❌ Please send a valid photo for your clone.")
+            CLONE_WAITING_PHOTO.pop(user_id, None)
+            return
+
+        if orig_msg:
+            await orig_msg.edit_text("📸 Updating your clone's **start photo**, please wait...")
+        try:
+            file_id = message.photo[-1].file_id
+            await db.update_clone(bot_id, {"pics": file_id})
+            await message.reply("✅ Successfully updated the **start photo**!")
+            if orig_msg:
+                await orig_msg.edit_text("✅ Successfully updated the **start photo**!")
+                await asyncio.sleep(2)
+                await show_photo_menu(client, orig_msg, bot_id)
+        except Exception as e:
+            await client.send_message(
+                LOG_CHANNEL,
+                f"⚠️ Update Start Photo Error:\n\n<code>{e}</code>\n\nKindly check this message for assistance."
+            )
+            print(f"⚠️ Update Start Photo Error: {e}")
+            if orig_msg:
+                await orig_msg.edit_text(f"❌ Failed to update **start photo**: {e}")
+                await asyncio.sleep(2)
+                await show_photo_menu(client, orig_msg, bot_id)
+        finally:
+            CLONE_WAITING_PHOTO.pop(user_id, None)
+            if user_id in START_PHOTO:
+                START_PHOTO.pop(user_id, None)
+        return
