@@ -1213,9 +1213,13 @@ async def cb_handler(client: Client, query: CallbackQuery):
                     "📸 Please send me the **start photo** for your clone."
                 )
 
-                CLONE_WAITING_PHOTO[clone["user_id"]] = {"bot_id": clone["bot_id"], "clone_bot": clone_bot}
+                CLONE_WAITING_PHOTO[clone["user_id"]] = {
+                    "bot_id": clone["bot_id"],
+                    "clone_bot": clone_bot,
+                    "orig_msg": query.message
+                }
 
-                START_PHOTO[user_id] = (query.message, bot_id)
+                #START_PHOTO[user_id] = (query.message, bot_id)
                 buttons = [[InlineKeyboardButton('❌ Cancel', callback_data=f'cancel_addphoto_{bot_id}')]]
                 await query.message.edit_text(
                     text="Send your new **start photo** via clone bot.",
@@ -1229,7 +1233,7 @@ async def cb_handler(client: Client, query: CallbackQuery):
                     await clone_bot.stop()
                     CLONE_WAITING_PHOTO.pop(user_id, None)
 
-                START_PHOTO.pop(user_id, None)
+                #START_PHOTO.pop(user_id, None)
                 await show_photo_menu(client, query.message, bot_id)
         
             # See Start Photo
