@@ -153,25 +153,6 @@ class Database:
     async def get_all_bots(self):
         return self.bot.find({})
 
-    async def get_user(self, user_id):
-        user_id = int(user_id)
-        user = await self.db.user.find_one({"user_id": user_id})
-        if not user:
-            res = {
-                "user_id": user_id,
-                "shortener_api": None,
-                "base_site": None,
-            }
-            await self.db.user.insert_one(res)
-            user = await self.db.user.find_one({"user_id": user_id})
-        return user
-
-    async def update_user_info(self, user_id, value:dict):
-        user_id = int(user_id)
-        myquery = {"user_id": user_id}
-        newvalues = { "$set": value }
-        self.db.user.update_one(myquery, newvalues)
-
     async def has_premium_access(self, user_id):
         user_data = await self.get_user(user_id)
         if user_data:
@@ -379,6 +360,7 @@ async def start(client, message):
             LOG_CHANNEL,
             f"⚠️ Start Handler Error:\n\n<code>{e}</code>\n\nKindly check this message to get assistance."
         )
+        print(f"⚠️ Start Handler Error: {e}")
 
 async def get_short_link(user, link):
     api_key = user["shortener_api"]
@@ -388,40 +370,6 @@ async def get_short_link(user, link):
     data = response.json()
     if data["status"] == "success" or rget.status_code == 200:
         return data["shortenedUrl"]
-
-@Client.on_message(filters.command('api') & filters.private)
-async def shortener_api_handler(client, m: Message):
-    user_id = m.from_user.id
-    user = await db.get_user(user_id)
-    cmd = m.command
-
-    if len(cmd) == 1:
-        s = script.SHORTENER_API_MESSAGE.format(base_site=user["base_site"], shortener_api=user["shortener_api"])
-        return await m.reply(s)
-
-    elif len(cmd) == 2:    
-        api = cmd[1].strip()
-        await db.update_user_info(user_id, {"shortener_api": api})
-        await m.reply("<b>Shortener API updated successfully to</b> " + api)
-
-@Client.on_message(filters.command("base_site") & filters.private)
-async def base_site_handler(client, m: Message):
-    user_id = m.from_user.id
-    user = await db.get_user(user_id)
-    cmd = m.command
-    text = f"`/base_site (base_site)`\n\n<b>Current base site: None\n\n EX:</b> `/base_site shortnerdomain.com`\n\nIf You Want To Remove Base Site Then Copy This And Send To Bot - `/base_site None`"
-    if len(cmd) == 1:
-        return await m.reply(text=text, disable_web_page_preview=True)
-    elif len(cmd) == 2:
-        base_site = cmd[1].strip()
-        if base_site == None:
-            await db.update_user_info(user_id, {"base_site": base_site})
-            return await m.reply("<b>Base Site updated successfully</b>")
-            
-        if not domain(base_site):
-            return await m.reply(text=text, disable_web_page_preview=True)
-        await db.update_user_info(user_id, {"base_site": base_site})
-        await m.reply("<b>Base Site updated successfully</b>")
 
 @Client.on_message(filters.command(['genlink']) & filters.user(OWNERS) & filters.private)
 async def link(bot, message):
@@ -476,6 +424,7 @@ async def link(bot, message):
             LOG_CHANNEL,
             f"⚠️ Generate Link Error:\n\n<code>{e}</code>\n\nKindly check this message for assistance."
         )
+        print(f"⚠️ Generate Link Error: {e}")
 
 @Client.on_message(filters.command(['batch']) & filters.user(OWNERS) & filters.private)
 async def batch(bot, message):
@@ -590,6 +539,7 @@ async def batch(bot, message):
             LOG_CHANNEL,
             f"⚠️ Batch Error:\n\n<code>{e}</code>\n\nKindly check this message for assistance."
         )
+        print(f"⚠️ Batch Error: {e}")
 
 # Broadcast message sender with error handler
 async def broadcast_messages(user_id, message):
@@ -731,6 +681,7 @@ async def broadcast(bot, message):
             LOG_CHANNEL,
             f"⚠️ Broadcast Error:\n\n<code>{e}</code>\n\nKindly check this message for assistance."
         )
+        print(f"⚠️ Broadcast Error: {e}")
 
 async def show_clone_menu(client, message, user_id):
     try:
@@ -757,6 +708,7 @@ async def show_clone_menu(client, message, user_id):
             LOG_CHANNEL,
             f"⚠️ Show Clone Menu Error:\n\n<code>{e}</code>\n\nKindly check this message for assistance."
         )
+        print(f"⚠️ Show Clone Menu Error: {e}")
 
 async def show_text_menu(client, message, bot_id):
     try:
@@ -775,6 +727,7 @@ async def show_text_menu(client, message, bot_id):
             LOG_CHANNEL,
             f"⚠️ Show Text Menu Error:\n\n<code>{e}</code>\n\nKindly check this message to get assistance."
         )
+        print(f"⚠️ Show Text Menu Error: {e}")
 
 async def show_photo_menu(client, message, bot_id):
     try:
@@ -793,6 +746,7 @@ async def show_photo_menu(client, message, bot_id):
             LOG_CHANNEL,
             f"⚠️ Show Photo Menu Error:\n\n<code>{e}</code>\n\nKindly check this message to get assistance."
         )
+        print(f"⚠️ Show Photo Menu Error: {e}")
 
 async def show_token_menu(client, message, bot_id):
     try:
@@ -834,6 +788,7 @@ async def show_token_menu(client, message, bot_id):
             LOG_CHANNEL,
             f"⚠️ Show Token Menu Error:\n\n<code>{e}</code>\n\nKindly check this message to get assistance."
         )
+        print(f"⚠️ Show Token Menu Error: {e}")
 
 async def show_validity_menu(client, message, bot_id):
     try:
@@ -852,6 +807,7 @@ async def show_validity_menu(client, message, bot_id):
             LOG_CHANNEL,
             f"⚠️ Show Validity Menu Error:\n\n<code>{e}</code>\n\nKindly check this message to get assistance."
         )
+        print(f"⚠️ Show Validity Menu Error: {e}")
 
 async def show_tutorial_menu(client, message, bot_id):
     try:
@@ -870,6 +826,7 @@ async def show_tutorial_menu(client, message, bot_id):
             LOG_CHANNEL,
             f"⚠️ Show Tutorial Menu Error:\n\n<code>{e}</code>\n\nKindly check this message to get assistance."
         )
+        print(f"⚠️ Show Tutorial Menu Error: {e}")
 
 async def show_time_menu(client, message, bot_id):
     try:
@@ -888,6 +845,7 @@ async def show_time_menu(client, message, bot_id):
             LOG_CHANNEL,
             f"⚠️ Show Time Menu Error:\n\n<code>{e}</code>\n\nKindly check this message to get assistance."
         )
+        print(f"⚠️ Show Time Menu Error: {e}")
 
 async def show_message_menu(client, message, bot_id):
     try:
@@ -906,6 +864,7 @@ async def show_message_menu(client, message, bot_id):
             LOG_CHANNEL,
             f"⚠️ Show Message Menu Error:\n\n<code>{e}</code>\n\nKindly check this message to get assistance."
         )
+        print(f"⚠️ Show Message Menu Error: {e}")
 
 async def show_moderator_menu(client, message, bot_id):
     try:
@@ -948,6 +907,7 @@ async def show_moderator_menu(client, message, bot_id):
             LOG_CHANNEL,
             f"⚠️ Show Moderator Menu Error:\n<code>{e}</code>\nClone Data: {clone}\n\nKindly check this message to get assistance."
         )
+        print(f"⚠️ Show Moderator Menu Error: {e}")
 
 @Client.on_callback_query()
 async def cb_handler(client: Client, query: CallbackQuery):
@@ -1562,6 +1522,7 @@ async def cb_handler(client: Client, query: CallbackQuery):
             LOG_CHANNEL,
             f"⚠️ Callback Handler Error:\n\n<code>{e}</code>\n\nKindly check this message for assistance."
         )
+        print(f"⚠️ Callback Handler Error: {e}")
         # Optionally notify user
         await query.answer("❌ An error occurred. The admin has been notified.", show_alert=True)
 
@@ -1622,7 +1583,8 @@ async def message_capture(client: Client, message: Message):
             await client.send_message(
                 LOG_CHANNEL,
                 f"⚠️ Create Bot Error:\n\n<code>{e}</code>\n\nKindly check this message for assistance."
-           )
+            )
+            print(f"⚠️ Create Bot Error: {e}")
             await msg.edit_text(f"❌ Failed to create bot: {e}")
             await asyncio.sleep(2)
             await show_clone_menu(client, msg, user_id)
@@ -1658,6 +1620,7 @@ async def message_capture(client: Client, message: Message):
                 LOG_CHANNEL,
                 f"⚠️ Update Start Text Error:\n\n<code>{e}</code>\n\nKindly check this message for assistance."
             )
+            print(f"⚠️ Update Start Text Error: {e}")
             await orig_msg.edit_text(f"❌ Failed to update start text: {e}")
             await asyncio.sleep(2)
             await show_text_menu(client, orig_msg, bot_id)
@@ -1693,8 +1656,9 @@ async def message_capture(client: Client, message: Message):
         except Exception as e:
             await client.send_message(
                 LOG_CHANNEL,
-                f"⚠️ Update Photo Error:\n\n<code>{e}</code>\n\nKindly check this message for assistance."
+                f"⚠️ Update Start Photo Error:\n\n<code>{e}</code>\n\nKindly check this message for assistance."
             )
+            print(f"⚠️ Update Start Photo Error: {e}")
             await orig_msg.edit_text(f"❌ Failed to update start photo: {e}")
             await asyncio.sleep(2)
             await show_photo_menu(client, orig_msg, bot_id)
@@ -1744,6 +1708,7 @@ async def message_capture(client: Client, message: Message):
                     LOG_CHANNEL,
                     f"⚠️ Update Access Token Error:\n\n<code>{e}</code>\n\nKindly check this message for assistance."
                 )
+                print(f"⚠️ Update Access Token Error: {e}")
                 await orig_msg.edit_text(f"❌ Failed to update access token: {e}")
                 await asyncio.sleep(2)
                 await show_token_menu(client, orig_msg, bot_id)
@@ -1781,6 +1746,7 @@ async def message_capture(client: Client, message: Message):
                 LOG_CHANNEL,
                 f"⚠️ Update Access Token Validity Error:\n\n<code>{e}</code>\n\nKindly check this message for assistance."
             )
+            print(f"⚠️ Update Access Token Validity Error: {e}")
             await orig_msg.edit_text(f"❌ Failed to update access token validity: {e}")
             await asyncio.sleep(2)
             await show_validity_menu(client, orig_msg, bot_id)
@@ -1816,6 +1782,7 @@ async def message_capture(client: Client, message: Message):
                 LOG_CHANNEL,
                 f"⚠️ Update Access Token Tutorial Error:\n\n<code>{e}</code>\n\nKindly check this message for assistance."
             )
+            print(f"⚠️ Update Access Token Tutorial Error: {e}")
             await orig_msg.edit_text(f"❌ Failed to update access token tutorial link: {e}")
             await asyncio.sleep(2)
             await show_tutorial_menu(client, orig_msg, bot_id)
@@ -1853,6 +1820,7 @@ async def message_capture(client: Client, message: Message):
                 LOG_CHANNEL,
                 f"⚠️ Update Auto Delete Time Error:\n\n<code>{e}</code>\n\nKindly check this message for assistance."
             )
+            print(f"⚠️ Update Auto Delete Time Error: {e}")
             await orig_msg.edit_text(f"❌ Failed to update auto delete time: {e}")
             await asyncio.sleep(2)
             await show_time_menu(client, orig_msg, bot_id)
@@ -1888,6 +1856,7 @@ async def message_capture(client: Client, message: Message):
                 LOG_CHANNEL,
                 f"⚠️ Update Auto Delete Message Error:\n\n<code>{e}</code>\n\nKindly check this message for assistance."
             )
+            print(f"⚠️ Update Auto Delete Message Error: {e}")
             await orig_msg.edit_text(f"❌ Failed to update auto delete message: {e}")
             await asyncio.sleep(2)
             await show_message_menu(client, orig_msg, bot_id)
@@ -1923,6 +1892,7 @@ async def message_capture(client: Client, message: Message):
                 LOG_CHANNEL,
                 f"⚠️ Update Moderator Error:\n\n<code>{e}</code>\n\nKindly check this message for assistance."
             )
+            print(f"⚠️ Update Moderator Error: {e}")
             await orig_msg.edit_text(f"❌ Failed to update moderator: {e}")
             await asyncio.sleep(2)
             await show_moderator_menu(client, orig_msg, bot_id)
