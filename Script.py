@@ -16,8 +16,7 @@ I am a permenant file store bot. you can store files from your public channel wi
 🔻 /genlink - To store a single message or file.
 🔻 /batch - To store mutiple messages from a channel.
 🔻 /shortener - To shorten any shareable links.
-🔻 /broadcast - Broadcast a message to users.
-🔻 /contact - Send a message to admin."""
+🔻 /broadcast - Broadcast a message to users."""
 
     ABOUT_TXT = """<u>**✨ ABOUT ME**</u>
 
@@ -69,7 +68,7 @@ customize your clone start message using the following buttons."""
 
 Personalize your clone start message text to suit your preferences. Use the provided button to edit the start message text of your clone."""
 
-    EDIT_TXT_TXT = """{user} : mention user
+    EDIT_TXT_TXT = """'{user}' : mention user
 
 Eg: Hi {user} 👋
 I am a file store bot.
@@ -80,10 +79,21 @@ Now send your new start message text."""
 
 You have the option to include a photo along with your start message."""
 
-    CAPTION_TXT = """
-"""
+    CAPTION_TXT = """<u>**✨ CUSTOM CAPTION**</u>
+
+You can add a custom caption to your media messages instead of its original caption.
+
+'{file_name}' : File Name
+'{file_size}' : File size
+'{caption}' : Orginal Caption"""
 
     BUTTON_TXT = """
+"""
+
+    HEADER_TXT = """
+"""
+
+    FOOTER_TXT = """
 """
 
     FSUB_TXT = """<u>**✨ FORCE SUBSCRIBE**</u>
