@@ -122,10 +122,10 @@ async def start(client, message):
         # --- Single File Handler ---
         try:
             decoded = base64.urlsafe_b64decode(data + "=" * (-len(data) % 4)).decode("ascii")
+            parts = decoded.split("_", 2)  # max 3 parts
         except:
             return await message.reply("❌ Invalid link format.")
 
-        parts = decoded.split("_", 2)
         pre = parts[0]
 
         if clone.get("access_token", False) and not await check_verification(client, message.from_user.id):
@@ -181,8 +181,9 @@ async def start(client, message):
             # --- Track storage ---
             if msg and msg.media:
                 media_attr = getattr(msg, msg.media.value, None)
-                if media_attr and hasattr(media_attr, "file_size"):
-                    await db.add_storage_used(me.id, media_attr.file_size)
+                if media_attr:
+                    if hasattr(media_attr, "file_size"):
+                        await db.add_storage_used(me.id, media_attr.file_size)
 
             # --- Add custom caption if available ---
             if clone.get("caption", None) and msg:
@@ -245,7 +246,7 @@ async def link(bot, message):
 
         # --- Media Handler ---
         if g_msg.photo:
-            string = f"file_photo_{g_msg.photo[-1].file_id}"  # largest photo
+            string = f"file_photo_{g_msg.photo.file_id}"
         elif g_msg.video:
             string = f"file_video_{g_msg.video.file_id}"
         elif g_msg.document:
