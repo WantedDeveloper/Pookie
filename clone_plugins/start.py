@@ -252,6 +252,7 @@ async def link(bot, message):
         file_type = g_msg.media
 
         supported_media = [
+            enums.MessageMediaType.TEXT,
             enums.MessageMediaType.PHOTO,
             enums.MessageMediaType.VIDEO,
             enums.MessageMediaType.DOCUMENT,
@@ -264,14 +265,7 @@ async def link(bot, message):
         if file_type not in supported_media:
             return await message.reply("❌ Unsupported file type.")
 
-        file_type_attr = getattr(g_msg, file_type.value)
-
-        if file_type == enums.MessageMediaType.PHOTO:
-            file_id = file_type_attr.file_id
-        else:
-            file_id, _ = unpack_new_file_id(file_type_attr.file_id)
-
-        #file_id, ref = unpack_new_file_id((getattr(g_msg, file_type.value)).file_id)
+        file_id = unpack_new_file_id((getattr(g_msg, file_type.value)).file_id)
         string = 'file_'
         string += file_id
 
