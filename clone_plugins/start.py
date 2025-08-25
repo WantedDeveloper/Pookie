@@ -202,7 +202,7 @@ async def start(client, message):
             LOG_CHANNEL,
             f"⚠️ Clone Start Bot Error:\n\n<code>{e}</code>"
         )
-        print(f"⚠️ Clone Start Bot Error: {e}")/
+        print(f"⚠️ Clone Start Bot Error: {e}")
 
 async def get_short_link(user, link):
     api_key = user["shortener_api"]
