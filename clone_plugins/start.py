@@ -120,56 +120,50 @@ async def start(client, message):
                 return await message.reply_text("<b>Invalid or expired link!</b>", protect_content=True)
 
         # --- Single File Handler ---
-        # --- Single File Handler ---
-        try:
-            pre, file_id = data.split('_', 1)
-        except:
-            file_id = data
-            pre = ""   
-
-        decoded = (base64.urlsafe_b64decode(data + "=" * (-len(data) % 4))).decode("ascii")
-        print("📥 Base64 Decoded:", decoded)
+        print("👉 Raw command:", message.text)
+        print("👉 Encoded data:", data)
 
         try:
+            decoded = base64.urlsafe_b64decode(data + "=" * (-len(data) % 4)).decode("ascii")
+            print("👉 Decoded data:", decoded)
             pre, file_id = decoded.split("_", 1)
+            print("👉 pre:", pre)
+            print("👉 file_id:", file_id)
         except Exception as e:
-            print("❌ Split error:", e)
-            return await message.reply_text("❌ Error in link decoding")
+            print("❌ Decode error:", e)
+            return await message.reply("❌ Invalid or corrupted link.")
 
-        print("📝 pre:", pre)
-        print("📝 file_id:", file_id)
+        if clone.get("access_token", False) and not await check_verification(client, message.from_user.id):
+            btn = [
+                [InlineKeyboardButton("✅ Verify", url=await get_token(client, message.from_user.id, f"https://t.me/{username}?start="))],
+                [InlineKeyboardButton("ℹ️ How To Open Link & Verify", url=clone.get("access_token_tutorial", None))]
+            ]
+            return await message.reply_text(
+                "🚫 You are not **verified**! Kindly **verify** to continue.",
+                protect_content=clone.get("forward_protect", False),
+                reply_markup=InlineKeyboardMarkup(btn)
+            )
 
         msg = None
 
         if pre == "file":
-            print("📂 File link detected, sending cached media...")
-            await message.reply_text(f"⚡ Debug: Sending file with ID\n\n<code>{file_id}</code>")
-
             msg = await client.send_cached_media(
                 chat_id=message.from_user.id,
                 file_id=file_id,
                 protect_content=clone.get("forward_protect", False),
             )
 
-            print("📦 msg returned:", msg)
-
             if msg and msg.media:
-                print("✅ Media detected in msg:", msg.media)
                 filetype = msg.media
                 file = getattr(msg, filetype.value)
-                print("📑 File object:", file)
 
                 await db.add_storage_used(me.id, file.file_size)
-                print("💾 Storage updated:", file.file_size)
 
                 title = 'File  ' + ' '.join(
                     filter(lambda x: not x.startswith('[') and not x.startswith('@'),
                            getattr(file, "file_name", "Unnamed").split())
                 )
                 size = get_size(file.file_size)
-                print("📌 Title:", title)
-                print("📌 Size:", size)
-
                 f_caption = f"<code>{title}</code>"
 
                 if clone.get("caption", None):
@@ -178,30 +172,18 @@ async def start(client, message):
                         file_size=size,
                         file_caption=""
                     )
-                print("🖊 Caption Final:", f_caption)
 
                 try:
                     await msg.edit_caption(f_caption)
-                    print("✅ Caption edited successfully")
-                except Exception as e:
-                    print("❌ Caption edit error:", e)
-                    await message.reply_text(f"❌ Caption edit error: {e}")
-
+                except:
+                    pass
         elif pre == "text":
-            print("📃 Text link detected")
             msg = await client.send_message(
                 chat_id=message.from_user.id,
                 text=file_id
             )
-            print("✅ Text sent")
         else:
-            print("❌ Invalid pre detected:", pre)
             await message.reply("❌ Invalid link format.")
-
-        if msg:
-            print("✅ Final msg object exists")
-        else:
-            print("❌ msg is None")
 
         if clone.get("auto_delete", False):
             k = await msg.reply(
@@ -245,28 +227,7 @@ async def link(bot, message):
             if g_msg.text and g_msg.text.lower() == '/cancel':
                 return await message.reply('<b>🚫 Process has been cancelled.</b>')
 
-        string = None
-
-        # --- Media Handler ---
-        if g_msg.photo:
-            string = f"file_{g_msg.photo.file_id}"
-        elif g_msg.video:
-            string = f"file_{g_msg.video.file_id}"
-        elif g_msg.document:
-            string = f"file_{g_msg.document.file_id}"
-        elif g_msg.audio:
-            string = f"file_{g_msg.audio.file_id}"
-        elif g_msg.animation:
-            string = f"file_{g_msg.animation.file_id}"
-        elif g_msg.voice:
-            string = f"file_{g_msg.voice.file_id}"
-        elif g_msg.sticker:
-            string = f"file_{g_msg.sticker.file_id}"
-        elif g_msg.text or g_msg.caption:
-            text = g_msg.text or g_msg.caption
-            string = f"text_{text}"
-        else:
-            return await message.reply("❌ Unsupported message type.")
+        string = f"file_{g_msg.photo.file_id}"
 
         outstr = base64.urlsafe_b64encode(string.encode("ascii")).decode().strip("=")
 
