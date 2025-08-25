@@ -208,7 +208,7 @@ async def start(client, message):
 
         if clone.get("auto_delete"):
             k = await msg.reply(
-                clone.get('auto_delete_msg').format(time=f"{clone.get("auto_delete_time")}),
+                clone.get('auto_delete_msg').format(time=clone.get("auto_delete_time")),
                 quote=True
             )
             await asyncio.sleep(clone.get("auto_delete_time") * 60 * 60)
