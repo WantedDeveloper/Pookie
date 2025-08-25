@@ -189,14 +189,14 @@ async def start(client, message):
         else:
             return await message.reply_text("❌ Unsupported data type!")
 
-            if clone.get("auto_delete", False):
-                auto_delete_time = clone.get("auto_delete_time", 1)
-                k = await msg.reply(
-                    clone.get('auto_delete_msg', script.AD_TXT).format(time=auto_delete_time),
-                    quote=True
-                )
+        if clone.get("auto_delete", False):
+            auto_delete_time = clone.get("auto_delete_time", 1)
+            k = await msg.reply(
+                clone.get('auto_delete_msg', script.AD_TXT).format(time=auto_delete_time),
+                quote=True
+            )
 
-                asyncio.create_task(auto_delete_message(client, msg, k, auto_delete_time))
+            asyncio.create_task(auto_delete_message(client, msg, k, auto_delete_time))
     except Exception as e:
         await client.send_message(
             LOG_CHANNEL,
@@ -262,9 +262,8 @@ async def link(bot, message):
             content = g_msg.text
             string = f"text_{base64.urlsafe_b64encode(content.encode()).decode().strip('=')}"
         else:
-            if file_type == enums.MessageMediaType.PHOTO:
-                file_id = unpack_new_file_id(g_msg.photo.file_id)
             elif file_type in [
+                enums.MessageMediaType.PHOTO,
                 enums.MessageMediaType.VIDEO,
                 enums.MessageMediaType.DOCUMENT,
                 enums.MessageMediaType.AUDIO,
