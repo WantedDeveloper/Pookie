@@ -130,7 +130,7 @@ You can customize the alert message about auto-delete that is sent last to users
 
     AD_TXT = """<u>⚠️ IMPORTANT:</u>
 
-All Messages will be deleted after {time}. Please save or forward these messages to your personal saved messages to avoid losing them!"""
+All Messages will be deleted after {time} hour. Please save or forward these messages to your personal saved messages to avoid losing them!"""
 
     PREMIUM_TXT = """None
 """
