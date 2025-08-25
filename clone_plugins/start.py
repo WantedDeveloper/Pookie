@@ -121,12 +121,12 @@ async def start(client, message):
 
         # --- Single File Handler ---
         try:
-            decoded = base64.urlsafe_b64decode(data + "=" * (-len(data) % 4)).decode("ascii")
-            # Use partition to safely extract file_type and file_id (handles underscores)
-            pre, _, rest = decoded.partition("_")
-            file_type, _, file_id = rest.partition("_")
-        except Exception as e:
-            return await message.reply("❌ Invalid link format.")
+            pre, file_id = data.split('_', 1)
+        except:
+            file_id = data
+            pre = ""   
+
+        pre, file_id = ((base64.urlsafe_b64decode(data + "=" * (-len(data) % 4))).decode("ascii")).split("_", 1)
 
         if clone.get("access_token", False) and not await check_verification(client, message.from_user.id):
             btn = [
@@ -139,70 +139,38 @@ async def start(client, message):
                 reply_markup=InlineKeyboardMarkup(btn)
             )
 
-        msg = None
-
-        # --- Text ---
-        if pre == "text":
-            msg = await client.send_message(chat_id=message.from_user.id, text=file_type)
-
-        # --- File/Media ---
-        elif pre == "file":
-            send_kwargs = {"chat_id": message.from_user.id, "protect_content": clone.get("forward_protect", False)}
-
-            if file_type == "photo":
-                send_kwargs["photo"] = file_id
-                msg = await client.send_photo(**send_kwargs)
-            elif file_type == "video":
-                send_kwargs["video"] = file_id
-                msg = await client.send_video(**send_kwargs)
-            elif file_type == "document":
-                send_kwargs["document"] = file_id
-                msg = await client.send_document(**send_kwargs)
-            elif file_type == "audio":
-                send_kwargs["audio"] = file_id
-                msg = await client.send_audio(**send_kwargs)
-            elif file_type == "animation":
-                send_kwargs["animation"] = file_id
-                msg = await client.send_animation(**send_kwargs)
-            elif file_type == "voice":
-                send_kwargs["voice"] = file_id
-                msg = await client.send_voice(**send_kwargs)
-            elif file_type == "sticker":
-                send_kwargs["sticker"] = file_id
-                msg = await client.send_sticker(**send_kwargs)
-            else:
-                return await message.reply("❌ Unsupported file type.")
-
-            # --- Track storage ---
-            if msg and msg.media:
-                media_attr = getattr(msg, msg.media.value, None)
-                if media_attr:
-                    if hasattr(media_attr, "file_size"):
-                        await db.add_storage_used(me.id, media_attr.file_size)
-
-            # --- Add custom caption if available ---
-            if clone.get("caption", None) and msg:
-                media_attr = getattr(msg, msg.media.value, None)
-                if media_attr and hasattr(media_attr, "file_name"):
-                    title = getattr(media_attr, "file_name", "Unnamed")
-                    size = get_size(getattr(media_attr, "file_size", 0))
-                    caption_text = clone["caption"].format(file_name=title, file_size=size, file_caption="")
-                    try:
-                        await msg.edit_caption(caption_text)
-                    except:
-                        pass
-
-        else:
-            return await message.reply("❌ Invalid link format.")
-
-        if clone.get("auto_delete", False):
-            k = await msg.reply(
-                clone.get('auto_delete_msg', script.AD_TXT).format(time=clone.get("auto_delete_time", 1)),
-                quote=True
+        try:
+            msg = await client.send_cached_media(
+                chat_id=message.from_user.id,
+                file_id=file_id,
+                protect_content=clone.get("forward_protect", False),
             )
-            await asyncio.sleep(clone.get("auto_delete_time", 1) * 60 * 60)
-            await msg.delete()
-            await k.edit_text("Your File/Video is successfully deleted!!!")
+
+            filetype = msg.media
+            file = getattr(msg, filetype.value)
+            
+            title = 'FuckYou  ' + ' '.join(filter(lambda x: not x.startswith('[') and not x.startswith('@'), file.file_name.split()))
+            size=get_size(file.file_size)
+            f_caption = f"<code>{title}</code>"
+
+            if clone.get("caption", None):
+                try:
+                    f_caption=clone.get("caption", None).format(file_name= '' if title is None else title, file_size='' if size is None else size, file_caption='')
+                except:
+                    return
+            await msg.edit_caption(f_caption)
+
+            if clone.get("auto_delete", False):
+                k = await msg.reply(
+                    clone.get('auto_delete_msg', script.AD_TXT).format(time=clone.get("auto_delete_time", 1)),
+                    quote=True
+                )
+                await asyncio.sleep(clone.get("auto_delete_time", 1) * 60 * 60)
+                await msg.delete()
+                await k.edit_text("Your File/Video is successfully deleted!!!")
+            return
+        except:
+            pass
     except Exception as e:
         await client.send_message(
             LOG_CHANNEL,
@@ -237,28 +205,24 @@ async def link(bot, message):
             if g_msg.text and g_msg.text.lower() == '/cancel':
                 return await message.reply('<b>🚫 Process has been cancelled.</b>')
 
-        string = None
+        file_type = g_msg.media
 
-        # --- Media Handler ---
-        if g_msg.photo:
-            string = f"file_photo_{g_msg.photo.file_id}"
-        elif g_msg.video:
-            string = f"file_video_{g_msg.video.file_id}"
-        elif g_msg.document:
-            string = f"file_document_{g_msg.document.file_id}"
-        elif g_msg.audio:
-            string = f"file_audio_{g_msg.audio.file_id}"
-        elif g_msg.animation:
-            string = f"file_animation_{g_msg.animation.file_id}"
-        elif g_msg.voice:
-            string = f"file_voice_{g_msg.voice.file_id}"
-        elif g_msg.sticker:
-            string = f"file_sticker_{g_msg.sticker.file_id}"
-        elif g_msg.text or g_msg.caption:
-            text = g_msg.text or g_msg.caption
-            string = f"text_{text}"
-        else:
-            return await message.reply("❌ Unsupported message type.")
+        supported_media = [
+            enums.MessageMediaType.PHOTO,
+            enums.MessageMediaType.VIDEO,
+            enums.MessageMediaType.DOCUMENT,
+            enums.MessageMediaType.AUDIO,
+            enums.MessageMediaType.ANIMATION,
+            enums.MessageMediaType.VOICE,
+            enums.MessageMediaType.STICKER
+        ]
+
+        if file_type not in supported_media:
+            return await message.reply("❌ Unsupported file type.")
+
+        file_id = getattr(g_msg, file_type.value).file_id
+        string = 'file_'
+        string += file_id
 
         outstr = base64.urlsafe_b64encode(string.encode("ascii")).decode().strip("=")
 
