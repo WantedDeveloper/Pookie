@@ -139,19 +139,14 @@ async def start(client, message):
                 reply_markup=InlineKeyboardMarkup(btn)
             )
 
-        # --- Text Handler ---
+        msg = None
+
+        # --- Text ---
         if pre == "text":
-            text = parts[1]
-            msg = await client.send_message(
-                chat_id=message.from_user.id,
-                text=text
-            )
+            msg = await client.send_message(chat_id=message.from_user.id, text=file_type)
 
-        # --- File/Media Handler ---
+        # --- File/Media ---
         elif pre == "file":
-            file_type = parts[1]
-            file_id = parts[2]
-
             send_kwargs = {"chat_id": message.from_user.id, "protect_content": clone.get("forward_protect", False)}
 
             if file_type == "photo":
