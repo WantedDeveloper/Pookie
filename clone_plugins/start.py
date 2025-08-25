@@ -148,38 +148,24 @@ async def start(client, message):
                 protect_content=clone.get("forward_protect", False),
             )
 
-            file = None
-            if msg:
-                if msg.document: file = msg.document
-                elif msg.video: file = msg.video
-                elif msg.audio: file = msg.audio
-                elif msg.photo: file = msg.photo
-                elif msg.animation: file = msg.animation
-                elif msg.voice: file = msg.voice
-                elif msg.video_note: file = msg.video_note
+            if msg and msg.media:
+                filetype = msg.media
+                file = getattr(msg, filetype.value)
 
-            if file:
-                if hasattr(file, "file_size"):
-                    await db.add_storage_used(me.id, file.file_size)
+                await db.add_storage_used(me.id, file.file_size)
 
-                title = 'FuckYou  '
-                if hasattr(file, "file_name"):
-                    title += ' '.join(
-                        filter(lambda x: not x.startswith('[') and not x.startswith('@'),
-                               file.file_name.split())
-                    )
-                else:
-                    title += "Unknown File"
-
-                size = get_size(file.file_size) if hasattr(file, "file_size") else "0 B"
+                title = 'File  ' + ' '.join(
+                    filter(lambda x: not x.startswith('[') and not x.startswith('@'),
+                           getattr(file, "file_name", "Unnamed").split())
+                )
+                size = get_size(file.file_size)
                 f_caption = f"<code>{title}</code>"
 
-                # Custom caption from DB
                 if clone.get("caption", None):
                     f_caption = clone.get("caption").format(
                         file_name=title,
                         file_size=size,
-                        file_caption=''
+                        file_caption=""
                     )
 
                 try:
