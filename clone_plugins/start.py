@@ -119,58 +119,10 @@ async def start(client, message):
                 await verify_user(client, parts[1], parts[2])
                 return await message.reply_text(
                     f"<b>Hey {message.from_user.mention}, verification successful! ✅</b>",
-                    protect_content=True
+                    protect_content=clone.get("forward_protect", False)
                 )
             else:
                 return await message.reply_text("<b>Invalid or expired link!</b>", protect_content=True)
-
-        # --- Batch Handler ---
-        if data.startswith("BATCH-"):
-            if VERIFY_MODE and not await check_verification(client, message.from_user.id):
-                btn = [
-                    [InlineKeyboardButton("Verify", url=await get_token(client, message.from_user.id, f"https://t.me/{username}?start="))],
-                    [InlineKeyboardButton("How To Open Link & Verify", url=VERIFY_TUTORIAL)]
-                ]
-                return await message.reply_text(
-                    "<b>You are not verified! Kindly verify to continue.</b>",
-                    protect_content=True,
-                    reply_markup=InlineKeyboardMarkup(btn)
-                )
-
-            sts = await message.reply("**🔺 Please wait...**")
-            file_id = data.split("-", 1)[1]
-            msgs = BATCH_FILES.get(file_id)
-
-            if not msgs:
-                decode_file_id = base64.urlsafe_b64decode(file_id + "=" * (-len(file_id) % 4)).decode("ascii")
-                msg = await client.get_messages(LOG_CHANNEL, int(decode_file_id))
-                media = getattr(msg, msg.media.value)
-                file_id = media.file_id
-                file = await client.download_media(file_id)
-                with open(file) as file_data:
-                    msgs = json.loads(file_data.read())
-                os.remove(file)
-                BATCH_FILES[file_id] = msgs
-
-            for msg in msgs:
-                channel_id = int(msg.get("channel_id"))
-                msgid = msg.get("msg_id")
-                info = await client.get_messages(channel_id, int(msgid))
-                if info.media:
-                    f_caption = info.caption or ""
-                    title = formate_file_name(getattr(info, info.media.value).file_name or "")
-                    size = get_size(int(getattr(info, info.media.value).file_size))
-                    if BATCH_FILE_CAPTION:
-                        f_caption = BATCH_FILE_CAPTION.format(
-                            file_name=title or '',
-                            file_size=size or '',
-                            file_caption=f_caption or ''
-                        )
-                    await info.copy(chat_id=message.from_user.id, caption=f_caption, protect_content=clone.get("forward_protect"))
-                else:
-                    await info.copy(chat_id=message.from_user.id, protect_content=clone.get("forward_protect"))
-                await asyncio.sleep(1)
-            return await sts.delete()
 
         # --- Single File Handler ---
         try:
@@ -183,45 +135,59 @@ async def start(client, message):
 
         if clone.get("access_token", False) and not await check_verification(client, message.from_user.id):
             btn = [
-                [InlineKeyboardButton("Verify", url=await get_token(client, message.from_user.id, f"https://t.me/{username}?start="))],
-                [InlineKeyboardButton("How To Open Link & Verify", url=clone.get("access_token_tutorial", None))]
+                [InlineKeyboardButton("✅ Verify", url=await get_token(client, message.from_user.id, f"https://t.me/{username}?start="))],
+                [InlineKeyboardButton("ℹ️ How To Open Link & Verify", url=clone.get("access_token_tutorial", None))]
             ]
             return await message.reply_text(
-                "You are not **verified**! Kindly **verify** to continue.",
+                "🚫 You are not **verified**! Kindly **verify** to continue.",
                 protect_content=clone.get("forward_protect", False),
                 reply_markup=InlineKeyboardMarkup(btn)
             )
 
         msg = None
-        file = None
 
-        if pre == "file":
-            msg = await client.send_cached_media(
-                chat_id=message.from_user.id,
-                file_id=file_id,
-                protect_content=clone.get("forward_protect", False),
-            )
-
-            if msg.media:
-                filetype = msg.media
-                file = getattr(msg, filetype.value)
-
-                await db.add_storage_used(me.id, file.file_size)
-
-                title = 'FuckYou  ' + ' '.join(filter(lambda x: not x.startswith('[') and not x.startswith('@'), file.file_name.split()))
-                size=get_size(file.file_size)
-                f_caption = f"<code>{title}</code>"
-
-                if clone.get("caption", None):
-                    f_caption=clone.get("caption", None).format(file_name= '' if title is None else title, file_size='' if size is None else size, file_caption='')
-                    await msg.edit_caption(f_caption)
+        # Handle based on media type
+        if pre == "photo":
+            msg = await client.send_photo(message.from_user.id, photo=file_id, protect_content=clone.get("forward_protect", False))
+        elif pre == "video":
+            msg = await client.send_video(message.from_user.id, video=file_id, protect_content=clone.get("forward_protect", False))
+        elif pre == "document":
+            msg = await client.send_document(message.from_user.id, document=file_id, protect_content=clone.get("forward_protect", False))
+        elif pre == "audio":
+            msg = await client.send_audio(message.from_user.id, audio=file_id, protect_content=clone.get("forward_protect", False))
+        elif pre == "animation":
+            msg = await client.send_animation(message.from_user.id, animation=file_id, protect_content=clone.get("forward_protect", False))
+        elif pre == "voice":
+            msg = await client.send_voice(message.from_user.id, voice=file_id, protect_content=clone.get("forward_protect", False))
+        elif pre == "sticker":
+            msg = await client.send_sticker(message.from_user.id, sticker=file_id)
         elif pre == "text":
-            await client.send_message(
-                chat_id=message.from_user.id,
-                text=file_id
-            )
+            msg = await client.send_message(message.from_user.id, text=file_id)
         else:
-            await message.reply("❌ Invalid link format.")
+            return await message.reply("❌ Unsupported or invalid file type.")
+
+        # If file/media -> caption logic
+        if msg and pre != "text" and pre != "sticker":
+            file = getattr(msg, pre, None)
+            if file:
+                size = get_size(file.file_size)
+                title = file.file_name if hasattr(file, "file_name") else "Unnamed File"
+                f_caption = f"<code>{title}</code> ({size})"
+
+                if clone.get("caption"):
+                    try:
+                        f_caption = clone.get("caption").format(
+                            file_name=title,
+                            file_size=size,
+                            file_caption=''
+                        )
+                    except:
+                        pass
+
+                try:
+                    await msg.edit_caption(f_caption)
+                except:
+                    pass
 
         if clone.get("auto_delete", False):
             k = await msg.reply(
@@ -236,7 +202,7 @@ async def start(client, message):
             LOG_CHANNEL,
             f"⚠️ Clone Start Bot Error:\n\n<code>{e}</code>"
         )
-        print(f"⚠️ Clone Start Bot Error: {e}")
+        print(f"⚠️ Clone Start Bot Error: {e}")/
 
 async def get_short_link(user, link):
     api_key = user["shortener_api"]
@@ -274,7 +240,7 @@ async def link(bot, message):
             media_type = g_msg.media.value
             file = getattr(g_msg, media_type)
             file_id = file.file_id
-            string = f"file_{file_id}"
+            string = f"{media_type}_{file_id}"
         else:
             text = g_msg.text or g_msg.caption
             if not text:
