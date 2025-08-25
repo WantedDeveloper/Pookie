@@ -108,30 +108,25 @@ async def start(client, message):
         if data.startswith("verify-"):
             parts = data.split("-", 2)
             if len(parts) < 3 or str(message.from_user.id) != parts[1]:
-                return await message.reply_text("<b>Invalid or expired link!</b>", protect_content=True)
+                return await message.reply_text("❌ Invalid or expired link!", protect_content=True)
 
             if await check_token(client, parts[1], parts[2]):
                 await verify_user(client, parts[1], parts[2])
                 return await message.reply_text(
-                    f"<b>Hey {message.from_user.mention}, verification successful! ✅</b>",
+                    f"Hey {message.from_user.mention}, **verification** successful! ✅",
                     protect_content=clone.get("forward_protect", False)
                 )
             else:
-                return await message.reply_text("<b>Invalid or expired link!</b>", protect_content=True)
+                return await message.reply_text("❌ Invalid or expired link!", protect_content=True)
 
         # --- Single File Handler ---
-        print("👉 Raw command:", message.text)
-        print("👉 Encoded data:", data)
-
         try:
             decoded = base64.urlsafe_b64decode(data + "=" * (-len(data) % 4)).decode("ascii")
-            print("👉 Decoded data:", decoded)
-            pre, file_id = decoded.split("_", 1)
-            print("👉 pre:", pre)
-            print("👉 file_id:", file_id)
-        except Exception as e:
-            print("❌ Decode error:", e)
-            return await message.reply("❌ Invalid or corrupted link.")
+        except:
+            return await message.reply("❌ Invalid link format.")
+
+        parts = decoded.split("_", 2)
+        pre = parts[0]
 
         if clone.get("access_token", False) and not await check_verification(client, message.from_user.id):
             btn = [
@@ -144,46 +139,65 @@ async def start(client, message):
                 reply_markup=InlineKeyboardMarkup(btn)
             )
 
-        msg = None
-
-        if pre == "file":
-            msg = await client.send_cached_media(
-                chat_id=message.from_user.id,
-                file_id=file_id,
-                protect_content=clone.get("forward_protect", False),
-            )
-
-            if msg and msg.media:
-                filetype = msg.media
-                file = getattr(msg, filetype.value)
-
-                await db.add_storage_used(me.id, file.file_size)
-
-                title = 'File  ' + ' '.join(
-                    filter(lambda x: not x.startswith('[') and not x.startswith('@'),
-                           getattr(file, "file_name", "Unnamed").split())
-                )
-                size = get_size(file.file_size)
-                f_caption = f"<code>{title}</code>"
-
-                if clone.get("caption", None):
-                    f_caption = clone.get("caption").format(
-                        file_name=title,
-                        file_size=size,
-                        file_caption=""
-                    )
-
-                try:
-                    await msg.edit_caption(f_caption)
-                except:
-                    pass
-        elif pre == "text":
+        # --- Text Handler ---
+        if pre == "text":
+            text = parts[1]
             msg = await client.send_message(
                 chat_id=message.from_user.id,
-                text=file_id
+                text=text
             )
+
+        # --- File/Media Handler ---
+        elif pre == "file":
+            file_type = parts[1]
+            file_id = parts[2]
+
+            send_kwargs = {"chat_id": message.from_user.id, "protect_content": clone.get("forward_protect", False)}
+
+            if file_type == "photo":
+                send_kwargs["photo"] = file_id
+                msg = await client.send_photo(**send_kwargs)
+            elif file_type == "video":
+                send_kwargs["video"] = file_id
+                msg = await client.send_video(**send_kwargs)
+            elif file_type == "document":
+                send_kwargs["document"] = file_id
+                msg = await client.send_document(**send_kwargs)
+            elif file_type == "audio":
+                send_kwargs["audio"] = file_id
+                msg = await client.send_audio(**send_kwargs)
+            elif file_type == "animation":
+                send_kwargs["animation"] = file_id
+                msg = await client.send_animation(**send_kwargs)
+            elif file_type == "voice":
+                send_kwargs["voice"] = file_id
+                msg = await client.send_voice(**send_kwargs)
+            elif file_type == "sticker":
+                send_kwargs["sticker"] = file_id
+                msg = await client.send_sticker(**send_kwargs)
+            else:
+                return await message.reply("❌ Unsupported file type.")
+
+            # --- Track storage ---
+            if msg and msg.media:
+                media_attr = getattr(msg, msg.media.value, None)
+                if media_attr and hasattr(media_attr, "file_size"):
+                    await db.add_storage_used(me.id, media_attr.file_size)
+
+            # --- Add custom caption if available ---
+            if clone.get("caption", None) and msg:
+                media_attr = getattr(msg, msg.media.value, None)
+                if media_attr and hasattr(media_attr, "file_name"):
+                    title = getattr(media_attr, "file_name", "Unnamed")
+                    size = get_size(getattr(media_attr, "file_size", 0))
+                    caption_text = clone["caption"].format(file_name=title, file_size=size, file_caption="")
+                    try:
+                        await msg.edit_caption(caption_text)
+                    except:
+                        pass
+
         else:
-            await message.reply("❌ Invalid link format.")
+            return await message.reply("❌ Invalid link format.")
 
         if clone.get("auto_delete", False):
             k = await msg.reply(
@@ -227,7 +241,28 @@ async def link(bot, message):
             if g_msg.text and g_msg.text.lower() == '/cancel':
                 return await message.reply('<b>🚫 Process has been cancelled.</b>')
 
-        string = f"file_{g_msg.photo.file_id}"
+        string = None
+
+        # --- Media Handler ---
+        if g_msg.photo:
+            string = f"file_photo_{g_msg.photo[-1].file_id}"  # largest photo
+        elif g_msg.video:
+            string = f"file_video_{g_msg.video.file_id}"
+        elif g_msg.document:
+            string = f"file_document_{g_msg.document.file_id}"
+        elif g_msg.audio:
+            string = f"file_audio_{g_msg.audio.file_id}"
+        elif g_msg.animation:
+            string = f"file_animation_{g_msg.animation.file_id}"
+        elif g_msg.voice:
+            string = f"file_voice_{g_msg.voice.file_id}"
+        elif g_msg.sticker:
+            string = f"file_sticker_{g_msg.sticker.file_id}"
+        elif g_msg.text or g_msg.caption:
+            text = g_msg.text or g_msg.caption
+            string = f"text_{text}"
+        else:
+            return await message.reply("❌ Unsupported message type.")
 
         outstr = base64.urlsafe_b64encode(string.encode("ascii")).decode().strip("=")
 
