@@ -262,7 +262,7 @@ async def link(bot, message):
             content = g_msg.text
             string = f"text_{base64.urlsafe_b64encode(content.encode()).decode().strip('=')}"
         else:
-            elif file_type in [
+            if file_type in [
                 enums.MessageMediaType.PHOTO,
                 enums.MessageMediaType.VIDEO,
                 enums.MessageMediaType.DOCUMENT,
