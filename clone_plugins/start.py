@@ -66,17 +66,6 @@ def get_size(size):
         size /= 1024.0
     return "%.2f %s" % (size, units[i])
 
-async def auto_delete_message(client, msg, delay, ad_msg):
-    try:
-        await asyncio.sleep(delay)
-        await msg.delete()
-        await client.send_message(msg.chat.id, ad_msg)
-    except Exception as e:
-        await client.send_message(
-            LOG_CHANNEL,
-            f"⚠️ Clone Auto Delete Message Error:\n\n<code>{e}</code>\n\nKindly check this message for assistance."
-        )
-
 @Client.on_message(filters.command("start") & filters.private & filters.incoming)
 async def start(client, message):
     try:
@@ -179,43 +168,52 @@ async def start(client, message):
             return await sts.delete()
 
         # --- Single File Handler ---
-        pre, decode_file_id = base64.urlsafe_b64decode(data + "=" * (-len(data) % 4)).decode("ascii").split("_", 1)
-        if VERIFY_MODE and not await check_verification(client, message.from_user.id):
+        try:
+            pre, file_id = data.split('_', 1)
+        except:
+            file_id = data
+            pre = ""   
+
+        pre, file_id = ((base64.urlsafe_b64decode(data + "=" * (-len(data) % 4))).decode("ascii")).split("_", 1)
+
+        if clone.get("access_token") and not await check_verification(client, message.from_user.id):
             btn = [
                 [InlineKeyboardButton("Verify", url=await get_token(client, message.from_user.id, f"https://t.me/{username}?start="))],
-                [InlineKeyboardButton("How To Open Link & Verify", url=VERIFY_TUTORIAL)]
+                [InlineKeyboardButton("How To Open Link & Verify", url=clone.get("access_token_tutorial"))]
             ]
             return await message.reply_text(
-                "<b>You are not verified! Kindly verify to continue.</b>",
-                protect_content=True,
+                "You are not **verified**! Kindly **verify** to continue.",
+                protect_content=clone.get("forward_protect"),
                 reply_markup=InlineKeyboardMarkup(btn)
             )
+    
+        msg = await client.send_cached_media(
+            chat_id=message.from_user.id,
+            file_id=file_id,
+            protect_content=clone.get("forward_protect"),
+        )
+        await db.add_storage_used(me.id, file.file_size)
 
-        msg = await client.get_messages(LOG_CHANNEL, int(decode_file_id))
-        if msg.media:
-            media = getattr(msg, msg.media.value)
-            title = formate_file_name(media.file_name or "")
-            size = get_size(media.file_size)
-            f_caption = f"<code>{title}</code>"
-            if CUSTOM_FILE_CAPTION:
-                f_caption = CUSTOM_FILE_CAPTION.format(
-                    file_name=title or '',
-                    file_size=size or '',
-                    file_caption=''
-                )
-            await msg.copy(chat_id=message.from_user.id, caption=f_caption, protect_content=clone.get("forward_protect"))
-            await db.add_storage_used(me.id, file.file_size)
-        else:
-            await msg.copy(chat_id=message.from_user.id, protect_content=clone.get("forward_protect"))
-            await db.add_storage_used(me.id, file.file_size)
+        filetype = msg.media
+        file = getattr(msg, filetype.value)
+        title = 'FuckYou  ' + ' '.join(filter(lambda x: not x.startswith('[') and not x.startswith('@'), file.file_name.split()))
+        size=get_size(file.file_size)
+        f_caption = f"<code>{title}</code>"
+        if clone.get("caption"):
+            try:
+                f_caption=clone.get("caption").format(file_name= '' if title is None else title, file_size='' if size is None else size, file_caption='')
+            except:
+                return
+        await msg.edit_caption(f_caption)
 
-        # Auto-delete if enabled
-        clone = await db.get_bot(me.id)
-        if clone and clone.get("auto_delete", False):
-            ad_time = clone.get("auto_delete_time", 30)
-            ad_msg = clone.get("auto_delete_msg", script.AD_TXT)
-            asyncio.create_task(auto_delete_message(client, msg, ad_time, ad_msg.format(time=f"{ad_time} minutes")))
-
+        if clone.get("auto_delete"):
+            k = await msg.reply(
+                clone.get('auto_delete_msg').format(time=f"{clone.get("auto_delete_time")}),
+                quote=True
+            )
+            await asyncio.sleep(clone.get("auto_delete_time") * 60 * 60)
+            await msg.delete()
+            await k.edit_text("Your File/Video is successfully deleted!!!")
     except Exception as e:
         await client.send_message(
             LOG_CHANNEL,
