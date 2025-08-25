@@ -274,10 +274,6 @@ async def link(bot, message):
             enums.MessageMediaType.STICKER
         ]
 
-        if g_msg.text and not g_msg.media:
-            content = g_msg.text
-            string = f"text_{base64.urlsafe_b64encode(content.encode()).decode().strip('=')}"
-
         if file_type not in supported_media:
             return await message.reply("❌ Unsupported file type.")
 
