@@ -2,6 +2,7 @@ import os, logging, asyncio, re, json, base64, requests, time, datetime, motor.m
 from validators import domain
 from pyrogram import Client, filters, enums
 from pyrogram.types import *
+from pyrogram.file_id import FileId
 from pyrogram.errors import ChatAdminRequired, InputUserDeactivated, UserNotParticipant, FloodWait, UserIsBlocked, PeerIdInvalid
 from pyrogram.errors.exceptions.bad_request_400 import AccessTokenExpired, AccessTokenInvalid, ChannelInvalid, UsernameInvalid, UsernameNotModified
 from config import *
