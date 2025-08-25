@@ -192,12 +192,29 @@ async def start(client, message):
                 reply_markup=InlineKeyboardMarkup(btn)
             )
 
+        msg = None
+        file = None
+
         if pre == "file":
             msg = await client.send_cached_media(
                 chat_id=message.from_user.id,
                 file_id=file_id,
                 protect_content=clone.get("forward_protect", False),
             )
+
+            if msg.media:
+                filetype = msg.media
+                file = getattr(msg, filetype.value)
+
+                await db.add_storage_used(me.id, file.file_size)
+
+                title = 'FuckYou  ' + ' '.join(filter(lambda x: not x.startswith('[') and not x.startswith('@'), file.file_name.split()))
+                size=get_size(file.file_size)
+                f_caption = f"<code>{title}</code>"
+
+                if clone.get("caption", None):
+                    f_caption=clone.get("caption", None).format(file_name= '' if title is None else title, file_size='' if size is None else size, file_caption='')
+                    await msg.edit_caption(f_caption)
         elif pre == "text":
             await client.send_message(
                 chat_id=message.from_user.id,
@@ -205,20 +222,6 @@ async def start(client, message):
             )
         else:
             await message.reply("❌ Invalid link format.")
-
-        await db.add_storage_used(me.id, file.file_size)
-
-        filetype = msg.media
-        file = getattr(msg, filetype.value)
-        title = 'FuckYou  ' + ' '.join(filter(lambda x: not x.startswith('[') and not x.startswith('@'), file.file_name.split()))
-        size=get_size(file.file_size)
-        f_caption = f"<code>{title}</code>"
-        if clone.get("caption", None):
-            try:
-                f_caption=clone.get("caption", None).format(file_name= '' if title is None else title, file_size='' if size is None else size, file_caption='')
-            except:
-                return
-        await msg.edit_caption(f_caption)
 
         if clone.get("auto_delete", False):
             k = await msg.reply(
