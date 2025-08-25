@@ -91,9 +91,6 @@ class Database:
         return clone
 
     async def get_clones_by_user(self, user_id):
-        """
-        Fetch clones where user is owner (int) or a moderator (string).
-        """
         clones = []
         user_id_str = str(user_id)  # moderator match as string
         try:
@@ -272,16 +269,16 @@ async def start(client, message):
         if data.startswith("verify-"):
             parts = data.split("-", 2)
             if len(parts) < 3 or str(message.from_user.id) != parts[1]:
-                return await message.reply_text("<b>Invalid or expired link!</b>", protect_content=True)
+                return await message.reply_text("Invalid or expired link!", protect_content=True)
 
             if await check_token(client, parts[1], parts[2]):
                 await verify_user(client, parts[1], parts[2])
                 return await message.reply_text(
-                    f"<b>Hey {message.from_user.mention}, verification successful! ✅</b>",
+                    f"Hey {message.from_user.mention}, **verification** successful! ✅",
                     protect_content=True
                 )
             else:
-                return await message.reply_text("<b>Invalid or expired link!</b>", protect_content=True)
+                return await message.reply_text("Invalid or expired link!", protect_content=True)
 
         # --- Batch Handler ---
         if data.startswith("BATCH-"):
@@ -291,12 +288,12 @@ async def start(client, message):
                     [InlineKeyboardButton("How To Open Link & Verify", url=VERIFY_TUTORIAL)]
                 ]
                 return await message.reply_text(
-                    "<b>You are not verified! Kindly verify to continue.</b>",
+                    "You are not **verified**! Kindly **verify** to continue.",
                     protect_content=True,
                     reply_markup=InlineKeyboardMarkup(btn)
                 )
 
-            sts = await message.reply("**🔺 Please wait...**")
+            sts = await message.reply("Please wait...")
             file_id = data.split("-", 1)[1]
             msgs = BATCH_FILES.get(file_id)
 
@@ -339,7 +336,7 @@ async def start(client, message):
                 [InlineKeyboardButton("How To Open Link & Verify", url=VERIFY_TUTORIAL)]
             ]
             return await message.reply_text(
-                "<b>You are not verified! Kindly verify to continue.</b>",
+                "You are not **verified**! Kindly **verify** to continue.",
                 protect_content=True,
                 reply_markup=InlineKeyboardMarkup(btn)
             )
@@ -1407,7 +1404,7 @@ async def cb_handler(client: Client, query: CallbackQuery):
                         InlineKeyboardButton("📝 Message", callback_data=f"ad_message_{bot_id}"),
                         InlineKeyboardButton("❌ Disable", callback_data=f"ad_status_{bot_id}")]
                     ]
-                    status = f"🟢 Enabled\n\n⏱ Time: {time_set} hour\n\n📝 Message: {msg_set.format(time=f'{time_set} hour')}"
+                    status = f"🟢 Enabled\n\n⏱ Time: {time_set} hour\n\n📝 Message: {msg_set.format(time=f'{time_set}')}"
                 else:
                     buttons = [[InlineKeyboardButton("✅ Enable", callback_data=f"ad_status_{bot_id}")]]
                     status = "🔴 Disabled"
