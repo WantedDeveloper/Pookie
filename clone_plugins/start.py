@@ -123,13 +123,12 @@ async def start(client, message):
 
         # --- Single File Handler ---
         try:
-            decoded = base64.urlsafe_b64decode(data + "=" * (-len(data) % 4)).decode("ascii")
-            if decoded.startswith("file_"):
-                file_id = decoded.split("_", 1)[1]
-            else:
-                return await message.reply_text("❌ Invalid file link!")
-        except Exception:
-            return await message.reply_text("❌ Invalid file link!")
+            pre, file_id = data.split('_', 1)
+        except:
+            file_id = data
+            pre = ""   
+
+        pre, file_id = ((base64.urlsafe_b64decode(data + "=" * (-len(data) % 4))).decode("ascii")).split("_", 1)
 
         if clone.get("access_token", False) and not await check_verification(client, message.from_user.id):
             btn = [
@@ -258,16 +257,14 @@ async def link(bot, message):
             return await message.reply("❌ Unsupported file type.")
 
         #file_id = getattr(g_msg, file_type.value).file_id
-        file_id_attr = getattr(g_msg, file_type.value)
-        file_id, _ = unpack_new_file_id(file_id_attr.file_id)
+        file_id, ref = unpack_new_file_id((getattr(g_msg, file_type.value)).file_id)
+        string = 'file_'
+        string += file_id
 
-        # --- Encode for start link ---
-        out_str = "file_" + file_id
-        encoded_str = base64.urlsafe_b64encode(out_str.encode("ascii")).decode().rstrip("=")
+        outstr = base64.urlsafe_b64encode(string.encode("ascii")).decode().strip("=")
 
-        # --- Generate share link ---
         bot_username = (await bot.get_me()).username
-        share_link = f"https://t.me/{bot_username}?start={encoded_str}"
+        share_link = f"https://t.me/{bot_username}?start={outstr}"
 
         reply_markup = InlineKeyboardMarkup(
             [[InlineKeyboardButton("🔁 Share URL", url=f'https://t.me/share/url?url={share_link}')]]
