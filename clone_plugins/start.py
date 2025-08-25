@@ -128,17 +128,6 @@ async def start(client, message):
 
         pre, file_id = ((base64.urlsafe_b64decode(data + "=" * (-len(data) % 4))).decode("ascii")).split("_", 1)
 
-        if clone.get("access_token", False) and not await check_verification(client, message.from_user.id):
-            btn = [
-                [InlineKeyboardButton("✅ Verify", url=await get_token(client, message.from_user.id, f"https://t.me/{username}?start="))],
-                [InlineKeyboardButton("ℹ️ How To Open Link & Verify", url=clone.get("access_token_tutorial", None))]
-            ]
-            return await message.reply_text(
-                "🚫 You are not **verified**! Kindly **verify** to continue.",
-                protect_content=clone.get("forward_protect", False),
-                reply_markup=InlineKeyboardMarkup(btn)
-            )
-
         try:
             msg = await client.send_cached_media(
                 chat_id=message.from_user.id,
@@ -187,6 +176,24 @@ async def get_short_link(user, link):
     if data["status"] == "success" or rget.status_code == 200:
         return data["shortenedUrl"]
 
+def encode_file_ref(file_ref: bytes) -> str:
+    return base64.urlsafe_b64encode(file_ref).decode().rstrip("=")
+
+def unpack_new_file_id(new_file_id):
+    """Return file_id, file_ref"""
+    decoded = FileId.decode(new_file_id)
+    file_id = encode_file_id(
+        pack(
+            "<iiqq",
+            int(decoded.file_type),
+            decoded.dc_id,
+            decoded.media_id,
+            decoded.access_hash
+        )
+    )
+    file_ref = encode_file_ref(decoded.file_reference)
+    return file_id, file_ref
+
 @Client.on_message(filters.command(['genlink']) & filters.user(ADMINS) & filters.private)
 async def link(bot, message):
     try:
@@ -220,7 +227,8 @@ async def link(bot, message):
         if file_type not in supported_media:
             return await message.reply("❌ Unsupported file type.")
 
-        file_id = getattr(g_msg, file_type.value).file_id
+        #file_id = getattr(g_msg, file_type.value).file_id
+        file_id, ref = unpack_new_file_id((getattr(g_msg, file_type.value)).file_id)
         string = 'file_'
         string += file_id
 
