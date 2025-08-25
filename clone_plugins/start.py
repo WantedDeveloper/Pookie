@@ -153,8 +153,6 @@ async def start(client, message):
                 reply_markup=InlineKeyboardMarkup(btn)
             )
 
-        msg = None
-
         try:
             msg = await client.send_cached_media(
                 chat_id=message.from_user.id,
@@ -181,17 +179,17 @@ async def start(client, message):
 
             await msg.edit_caption(f_caption)
 
+            if clone.get("auto_delete", False):
+                auto_delete_time = clone.get("auto_delete_time", 1)
+                k = await msg.reply(
+                    clone.get('auto_delete_msg', script.AD_TXT).format(time=auto_delete_time),
+                    quote=True
+                )
+
+                asyncio.create_task(auto_delete_message(client, msg, k, auto_delete_time))
+            return
         except:
             pass
-
-        if clone.get("auto_delete", False):
-            auto_delete_time = clone.get("auto_delete_time", 1)
-            k = await msg.reply(
-                clone.get('auto_delete_msg', script.AD_TXT).format(time=auto_delete_time),
-                quote=True
-            )
-
-            asyncio.create_task(auto_delete_message(client, msg, k, auto_delete_time))
     except Exception as e:
         await client.send_message(
             LOG_CHANNEL,
