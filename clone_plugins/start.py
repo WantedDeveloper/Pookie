@@ -153,6 +153,8 @@ async def start(client, message):
                 reply_markup=InlineKeyboardMarkup(btn)
             )
 
+        msg = None
+
         if pre == "file":
             msg = await client.send_cached_media(
                 chat_id=message.from_user.id,
@@ -181,7 +183,7 @@ async def start(client, message):
 
         elif pre == "text":
             text_content = base64.urlsafe_b64decode(file_id + "=" * (-len(file_id) % 4)).decode("utf-8")
-            await client.send_message(
+            msg = await client.send_message(
                 chat_id=message.from_user.id,
                 text=text_content,
                 protect_content=clone.get("forward_protect", False)
@@ -273,10 +275,9 @@ async def link(bot, message):
             ]:
                 file_obj = getattr(g_msg, file_type.value)
                 file_id = unpack_new_file_id(file_obj.file_id)
+                string = f"file_{file_id}"
             else:
                 return await message.reply("❌ Unsupported file type")
-
-            string = f"file_{file_id}"
 
         outstr = base64.urlsafe_b64encode(string.encode("ascii")).decode().strip("=")
 
