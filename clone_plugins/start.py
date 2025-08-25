@@ -69,11 +69,6 @@ def get_size(size):
 @Client.on_message(filters.command("start") & filters.private & filters.incoming)
 async def start(client, message):
     try:
-        try:
-            await message.delete()
-        except:
-            pass
-
         me = await client.get_me()
         clone = await db.get_bot(me.id)
 
@@ -216,11 +211,6 @@ async def get_short_link(user, link):
 @Client.on_message(filters.command(['genlink']) & filters.user(ADMINS) & filters.private)
 async def link(bot, message):
     try:
-        try:
-            await message.delete()
-        except:
-            pass
-
         if message.reply_to_message:
             g_msg = message.reply_to_message
         else:
@@ -236,16 +226,28 @@ async def link(bot, message):
             if g_msg.text and g_msg.text.lower() == '/cancel':
                 return await message.reply('<b>🚫 Process has been cancelled.</b>')
 
-        if g_msg.media:
-            media_type = g_msg.media.value
-            file = getattr(g_msg, media_type)
-            file_id = file.file_id
-            string = f"{media_type}_{file_id}"
-        else:
+        string = None
+
+        # --- Media Handler ---
+        if g_msg.photo:
+            string = f"photo_{g_msg.photo.file_id}"
+        elif g_msg.video:
+            string = f"video_{g_msg.video.file_id}"
+        elif g_msg.document:
+            string = f"document_{g_msg.document.file_id}"
+        elif g_msg.audio:
+            string = f"audio_{g_msg.audio.file_id}"
+        elif g_msg.animation:
+            string = f"animation_{g_msg.animation.file_id}"
+        elif g_msg.voice:
+            string = f"voice_{g_msg.voice.file_id}"
+        elif g_msg.sticker:
+            string = f"sticker_{g_msg.sticker.file_id}"
+        elif g_msg.text or g_msg.caption:
             text = g_msg.text or g_msg.caption
-            if not text:
-                return await message.reply("❌ Unsupported message type.")
             string = f"text_{text}"
+        else:
+            return await message.reply("❌ Unsupported message type.")
 
         outstr = base64.urlsafe_b64encode(string.encode("ascii")).decode().strip("=")
 
@@ -287,11 +289,6 @@ async def link(bot, message):
 @Client.on_message(filters.command(['batch']) & filters.user(ADMINS) & filters.private)
 async def batch(bot, message):
     try:
-        try:
-            await message.delete()
-        except:
-            pass
-
         username = (await bot.get_me()).username
         usage_text = f"Use correct format.\nExample:\n/batch https://t.me/{username}/10 https://t.me/{username}/20"
 
@@ -446,11 +443,6 @@ def make_progress_bar(done, total):
 @Client.on_message(filters.command("broadcast") & filters.user(ADMINS) & filters.private)
 async def broadcast(bot, message):
     try:
-        try:
-            await message.delete()
-        except:
-            pass
-
         me = await bot.get_me()
 
         # Use reply-to-message if available
