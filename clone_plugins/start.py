@@ -148,19 +148,44 @@ async def start(client, message):
                 protect_content=clone.get("forward_protect", False),
             )
 
-            if msg.media:
-                filetype = msg.media
-                file = getattr(msg, filetype.value)
+            file = None
+            if msg:
+                if msg.document: file = msg.document
+                elif msg.video: file = msg.video
+                elif msg.audio: file = msg.audio
+                elif msg.photo: file = msg.photo
+                elif msg.animation: file = msg.animation
+                elif msg.voice: file = msg.voice
+                elif msg.video_note: file = msg.video_note
 
-                await db.add_storage_used(me.id, file.file_size)
+            if file:
+                if hasattr(file, "file_size"):
+                    await db.add_storage_used(me.id, file.file_size)
 
-                title = 'FuckYou  ' + ' '.join(filter(lambda x: not x.startswith('[') and not x.startswith('@'), file.file_name.split()))
-                size=get_size(file.file_size)
+                title = 'FuckYou  '
+                if hasattr(file, "file_name"):
+                    title += ' '.join(
+                        filter(lambda x: not x.startswith('[') and not x.startswith('@'),
+                               file.file_name.split())
+                    )
+                else:
+                    title += "Unknown File"
+
+                size = get_size(file.file_size) if hasattr(file, "file_size") else "0 B"
                 f_caption = f"<code>{title}</code>"
 
+                # Custom caption from DB
                 if clone.get("caption", None):
-                    f_caption=clone.get("caption", None).format(file_name= '' if title is None else title, file_size='' if size is None else size, file_caption='')
+                    f_caption = clone.get("caption").format(
+                        file_name=title,
+                        file_size=size,
+                        file_caption=''
+                    )
+
+                try:
                     await msg.edit_caption(f_caption)
+                except:
+                    pass
         elif pre == "text":
             msg = await client.send_message(
                 chat_id=message.from_user.id,
