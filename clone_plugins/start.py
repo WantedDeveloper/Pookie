@@ -155,7 +155,7 @@ async def start(client, message):
 
         msg = None
 
-        if pre == "file":
+        try:
             msg = await client.send_cached_media(
                 chat_id=message.from_user.id,
                 file_id=file_id,
@@ -181,15 +181,8 @@ async def start(client, message):
 
             await msg.edit_caption(f_caption)
 
-        elif pre == "text":
-            text_content = base64.urlsafe_b64decode(file_id + "=" * (-len(file_id) % 4)).decode("utf-8")
-            msg = await client.send_message(
-                chat_id=message.from_user.id,
-                text=text_content,
-                protect_content=clone.get("forward_protect", False)
-            )
-        else:
-            return await message.reply_text("❌ Unsupported data type!")
+        except:
+            pass
 
         if clone.get("auto_delete", False):
             auto_delete_time = clone.get("auto_delete_time", 1)
@@ -257,10 +250,6 @@ async def link(bot, message):
 
             if g_msg.text and g_msg.text.lower() == '/cancel':
                 return await message.reply('<b>🚫 Process has been cancelled.</b>')
-
-        if g_msg.text and not g_msg.media:
-            content = g_msg.text
-            string = f"text_{base64.urlsafe_b64encode(content.encode()).decode().strip('=')}"
 
         file_type = g_msg.media
 
