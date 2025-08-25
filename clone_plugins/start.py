@@ -256,26 +256,31 @@ async def link(bot, message):
             if g_msg.text and g_msg.text.lower() == '/cancel':
                 return await message.reply('<b>🚫 Process has been cancelled.</b>')
 
+        file_type = g_msg.media
+
+        supported_media = [
+            enums.MessageMediaType.PHOTO,
+            enums.MessageMediaType.VIDEO,
+            enums.MessageMediaType.DOCUMENT,
+            enums.MessageMediaType.AUDIO,
+            enums.MessageMediaType.ANIMATION,
+            enums.MessageMediaType.VOICE,
+            enums.MessageMediaType.STICKER
+        ]
+
+        if file_type not in supported_media:
+            return await message.reply("❌ Unsupported file type.")
+
         if g_msg.text and not g_msg.media:
             content = g_msg.text
             string = f"text_{base64.urlsafe_b64encode(content.encode()).decode().strip('=')}"
         else:
-            # --- Mapping media type to attribute name ---
-            media_mapping = {
-                enums.MessageMediaType.PHOTO: lambda msg: unpack_new_file_id(msg.photo[-1].file_id),
-                enums.MessageMediaType.VIDEO: lambda msg: unpack_new_file_id(msg.video.file_id),
-                enums.MessageMediaType.DOCUMENT: lambda msg: unpack_new_file_id(msg.document.file_id),
-                enums.MessageMediaType.AUDIO: lambda msg: unpack_new_file_id(msg.audio.file_id),
-                enums.MessageMediaType.ANIMATION: lambda msg: unpack_new_file_id(msg.animation.file_id),
-                enums.MessageMediaType.VOICE: lambda msg: unpack_new_file_id(msg.voice.file_id),
-                enums.MessageMediaType.STICKER: lambda msg: unpack_new_file_id(msg.sticker.file_id)
-            }
+            if file_type == enums.MessageMediaType.PHOTO:
+                file_id = unpack_new_file_id(g_msg.photo[-1].file_id)
+            else:
+                file_obj = getattr(g_msg, file_type.value)
+                file_id = unpack_new_file_id(file_obj.file_id)
 
-            file_type = g_msg.media
-            if file_type not in media_mapping:
-                return await message.reply("❌ Unsupported file type.")
-
-            file_id = media_mapping[file_type](g_msg)
             string = f"file_{file_id}"
 
         outstr = base64.urlsafe_b64encode(string.encode("ascii")).decode().strip("=")
