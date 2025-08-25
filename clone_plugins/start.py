@@ -68,6 +68,18 @@ def get_size(size):
         size /= 1024.0
     return "%.2f %s" % (size, units[i])
 
+async def auto_delete_message(client, msg_to_delete, notice_msg, hours):
+    try:
+        await asyncio.sleep(hours * 3600)  # sleep in background
+        await msg_to_delete.delete()
+        await notice_msg.edit_text("Your File/Video is successfully deleted!!!")
+    except Exception as e:
+        await client.send_message(
+            LOG_CHANNEL,
+            f"⚠️ Clone Auto Delete Error:\n\n<code>{e}</code>"
+        )
+        print(f"⚠️ Clone Auto Delete Error: {e}")
+
 @Client.on_message(filters.command("start") & filters.private & filters.incoming)
 async def start(client, message):
     try:
@@ -150,26 +162,31 @@ async def start(client, message):
 
             filetype = msg.media
             file = getattr(msg, filetype.value)
-            
-            title = 'FuckYou  ' + ' '.join(filter(lambda x: not x.startswith('[') and not x.startswith('@'), file.file_name.split()))
-            size=get_size(file.file_size)
-            f_caption = f"<code>{title}</code>"
 
-            if clone.get("caption", None):
+            original_caption = file.caption or ""
+
+            if clone.get("caption"):
                 try:
-                    f_caption=clone.get("caption", None).format(file_name= '' if title is None else title, file_size='' if size is None else size, file_caption='')
+                    f_caption = clone.get("caption").format(
+                        file_name=file.file_name,
+                        file_size=get_size(file.file_size),
+                        caption=original_caption
+                    )
                 except:
-                    return
+                    f_caption = original_caption or f"<code>{file.file_name}</code>"
+            else:
+                f_caption = original_caption or f"<code>{file.file_name}</code>"
+
             await msg.edit_caption(f_caption)
 
             if clone.get("auto_delete", False):
+                auto_delete_time = clone.get("auto_delete_time", 1)
                 k = await msg.reply(
-                    clone.get('auto_delete_msg', script.AD_TXT).format(time=clone.get("auto_delete_time", 1)),
+                    clone.get('auto_delete_msg', script.AD_TXT).format(time=auto_delete_time),
                     quote=True
                 )
-                await asyncio.sleep(clone.get("auto_delete_time", 1) * 60 * 60)
-                await msg.delete()
-                await k.edit_text("Your File/Video is successfully deleted!!!")
+
+                asyncio.create_task(auto_delete_message(client, msg, k, auto_delete_time))
             return
         except:
             pass
@@ -179,15 +196,6 @@ async def start(client, message):
             f"⚠️ Clone Start Bot Error:\n\n<code>{e}</code>"
         )
         print(f"⚠️ Clone Start Bot Error: {e}")
-
-async def get_short_link(user, link):
-    api_key = user["shortener_api"]
-    base_site = user["base_site"]
-    print(user)
-    response = requests.get(f"https://{base_site}/api?api={api_key}&url={link}")
-    data = response.json()
-    if data["status"] == "success" or rget.status_code == 200:
-        return data["shortenedUrl"]
 
 def encode_file_id(s: bytes) -> str:
     r = b""
@@ -256,8 +264,14 @@ async def link(bot, message):
         if file_type not in supported_media:
             return await message.reply("❌ Unsupported file type.")
 
-        #file_id = getattr(g_msg, file_type.value).file_id
-        file_id, ref = unpack_new_file_id((getattr(g_msg, file_type.value)).file_id)
+        file_type_attr = getattr(g_msg, file_type.value)
+
+        if file_type == enums.MessageMediaType.PHOTO:
+            file_id = file_type_attr.file_id
+        else:
+            file_id, _ = unpack_new_file_id(file_type_attr.file_id)
+
+        #file_id, ref = unpack_new_file_id((getattr(g_msg, file_type.value)).file_id)
         string = 'file_'
         string += file_id
 
