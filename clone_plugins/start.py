@@ -69,6 +69,11 @@ def get_size(size):
 @Client.on_message(filters.command("start") & filters.private & filters.incoming)
 async def start(client, message):
     try:
+        try:
+            await message.delete()
+        except:
+            pass
+
         me = await client.get_me()
         clone = await db.get_bot(me.id)
 
@@ -176,22 +181,31 @@ async def start(client, message):
 
         pre, file_id = ((base64.urlsafe_b64decode(data + "=" * (-len(data) % 4))).decode("ascii")).split("_", 1)
 
-        if clone.get("access_token") and not await check_verification(client, message.from_user.id):
+        if clone.get("access_token", False) and not await check_verification(client, message.from_user.id):
             btn = [
                 [InlineKeyboardButton("Verify", url=await get_token(client, message.from_user.id, f"https://t.me/{username}?start="))],
-                [InlineKeyboardButton("How To Open Link & Verify", url=clone.get("access_token_tutorial"))]
+                [InlineKeyboardButton("How To Open Link & Verify", url=clone.get("access_token_tutorial", None))]
             ]
             return await message.reply_text(
                 "You are not **verified**! Kindly **verify** to continue.",
-                protect_content=clone.get("forward_protect"),
+                protect_content=clone.get("forward_protect", False),
                 reply_markup=InlineKeyboardMarkup(btn)
             )
-    
-        msg = await client.send_cached_media(
-            chat_id=message.from_user.id,
-            file_id=file_id,
-            protect_content=clone.get("forward_protect"),
-        )
+
+        if pre == "file":
+            msg = await client.send_cached_media(
+                chat_id=message.from_user.id,
+                file_id=file_id,
+                protect_content=clone.get("forward_protect", False),
+            )
+        elif pre == "text":
+            await client.send_message(
+                chat_id=message.from_user.id,
+                text=file_id
+            )
+        else:
+            await message.reply("❌ Invalid link format.")
+
         await db.add_storage_used(me.id, file.file_size)
 
         filetype = msg.media
@@ -199,19 +213,19 @@ async def start(client, message):
         title = 'FuckYou  ' + ' '.join(filter(lambda x: not x.startswith('[') and not x.startswith('@'), file.file_name.split()))
         size=get_size(file.file_size)
         f_caption = f"<code>{title}</code>"
-        if clone.get("caption"):
+        if clone.get("caption", None):
             try:
-                f_caption=clone.get("caption").format(file_name= '' if title is None else title, file_size='' if size is None else size, file_caption='')
+                f_caption=clone.get("caption", None).format(file_name= '' if title is None else title, file_size='' if size is None else size, file_caption='')
             except:
                 return
         await msg.edit_caption(f_caption)
 
-        if clone.get("auto_delete"):
+        if clone.get("auto_delete", False):
             k = await msg.reply(
-                clone.get('auto_delete_msg').format(time=clone.get("auto_delete_time")),
+                clone.get('auto_delete_msg', script.AD_TXT).format(time=clone.get("auto_delete_time", 1)),
                 quote=True
             )
-            await asyncio.sleep(clone.get("auto_delete_time") * 60 * 60)
+            await asyncio.sleep(clone.get("auto_delete_time", 1) * 60 * 60)
             await msg.delete()
             await k.edit_text("Your File/Video is successfully deleted!!!")
     except Exception as e:
@@ -233,6 +247,11 @@ async def get_short_link(user, link):
 @Client.on_message(filters.command(['genlink']) & filters.user(ADMINS) & filters.private)
 async def link(bot, message):
     try:
+        try:
+            await message.delete()
+        except:
+            pass
+
         if message.reply_to_message:
             g_msg = message.reply_to_message
         else:
@@ -248,8 +267,17 @@ async def link(bot, message):
             if g_msg.text and g_msg.text.lower() == '/cancel':
                 return await message.reply('<b>🚫 Process has been cancelled.</b>')
 
+        if g_msg.media:
+            media_type = g_msg.media.value
+            file = getattr(g_msg, media_type)
+            file_id = file.file_id
+            string = f"file_{file_id}"
+        else:
+            text = g_msg.text or g_msg.caption
+            if not text:
+                return await message.reply("❌ Unsupported message type.")
+            string = f"text_{text}"
 
-        string = f"msg_{message.id}"
         outstr = base64.urlsafe_b64encode(string.encode("ascii")).decode().strip("=")
 
         bot_username = (await bot.get_me()).username
@@ -290,6 +318,11 @@ async def link(bot, message):
 @Client.on_message(filters.command(['batch']) & filters.user(ADMINS) & filters.private)
 async def batch(bot, message):
     try:
+        try:
+            await message.delete()
+        except:
+            pass
+
         username = (await bot.get_me()).username
         usage_text = f"Use correct format.\nExample:\n/batch https://t.me/{username}/10 https://t.me/{username}/20"
 
@@ -444,6 +477,11 @@ def make_progress_bar(done, total):
 @Client.on_message(filters.command("broadcast") & filters.user(ADMINS) & filters.private)
 async def broadcast(bot, message):
     try:
+        try:
+            await message.delete()
+        except:
+            pass
+
         me = await bot.get_me()
 
         # Use reply-to-message if available
