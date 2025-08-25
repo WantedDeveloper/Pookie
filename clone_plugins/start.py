@@ -121,12 +121,10 @@ async def start(client, message):
 
         # --- Single File Handler ---
         try:
-            pre, file_id = data.split('_', 1)
-        except:
-            file_id = data
-            pre = ""   
-
-        pre, file_id = ((base64.urlsafe_b64decode(data + "=" * (-len(data) % 4))).decode("ascii")).split("_", 1)
+            decoded = base64.urlsafe_b64decode(data + "=" * (-len(data) % 4)).decode("ascii")
+            pre, file_id = decoded.split("_", 1)
+        except Exception as e:
+            return await message.reply("❌ Invalid or corrupted link.")
 
         if clone.get("access_token", False) and not await check_verification(client, message.from_user.id):
             btn = [
