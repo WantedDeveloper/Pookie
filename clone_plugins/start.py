@@ -141,48 +141,33 @@ async def start(client, message):
 
         msg = None
 
-        # Handle based on media type
-        if pre == "photo":
-            msg = await client.send_photo(message.from_user.id, photo=file_id, protect_content=clone.get("forward_protect", False))
-        elif pre == "video":
-            msg = await client.send_video(message.from_user.id, video=file_id, protect_content=clone.get("forward_protect", False))
-        elif pre == "document":
-            msg = await client.send_document(message.from_user.id, document=file_id, protect_content=clone.get("forward_protect", False))
-        elif pre == "audio":
-            msg = await client.send_audio(message.from_user.id, audio=file_id, protect_content=clone.get("forward_protect", False))
-        elif pre == "animation":
-            msg = await client.send_animation(message.from_user.id, animation=file_id, protect_content=clone.get("forward_protect", False))
-        elif pre == "voice":
-            msg = await client.send_voice(message.from_user.id, voice=file_id, protect_content=clone.get("forward_protect", False))
-        elif pre == "sticker":
-            msg = await client.send_sticker(message.from_user.id, sticker=file_id)
-        elif pre == "text":
-            msg = await client.send_message(message.from_user.id, text=file_id)
-        else:
-            return await message.reply("❌ Unsupported or invalid file type.")
+        if pre == "file":
+            msg = await client.send_cached_media(
+                chat_id=message.from_user.id,
+                file_id=file_id,
+                protect_content=clone.get("forward_protect", False),
+            )
 
-        # If file/media -> caption logic
-        if msg and pre != "text" and pre != "sticker":
-            file = getattr(msg, pre, None)
-            if file:
-                size = get_size(file.file_size)
-                title = file.file_name if hasattr(file, "file_name") else "Unnamed File"
-                f_caption = f"<code>{title}</code> ({size})"
+            if msg.media:
+                filetype = msg.media
+                file = getattr(msg, filetype.value)
 
-                if clone.get("caption"):
-                    try:
-                        f_caption = clone.get("caption").format(
-                            file_name=title,
-                            file_size=size,
-                            file_caption=''
-                        )
-                    except:
-                        pass
+                await db.add_storage_used(me.id, file.file_size)
 
-                try:
+                title = 'FuckYou  ' + ' '.join(filter(lambda x: not x.startswith('[') and not x.startswith('@'), file.file_name.split()))
+                size=get_size(file.file_size)
+                f_caption = f"<code>{title}</code>"
+
+                if clone.get("caption", None):
+                    f_caption=clone.get("caption", None).format(file_name= '' if title is None else title, file_size='' if size is None else size, file_caption='')
                     await msg.edit_caption(f_caption)
-                except:
-                    pass
+        elif pre == "text":
+            msg = await client.send_message(
+                chat_id=message.from_user.id,
+                text=file_id
+            )
+        else:
+            await message.reply("❌ Invalid link format.")
 
         if clone.get("auto_delete", False):
             k = await msg.reply(
@@ -230,19 +215,19 @@ async def link(bot, message):
 
         # --- Media Handler ---
         if g_msg.photo:
-            string = f"photo_{g_msg.photo.file_id}"
+            string = f"file_{g_msg.photo.file_id}"
         elif g_msg.video:
-            string = f"video_{g_msg.video.file_id}"
+            string = f"file_{g_msg.video.file_id}"
         elif g_msg.document:
-            string = f"document_{g_msg.document.file_id}"
+            string = f"file_{g_msg.document.file_id}"
         elif g_msg.audio:
-            string = f"audio_{g_msg.audio.file_id}"
+            string = f"file_{g_msg.audio.file_id}"
         elif g_msg.animation:
-            string = f"animation_{g_msg.animation.file_id}"
+            string = f"file_{g_msg.animation.file_id}"
         elif g_msg.voice:
-            string = f"voice_{g_msg.voice.file_id}"
+            string = f"file_{g_msg.voice.file_id}"
         elif g_msg.sticker:
-            string = f"sticker_{g_msg.sticker.file_id}"
+            string = f"file_{g_msg.sticker.file_id}"
         elif g_msg.text or g_msg.caption:
             text = g_msg.text or g_msg.caption
             string = f"text_{text}"
