@@ -122,11 +122,11 @@ async def start(client, message):
         # --- Single File Handler ---
         try:
             decoded = base64.urlsafe_b64decode(data + "=" * (-len(data) % 4)).decode("ascii")
-            parts = decoded.split("_", 2)  # max 3 parts
-        except:
+            # Use partition to safely extract file_type and file_id (handles underscores)
+            pre, _, rest = decoded.partition("_")
+            file_type, _, file_id = rest.partition("_")
+        except Exception as e:
             return await message.reply("❌ Invalid link format.")
-
-        pre = parts[0]
 
         if clone.get("access_token", False) and not await check_verification(client, message.from_user.id):
             btn = [
