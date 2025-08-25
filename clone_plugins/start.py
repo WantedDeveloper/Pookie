@@ -260,24 +260,27 @@ async def link(bot, message):
 
         file_type = g_msg.media
 
+        supported_media = [
+            enums.MessageMediaType.PHOTO,
+            enums.MessageMediaType.VIDEO,
+            enums.MessageMediaType.DOCUMENT,
+            enums.MessageMediaType.AUDIO,
+            enums.MessageMediaType.ANIMATION,
+            enums.MessageMediaType.VOICE,
+            enums.MessageMediaType.STICKER
+        ]
+
+        string = None
+
         if g_msg.text and not g_msg.media:
             content = g_msg.text
             string = f"text_{base64.urlsafe_b64encode(content.encode()).decode().strip('=')}"
+        elif supported_media:
+            file_obj = getattr(g_msg, file_type.value)
+            file_id = unpack_new_file_id(file_obj.file_id)
+            string = f"file_{file_id}"
         else:
-            if file_type in [
-                enums.MessageMediaType.PHOTO,
-                enums.MessageMediaType.VIDEO,
-                enums.MessageMediaType.DOCUMENT,
-                enums.MessageMediaType.AUDIO,
-                enums.MessageMediaType.ANIMATION,
-                enums.MessageMediaType.VOICE,
-                enums.MessageMediaType.STICKER
-            ]:
-                file_obj = getattr(g_msg, file_type.value)
-                file_id = unpack_new_file_id(file_obj.file_id)
-                string = f"file_{file_id}"
-            else:
-                return await message.reply("❌ Unsupported file type")
+            return await message.reply("❌ Unsupported file type.")
 
         outstr = base64.urlsafe_b64encode(string.encode("ascii")).decode().strip("=")
 
