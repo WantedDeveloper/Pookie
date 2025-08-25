@@ -1,5 +1,6 @@
 import os, logging, asyncio, re, json, base64, requests, time, datetime, motor.motor_asyncio
 from validators import domain
+from struct import pack
 from pyrogram import Client, filters, enums
 from pyrogram.types import *
 from pyrogram.file_id import FileId
