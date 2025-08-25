@@ -258,6 +258,10 @@ async def link(bot, message):
             if g_msg.text and g_msg.text.lower() == '/cancel':
                 return await message.reply('<b>🚫 Process has been cancelled.</b>')
 
+        if g_msg.text and not g_msg.media:
+            content = g_msg.text
+            string = f"text_{base64.urlsafe_b64encode(content.encode()).decode().strip('=')}"
+
         file_type = g_msg.media
 
         supported_media = [
@@ -270,17 +274,15 @@ async def link(bot, message):
             enums.MessageMediaType.STICKER
         ]
 
-        string = None
-
         if g_msg.text and not g_msg.media:
             content = g_msg.text
             string = f"text_{base64.urlsafe_b64encode(content.encode()).decode().strip('=')}"
-        elif supported_media:
-            file_obj = getattr(g_msg, file_type.value)
-            file_id = unpack_new_file_id(file_obj.file_id)
-            string = f"file_{file_id}"
-        else:
+        elif file_type not in supported_media:
             return await message.reply("❌ Unsupported file type.")
+
+        file_id = unpack_new_file_id((getattr(g_msg, file_type.value)).file_id)
+        string = 'file_'
+        string += file_id
 
         outstr = base64.urlsafe_b64encode(string.encode("ascii")).decode().strip("=")
 
