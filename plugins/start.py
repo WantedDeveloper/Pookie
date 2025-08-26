@@ -1580,14 +1580,12 @@ async def cb_handler(client: Client, query: CallbackQuery):
                 await db.update_clone(bot_id, {"auto_post": new_value})
 
                 if new_value:
-                    DB_CHANNEL_ID = -1002715566833
-                    TARGET_CHANNEL_ID = -1002855763957
-                    asyncio.create_task(clone_plugins.start.auto_post_clone(client, bot_id, DB_CHANNEL_ID, TARGET_CHANNEL_ID))
+                    asyncio.create_task(clone_plugins.start.auto_post_clone(client, bot_id, DBX_CHANNEL, TARGETX_CHANNEL))
                     status_text = "🟢 **Auto Post** has been successfully ENABLED!"
                 else:
                     status_text = "🔴 **Auto Post** has been successfully DISABLED!"
 
-                buttons = [[InlineKeyboardButton("⬅️ Back", callback_data=f"auto_caption_{bot_id}")]]
+                buttons = [[InlineKeyboardButton("⬅️ Back", callback_data=f"auto_post_{bot_id}")]]
                 await query.message.edit_text(
                     text=status_text,
                     reply_markup=InlineKeyboardMarkup(buttons)
