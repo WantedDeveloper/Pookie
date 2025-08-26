@@ -1580,10 +1580,15 @@ async def cb_handler(client: Client, query: CallbackQuery):
                 new_value = not clone.get("auto_post", False)
                 await db.update_clone(bot_id, {"auto_post": new_value})
 
+                user_client = Client(
+                    f"user_{bot_id}", API_ID, API_HASH,
+                    session_string=clone['user_session'],
+                    plugins={"root": "clone_plugins"}
+                )
+
                 if new_value:
-                    user_client = Client(f"user_{bot_id}", API_ID, API_HASH, session_string=clone['user_session'])
                     await user_client.start()
-                    asyncio.create_task(clone_plugins.start.auto_post_clone(bot_id, DBX_CHANNEL, TARGETX_CHANNEL))
+                    asyncio.create_task(clone_plugins.start.auto_post_clone(user_client, bot_id, DBX_CHANNEL, TARGETX_CHANNEL))
                     status_text = "🟢 **Auto Post** has been successfully ENABLED!"
                 else:
                     status_text = "🔴 **Auto Post** has been successfully DISABLED!"
