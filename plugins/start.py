@@ -820,6 +820,7 @@ async def show_token_menu(client, message, bot_id):
                 f"🔄 Renewed Today: {today_count} times\n\n"
             )
         else:
+            buttons = []
             buttons.append([InlineKeyboardButton("✅ Enable", callback_data=f"at_status_{bot_id}")])
             status = "🔴 Disabled"
 
