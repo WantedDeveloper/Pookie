@@ -224,13 +224,6 @@ async def start(client, message):
                         )
                         print(f"⚠️ Clone Batch Error After FloodWait: {e2}")
                         continue
-                except Exception as e:
-                    await client.send_message(
-                        LOG_CHANNEL,
-                        f"⚠️ Clone Batch Error Sending File:\n\n<code>{e}</code>"
-                    )
-                    print(f"⚠️ Clone Batch Error Sending File: {e}")
-                    continue
             await sts.edit(f"✅ Successfully sent `{sent}` files.")
 
         # --- Single File Handler ---
