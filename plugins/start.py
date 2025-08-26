@@ -1580,15 +1580,9 @@ async def cb_handler(client: Client, query: CallbackQuery):
                 new_value = not clone.get("auto_post", False)
                 await db.update_clone(bot_id, {"auto_post": new_value})
 
-                user_client = Client(
-                    f"user_{bot_id}",
-                    API_ID,
-                    API_HASH,
-                    session_string=clone['user_session']
-                )
-
                 if new_value:
-                    print(clone['user_session'])
+                    await user_client.start()
+                    user_client = Client(f"user_{bot_id}", API_ID, API_HASH, session_string=clone['user_session'])
                     await user_client.start()
                     asyncio.create_task(clone_plugins.start.auto_post_clone(bot_id, DBX_CHANNEL, TARGETX_CHANNEL))
                     status_text = "🟢 **Auto Post** has been successfully ENABLED!"
@@ -2048,8 +2042,8 @@ async def message_capture(client: Client, message: Message):
             await xd.start()
             bot = await xd.get_me()
             session_string = await xd.export_session_string()
-            print(session_string)
             await db.add_clone_bot(bot.id, user_id, bot.first_name, bot.username, token, session_string)
+            await xd.stop()
 
             try:
                 await xd.promote_chat_member(
