@@ -64,7 +64,7 @@ VERIFIED = {}
 BATCH_FILES = {}
         
 async def get_verify_shorted_link(link):
-    clone = await db.get_clone_by_id(bot_id)=
+    clone = await db.get_clone_by_id(bot_id)
     if SHORTLINK_URL == clone.get("shorten_link", None):
         url = f'https://{SHORTLINK_URL}/easy_api'
         params = {
