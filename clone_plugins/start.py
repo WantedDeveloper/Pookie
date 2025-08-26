@@ -264,7 +264,7 @@ async def link(bot, message):
         if file_type not in supported_media:
             return await message.reply("❌ Unsupported file type.")
 
-        file_id = unpack_new_file_id((getattr(g_msg, file_type.value)).file_id)
+        file_id, ref = unpack_new_file_id((getattr(g_msg, file_type.value)).file_id)
         string = 'file_'
         string += file_id
 
