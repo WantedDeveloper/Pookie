@@ -399,15 +399,19 @@ def unpack_new_file_id(new_file_id):
     file_ref = encode_file_ref(decoded.file_reference)
     return file_id, file_ref
 
-async def auto_post_clone(user_client: Client, bot_id: int, db_channel: int, target_channel: int):
-    while True:
-        try:
-            clone = await db.get_clone_by_id(bot_id)
-            if not clone or not clone.get("auto_post", False):
-                # Auto-post disabled, check again after 60s
-                await asyncio.sleep(60)
-                continue
+async def auto_post_clone(bot_id: int, db_channel: int, target_channel: int):
+    clone = await db.get_clone_by_id(bot_id)
+    if not clone or not clone.get("auto_post", False):
+        return
 
+    user_client = Client(
+        f"user_{bot_id}", API_ID, API_HASH,
+        session_string=clone['user_session']
+    )
+    await user_client.start()
+
+    while clone.get("auto_post", False):
+        try:
             try:
                 await user_client.get_chat(db_channel)
                 await user_client.get_chat(target_channel)
@@ -417,7 +421,7 @@ async def auto_post_clone(user_client: Client, bot_id: int, db_channel: int, tar
 
             messages = []
             async for msg in user_client.get_chat_history(db_channel, limit=1000):
-                if msg.media:  # Only media messages
+                if msg.media:
                     messages.append(msg)
 
             if not messages:
@@ -427,7 +431,6 @@ async def auto_post_clone(user_client: Client, bot_id: int, db_channel: int, tar
             unposted_msgs = [m for m in messages if m.message_id > last_posted]
 
             if not unposted_msgs:
-                # All messages posted, start over
                 unposted_msgs = messages
                 await db.update_clone(bot_id, {"last_posted_id": 0})
 
@@ -436,7 +439,6 @@ async def auto_post_clone(user_client: Client, bot_id: int, db_channel: int, tar
             file_type = next_msg.media
             file = getattr(next_msg, file_type.value, None)
             if not file:
-                # Skip if media not accessible
                 await db.update_clone(bot_id, {"last_posted_id": next_msg.message_id})
                 continue
 
@@ -478,6 +480,7 @@ async def auto_post_clone(user_client: Client, bot_id: int, db_channel: int, tar
                 f"⚠️ Clone Auto Post Error:\n\n<code>{e}</code>\n\nKindly check this message for assistance."
             )
             print(f"⚠️ Auto-post error: {e}")
+    await user_client.stop()
 
 @Client.on_message(filters.command(['genlink']) & filters.user(ADMINS) & filters.private)
 async def link(bot, message):
