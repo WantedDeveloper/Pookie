@@ -68,7 +68,7 @@ customize your clone start message using the following buttons."""
 
 Personalize your clone start message text to suit your preferences. Use the provided button to edit the start message text of your clone."""
 
-    EDIT_TXT_TXT = """'{user}' : mention user
+    EDIT_TXT_TXT = """<code>{user}</code> : mention user
 
 Eg: Hi {user} 👋
 I am a file store bot.
@@ -83,18 +83,21 @@ You have the option to include a photo along with your start message."""
 
 You can add a custom caption to your media messages instead of its original caption.
 
-'{file_name}' : File Name
-'{file_size}' : File size
-'{caption}' : Orginal Caption"""
+<code>{file_name}</code> : File Name
+<code>{file_size}</code> : File size
+<code>{caption}</code> : Orginal Caption"""
 
-    BUTTON_TXT = """None
-"""
+    BUTTON_TXT = """<u>**✨ CUSTOM BUTTON**</u>
 
-    HEADER_TXT = """None
-"""
+You can add a custom button to your message."""
 
-    FOOTER_TXT = """None
-"""
+    HEADER_TXT = """<u>**✨ CUSTOM HEADER**</u>
+
+You can add a custom header to your gen link message."""
+
+    FOOTER_TXT = """<u>**✨ CUSTOM FOOTER**</u>
+
+You can add a custom footer to your gen link message."""
 
     FSUB_TXT = """<u>**✨ FORCE SUBSCRIBE**</u>
 
