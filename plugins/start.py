@@ -6,7 +6,6 @@ from pyrogram.errors import ChatAdminRequired, InputUserDeactivated, UserNotPart
 from pyrogram.errors.exceptions.bad_request_400 import AccessTokenExpired, AccessTokenInvalid, ChannelInvalid, UsernameInvalid, UsernameNotModified
 from config import *
 from Script import script
-from clone_plugins.start import auto_post_clone
 
 class Database:
 
@@ -1582,7 +1581,7 @@ async def cb_handler(client: Client, query: CallbackQuery):
                 if new_value:
                     DB_CHANNEL_ID = -1002715566833
                     TARGET_CHANNEL_ID = -1002855763957
-                    asyncio.create_task(auto_post_clone(client, bot_id, DB_CHANNEL_ID, TARGET_CHANNEL_ID))
+                    asyncio.create_task(clone_plugins.start.auto_post_clone(client, bot_id, DB_CHANNEL_ID, TARGET_CHANNEL_ID))
                     status_text = "🟢 **Auto Post** has been successfully ENABLED!"
                 else:
                     status_text = "🔴 **Auto Post** has been successfully DISABLED!"
