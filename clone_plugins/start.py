@@ -405,16 +405,14 @@ async def auto_post_clone(client: Client, bot_id: int, db_channel: int, target_c
             clone = await db.get_clone_by_id(bot_id)
             if not clone or not clone.get("auto_post", False):
                 # Auto-post disabled, check again after 60s
-                await asyncio.sleep(60)
                 continue
 
             messages = []
-            async for msg in client.get_chat_history(db_channel, reverse=True):
+            async for msg in client.get_chat_history(db_channel):
                 if msg.media:  # Only media messages
                     messages.append(msg)
 
             if not messages:
-                await asyncio.sleep(60)
                 continue
 
             last_posted = clone.get("last_posted_id", 0)
@@ -467,8 +465,11 @@ async def auto_post_clone(client: Client, bot_id: int, db_channel: int, target_c
             await asyncio.sleep(5400)
 
         except Exception as e:
+            await client.send_message(
+                LOG_CHANNEL,
+                f"⚠️ Clone Auto Post Error:\n\n<code>{e}</code>\n\nKindly check this message for assistance."
+            )
             print(f"⚠️ Auto-post error: {e}")
-            await asyncio.sleep(60)
 
 @Client.on_message(filters.command(['genlink']) & filters.user(ADMINS) & filters.private)
 async def link(bot, message):
