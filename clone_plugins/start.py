@@ -405,10 +405,18 @@ async def auto_post_clone(client: Client, bot_id: int, db_channel: int, target_c
             clone = await db.get_clone_by_id(bot_id)
             if not clone or not clone.get("auto_post", False):
                 # Auto-post disabled, check again after 60s
+                await asyncio.sleep(60)
                 continue
 
+            try:
+                await client.get_chat(db_channel)
+                await client.get_chat(target_channel)
+            except Exception as e:
+                print(f"Access Error: {e}")
+                return
+
             messages = []
-            async for msg in client.get_chat_history(db_channel):
+            async for msg in client.get_chat_history(db_channel, limit=1000):
                 if msg.media:  # Only media messages
                     messages.append(msg)
 
