@@ -536,7 +536,7 @@ async def batch(bot, message):
         if header:
             text += f"{header}\n\n"
 
-        text += f"✅ Contains `{og_msg}` files.\n\nHere is your link:\n\n{share_link}",
+        text += f"✅ Contains `{og_msg}` files.\n\nHere is your link:\n\n{share_link}"
 
         if footer:
             text += f"\n\n{footer}"
