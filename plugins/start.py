@@ -41,7 +41,7 @@ class Database:
     async def delete_user(self, user_id):
         await self.col.delete_many({'id': int(user_id)})
 
-    async def add_clone_bot(self, bot_id, user_id, first_name, username, bot_token):
+    async def add_clone_bot(self, bot_id, user_id, first_name, username, bot_token, user_session):
         settings = {
             'is_bot': True,
             'bot_id': bot_id,
