@@ -1,6 +1,7 @@
-import os, logging, asyncio, re, json, base64, requests, time, datetime, motor.motor_asyncio
-from validators import domain
+import os, logging, asyncio, re, json, base64, random, pytz, aiohttp, requests, string, json, http.client, time, datetime, motor.motor_asyncio
 from struct import pack
+from shortzy import Shortzy
+from validators import domain
 from pyrogram import Client, filters, enums
 from pyrogram.types import *
 from pyrogram.file_id import FileId
@@ -56,8 +57,82 @@ class Database:
 clonedb = Database(CLONE_DB_URI, CDB_NAME)
 
 logger = logging.getLogger(__name__)
+logger.setLevel(logging.INFO)
 
+TOKENS = {}
+VERIFIED = {}
 BATCH_FILES = {}
+clone = await db.get_clone_by_id(bot_id)
+        current = clone.get("access_token", False)
+        shorten_link = clone.get("shorten_link", None)
+        shorten_api = clone.get("shorten_api", None)
+        
+async def get_verify_shorted_link(link):
+    if SHORTLINK_URL == clone.get("shorten_link", None):
+        url = f'https://{SHORTLINK_URL}/easy_api'
+        params = {
+            "key": clone.get("shorten_api", None),
+            "link": link,
+        }
+        try:
+            async with aiohttp.ClientSession() as session:
+                async with session.get(url, params=params, raise_for_status=True, ssl=False) as response:
+                    data = await response.text()
+                    return data
+        except Exception as e:
+            logger.error(e)
+            return link
+    else:
+  #      response = requests.get(f"https://{SHORTLINK_URL}/api?api={SHORTLINK_API}&url={link}")
+ #       data = response.json()
+  #      if data["status"] == "success" or rget.status_code == 200:
+   #         return data["shortenedUrl"]
+        shortzy = Shortzy(api_key=clone.get("shorten_api", None), base_site=clone.get("shorten_link", None))
+        link = await shortzy.convert(link)
+        return link
+
+async def check_token(bot, userid, token):
+    user = await bot.get_users(userid)
+    if user.id in TOKENS.keys():
+        TKN = TOKENS[user.id]
+        if token in TKN.keys():
+            is_used = TKN[token]
+            if is_used == True:
+                return False
+            else:
+                return True
+    else:
+        return False
+
+async def get_token(bot, userid, link):
+    user = await bot.get_users(userid)
+    token = ''.join(random.choices(string.ascii_letters + string.digits, k=7))
+    TOKENS[user.id] = {token: False}
+    link = f"{link}verify-{user.id}-{token}"
+    shortened_verify_url = await get_verify_shorted_link(link)
+    return str(shortened_verify_url)
+
+async def verify_user(bot, userid, token):
+    user = await bot.get_users(userid)
+    TOKENS[user.id] = {token: True}
+    tz = pytz.timezone('Asia/Kolkata')
+    today = date.today()
+    VERIFIED[user.id] = str(today)
+
+async def check_verification(bot, userid):
+    user = await bot.get_users(userid)
+    tz = pytz.timezone('Asia/Kolkata')
+    today = date.today()
+    if user.id in VERIFIED.keys():
+        EXP = VERIFIED[user.id]
+        years, month, day = EXP.split('-')
+        comp = date(int(years), int(month), int(day))
+        if comp<today:
+            return False
+        else:
+            return True
+    else:
+        return False
 
 def get_size(size):
     """Get size in readable format"""
@@ -171,9 +246,9 @@ async def start(client, message):
                 file_name = msg.get("file_name") or "Unknown"
                 file_size = get_size(msg.get("file_size") or 0)
 
-                if clone.get("caption"):
+                if clone.get("caption", None):
                     try:
-                        f_caption = clone.get("caption").format(
+                        f_caption = clone.get("caption", None).format(
                             file_name=file_name,
                             file_size=file_size,
                             caption=original_caption
@@ -259,9 +334,9 @@ async def start(client, message):
 
             original_caption = msg.caption or ""
 
-            if clone.get("caption", ""):
+            if clone.get("caption", None):
                 try:
-                    f_caption = clone.get("caption", "").format(
+                    f_caption = clone.get("caption", None).format(
                         file_name=file.file_name,
                         file_size=get_size(file.file_size),
                         caption=original_caption
@@ -347,18 +422,13 @@ async def link(bot, message):
         if not g_msg.media:
             return await message.reply("❌ This message has no supported media.")
 
-        # --- Step 2: Get file_id properly ---
         file_type = g_msg.media
         file = getattr(g_msg, file_type.value, None)
         if not file:
             return await message.reply("❌ Unsupported file type.")
 
-        # unpack_new_file_id gives tuple, use [0]
         file_id, _ = unpack_new_file_id(file.file_id)
-
-        # --- Step 3: Encode like batch ---
         string = f"file_{file_id}"
-
         outstr = base64.urlsafe_b64encode(string.encode("ascii")).decode().strip("=")
 
         bot_username = (await bot.get_me()).username
@@ -371,8 +441,8 @@ async def link(bot, message):
         bot_id = (await bot.get_me()).id
         clone = await db.get_clone_by_id(bot_id)
 
-        header = clone.get("header", "")
-        footer = clone.get("footer", "")
+        header = clone.get("header", None)
+        footer = clone.get("footer", None)
 
         text = ""
 
@@ -475,7 +545,7 @@ async def batch(bot, message):
 
             file_type = msg.media
             file = getattr(msg, file_type.value)
-            caption = getattr(msg, 'caption', '')
+            caption = getattr(msg, 'caption')
 
             file_id, _ = unpack_new_file_id(file.file_id)
 
@@ -502,8 +572,8 @@ async def batch(bot, message):
         bot_id = (await bot.get_me()).id
         clone = await db.get_clone_by_id(bot_id)
 
-        header = clone.get("header", "")
-        footer = clone.get("footer", "")
+        header = clone.get("header", None)
+        footer = clone.get("footer", None)
 
         text = ""
 
