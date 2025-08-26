@@ -399,6 +399,77 @@ def unpack_new_file_id(new_file_id):
     file_ref = encode_file_ref(decoded.file_reference)
     return file_id, file_ref
 
+async def auto_post_clone(client: Client, bot_id: int, db_channel: int, target_channel: int):
+    while True:
+        try:
+            clone = await db.get_clone_by_id(bot_id)
+            if not clone or not clone.get("auto_post", False):
+                # Auto-post disabled, check again after 60s
+                await asyncio.sleep(60)
+                continue
+
+            messages = []
+            async for msg in client.get_chat_history(db_channel, reverse=True):
+                if msg.media:  # Only media messages
+                    messages.append(msg)
+
+            if not messages:
+                await asyncio.sleep(60)
+                continue
+
+            last_posted = clone.get("last_posted_id", 0)
+            unposted_msgs = [m for m in messages if m.message_id > last_posted]
+
+            if not unposted_msgs:
+                # All messages posted, start over
+                unposted_msgs = messages
+                await db.update_clone(bot_id, {"last_posted_id": 0})
+
+            next_msg = unposted_msgs[0]
+
+            file_type = next_msg.media
+            file = getattr(next_msg, file_type.value, None)
+            if not file:
+                # Skip if media not accessible
+                await db.update_clone(bot_id, {"last_posted_id": next_msg.message_id})
+                continue
+
+            file_id, _ = unpack_new_file_id(file.file_id)
+            string = f"file_{file_id}"
+            outstr = base64.urlsafe_b64encode(string.encode("ascii")).decode().strip("=")
+            bot_username = (await client.get_me()).username
+            share_link = f"https://t.me/{bot_username}?start={outstr}"
+
+            header = clone.get("header", None)
+            footer = clone.get("footer", None)
+            selected_caption = random.choice(script.CAPTION_LIST)
+
+            text = ""
+            if header:
+                text += f"{header}\n\n"
+
+            text += f"{selected_caption}\n\nHere is your link:\n{share_link}"
+
+            if footer:
+                text += f"\n\n{footer}"
+
+            # Send photo with link
+            await client.send_photo(
+                chat_id=target_channel,
+                photo="https://i.ibb.co/JRBF3zQt/images.jpg",
+                caption=text
+            )
+
+            # Update last posted
+            await db.update_clone(bot_id, {"last_posted_id": next_msg.message_id})
+
+            # Wait 1.5 hours (5400s) before next post
+            await asyncio.sleep(5400)
+
+        except Exception as e:
+            print(f"⚠️ Auto-post error: {e}")
+            await asyncio.sleep(60)
+
 @Client.on_message(filters.command(['genlink']) & filters.user(ADMINS) & filters.private)
 async def link(bot, message):
     try:
@@ -439,6 +510,8 @@ async def link(bot, message):
         bot_id = (await bot.get_me()).id
         clone = await db.get_clone_by_id(bot_id)
 
+        selected_caption = random.choice(script.CAPTION_LIST)
+
         header = clone.get("header", None)
         footer = clone.get("footer", None)
 
@@ -447,7 +520,10 @@ async def link(bot, message):
         if header:
             text += f"{header}\n\n"
 
-        text += f"Here is your link:\n\n{share_link}"
+        if clone.get("random_caption", False):
+            text += f"{selected_caption}\n\nHere is your link:\n{share_link}"
+        else:
+            text += f"Here is your link:\n{share_link}"
 
         if footer:
             text += f"\n\n{footer}"
