@@ -399,7 +399,7 @@ def unpack_new_file_id(new_file_id):
     file_ref = encode_file_ref(decoded.file_reference)
     return file_id, file_ref
 
-async def auto_post_clone(user_client: Client, clone_client: Client, bot_id: int, db_channel: int, target_channel: int):
+async def auto_post_clone(user_client: Client, bot_id: int, db_channel: int, target_channel: int):
     while True:
         try:
             clone = await db.get_clone_by_id(bot_id)
@@ -416,7 +416,7 @@ async def auto_post_clone(user_client: Client, clone_client: Client, bot_id: int
                 return
 
             messages = []
-            async for msg in user_client.get_chat_history(db_channel, limit=100):
+            async for msg in user_client.get_chat_history(db_channel, limit=1000):
                 if msg.media:  # Only media messages
                     messages.append(msg)
 
@@ -443,7 +443,7 @@ async def auto_post_clone(user_client: Client, clone_client: Client, bot_id: int
             file_id, _ = unpack_new_file_id(file.file_id)
             string = f"file_{file_id}"
             outstr = base64.urlsafe_b64encode(string.encode("ascii")).decode().strip("=")
-            bot_username = (await clone_client.get_me()).username
+            bot_username = (await user_client.get_me()).username
             share_link = f"https://t.me/{bot_username}?start={outstr}"
 
             header = clone.get("header", None)
@@ -460,7 +460,7 @@ async def auto_post_clone(user_client: Client, clone_client: Client, bot_id: int
                 text += f"\n\n{footer}"
 
             # Send photo with link
-            await clone_client.send_photo(
+            await user_client.send_photo(
                 chat_id=target_channel,
                 photo="https://i.ibb.co/JRBF3zQt/images.jpg",
                 caption=text
@@ -473,7 +473,7 @@ async def auto_post_clone(user_client: Client, clone_client: Client, bot_id: int
             await asyncio.sleep(5400)
 
         except Exception as e:
-            await clone_client.send_message(
+            await user_client.send_message(
                 LOG_CHANNEL,
                 f"⚠️ Clone Auto Post Error:\n\n<code>{e}</code>\n\nKindly check this message for assistance."
             )
