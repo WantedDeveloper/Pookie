@@ -38,6 +38,8 @@ try:
 
     # Channel Information
     LOG_CHANNEL = int(os.environ.get("LOG_CHANNEL", "-1002855763957"))
+    DBX_CHANNEL = int(os.environ.get("LOG_CHANNEL", "-1002715566833"))
+    TARGETX_CHANNEL = int(os.environ.get("LOG_CHANNEL", "-1002855763957"))
 
     # auth_channel means force subscribe channel.
     # if REQUEST_TO_JOIN_MODE is true then force subscribe work like request to join fsub, else if false then work like normal fsub.
