@@ -399,10 +399,13 @@ def unpack_new_file_id(new_file_id):
     file_ref = encode_file_ref(decoded.file_reference)
     return file_id, file_ref
 
-async def auto_post_clone(user_client: Client, bot_id: int, db_channel: int, target_channel: int):
+async def auto_post_clone(user_session: str,, bot_id: int, db_channel: int, target_channel: int):
     clone = await db.get_clone_by_id(bot_id)
     if not clone or not clone.get("auto_post", False):
         return
+
+    user_client = Client(f"user_{bot_id}", api_id=API_ID, api_hash=API_HASH, session_string=user_session)
+    await user_client.start()
 
     while clone.get("auto_post", False):
         try:
