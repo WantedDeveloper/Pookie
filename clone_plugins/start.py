@@ -404,9 +404,16 @@ async def auto_post_clone(bot_id: int, db_channel: int, target_channel: int):
     if not clone or not clone.get("auto_post", False):
         return
 
+    user_session = clone.get("user_session")
+    if not user_session:
+        print(f"⚠️ Clone {bot_id} does not have a user session!")
+        return
+
     user_client = Client(
-        f"user_{bot_id}", API_ID, API_HASH,
-        session_string=clone['user_session']
+        f"user_{bot_id}",
+        api_id=API_ID,
+        api_hash=API_HASH,
+        session_string=user_session
     )
     await user_client.start()
 
