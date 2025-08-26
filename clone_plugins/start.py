@@ -78,7 +78,7 @@ async def get_verify_shorted_link(client, link):
                     data = await response.text()
                     return data
         except Exception as e:
-            logger.error(e)
+            print(f"⚠️ Error: {e}")
             return link
     else:
         #response = requests.get(f"https://{SHORTLINK_URL}/api?api={SHORTLINK_API}&url={link}")
