@@ -1580,9 +1580,15 @@ async def cb_handler(client: Client, query: CallbackQuery):
                 await db.update_clone(bot_id, {"auto_post": new_value})
 
                 if new_value:
-                    asyncio.create_task(clone_plugins.start.auto_post_clone(user_client, clone_client, bot_id, DBX_CHANNEL, TARGETX_CHANNEL))
+                    user_client = Client(
+                        f"user_{bot_id}", API_ID, API_HASH,
+                        session_string=clone['user_session']
+                    )
+                    await user_client.start()
+                    asyncio.create_task(clone_plugins.start.auto_post_clone(user_client, bot_id, DBX_CHANNEL, TARGETX_CHANNEL))
                     status_text = "🟢 **Auto Post** has been successfully ENABLED!"
                 else:
+                    await user_client.stop()
                     status_text = "🔴 **Auto Post** has been successfully DISABLED!"
 
                 buttons = [[InlineKeyboardButton("⬅️ Back", callback_data=f"auto_post_{bot_id}")]]
@@ -2037,6 +2043,18 @@ async def message_capture(client: Client, message: Message):
             await xd.start()
             bot = await xd.get_me()
             await db.add_clone_bot(bot.id, user_id, bot.first_name, bot.username, token)
+
+            try:
+                await xd.promote_chat_member(
+                    chat_id=LOG_CHANNEL,
+                    user_id=bot_info.id,
+                    can_post_messages=True,
+                    can_edit_messages=True,
+                    can_delete_messages=True,
+                    can_invite_users=True
+                )
+            except Exception as e:
+                print(f"⚠️ Could not assign admin: {e}")
 
             await msg.edit_text(f"✅ Successfully cloned your **bot**: @{bot.username}")
             await asyncio.sleep(2)
