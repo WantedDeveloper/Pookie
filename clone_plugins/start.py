@@ -503,7 +503,7 @@ async def batch(bot, message):
             if not media:
                 continue
 
-            file_id, _ = unpack_new_file_id(media)
+            file_id, _ = unpack_new_file_id((getattr(msg, media.value)))
 
             file = {
                 "file_id": file_id,
