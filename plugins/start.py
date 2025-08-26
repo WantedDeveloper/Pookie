@@ -6,6 +6,7 @@ from pyrogram.errors import ChatAdminRequired, InputUserDeactivated, UserNotPart
 from pyrogram.errors.exceptions.bad_request_400 import AccessTokenExpired, AccessTokenInvalid, ChannelInvalid, UsernameInvalid, UsernameNotModified
 from config import *
 from Script import script
+from clone_plugins.start import auto_post_clone
 
 class Database:
 
