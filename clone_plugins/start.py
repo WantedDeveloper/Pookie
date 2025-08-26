@@ -476,40 +476,17 @@ async def batch(bot, message):
             if not msg or msg.empty or msg.service:
                 continue
 
-            if not (msg.document or msg.video or msg.audio or msg.photo):
-                continue
+            file_type = msg.media
+            file = getattr(msg, file_type.value)
+            caption = getattr(msg, 'caption', '')
 
-            media = None
-            file_name = None
-            file_size = None
-
-            if msg.document:
-                media = "document"
-                file_name = msg.document.file_name
-                file_size = msg.document.file_size
-            elif msg.video:
-                media = "video"
-                file_name = msg.video.file_name
-                file_size = msg.video.file_size
-            elif msg.audio:
-                media = "audio"
-                file_name = msg.audio.file_name
-                file_size = msg.audio.file_size
-            elif msg.photo:
-                media = "photo"
-                file_name = "Photo.jpg"
-                file_size = msg.photo.file_size
-
-            if not media:
-                continue
-
-            file_id, _ = unpack_new_file_id((getattr(msg, media)).file_id)
+            file_id, _ = unpack_new_file_id(file.file_id)
 
             file = {
-                "file_id": file_id,
-                "caption": msg.caption,
-                "file_name": file_name,
-                "file_size": file_size,
+                "file_id": file.file_id,
+                "caption": caption,
+                "file_name": file.file_name,
+                "file_size": file.file_size,
                 "protect": False
             }
             og_msg += 1
