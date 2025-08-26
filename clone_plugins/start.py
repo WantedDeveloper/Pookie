@@ -63,7 +63,8 @@ TOKENS = {}
 VERIFIED = {}
 BATCH_FILES = {}
         
-async def get_verify_shorted_link(link):
+async def get_verify_shorted_link(bot, link):
+    bot_id = (await bot.get_me()).id
     clone = await db.get_clone_by_id(bot_id)
     if SHORTLINK_URL == clone.get("shorten_link", None):
         url = f'https://{SHORTLINK_URL}/easy_api'
@@ -80,10 +81,10 @@ async def get_verify_shorted_link(link):
             logger.error(e)
             return link
     else:
-  #      response = requests.get(f"https://{SHORTLINK_URL}/api?api={SHORTLINK_API}&url={link}")
- #       data = response.json()
-  #      if data["status"] == "success" or rget.status_code == 200:
-   #         return data["shortenedUrl"]
+        #response = requests.get(f"https://{SHORTLINK_URL}/api?api={SHORTLINK_API}&url={link}")
+        #data = response.json()
+        #if data["status"] == "success" or rget.status_code == 200:
+            #return data["shortenedUrl"]
         shortzy = Shortzy(api_key=clone.get("shorten_api", None), base_site=clone.get("shorten_link", None))
         link = await shortzy.convert(link)
         return link
