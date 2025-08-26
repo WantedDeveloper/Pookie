@@ -52,9 +52,9 @@ class Database:
             # Start Message
             'wlc': script.START_TXT,
             'pics': None,
-            'caption': '',
-            'header': '',
-            'footer': '',
+            'caption': None,
+            'header': None,
+            'footer': None,
             # Force Subscribe
             
             # Access Token
@@ -1175,7 +1175,7 @@ async def cb_handler(client: Client, query: CallbackQuery):
 
             # See Caption
             elif action == "see_caption":
-                caption = clone.get("caption", "")
+                caption = clone.get("caption", None)
                 if caption:
                     await query.answer(f"📝 Current Caption Text:\n\n{caption}", show_alert=True)
                 else:
@@ -1183,9 +1183,9 @@ async def cb_handler(client: Client, query: CallbackQuery):
 
             # Delete Caption
             elif action == "delete_caption":
-                caption = clone.get("caption", "")
+                caption = clone.get("caption", None)
                 if caption:
-                    await db.update_clone(bot_id, {"caption": ""})
+                    await db.update_clone(bot_id, {"caption": None})
                     await query.answer("✨ Successfully deleted your caption text.", show_alert=True)
                 else:
                     await query.answer("❌ No caption text set for this clone.", show_alert=True)
@@ -1210,7 +1210,7 @@ async def cb_handler(client: Client, query: CallbackQuery):
 
             # See Header
             elif action == "see_header":
-                header = clone.get("header", "")
+                header = clone.get("header", None)
                 if header:
                     await query.answer(f"📝 Current Header Text:\n\n{header}", show_alert=True)
                 else:
@@ -1218,9 +1218,9 @@ async def cb_handler(client: Client, query: CallbackQuery):
 
             # Delete Header
             elif action == "delete_header":
-                header = clone.get("header", "")
+                header = clone.get("header", None)
                 if header:
-                    await db.update_clone(bot_id, {"header": ""})
+                    await db.update_clone(bot_id, {"header": None})
                     await query.answer("✨ Successfully deleted your header text.", show_alert=True)
                 else:
                     await query.answer("❌ No header text set for this clone.", show_alert=True)
@@ -1245,7 +1245,7 @@ async def cb_handler(client: Client, query: CallbackQuery):
 
             # See Footer
             elif action == "see_footer":
-                footer = clone.get("footer", "")
+                footer = clone.get("footer", None)
                 if footer:
                     await query.answer(f"📝 Current Footer Text:\n\n{footer}", show_alert=True)
                 else:
@@ -1253,9 +1253,9 @@ async def cb_handler(client: Client, query: CallbackQuery):
 
             # Delete Footer
             elif action == "delete_footer":
-                footer = clone.get("footer", "")
+                footer = clone.get("footer", None)
                 if footer:
-                    await db.update_clone(bot_id, {"footer": ""})
+                    await db.update_clone(bot_id, {"footer": None})
                     await query.answer("✨ Successfully deleted your footer text.", show_alert=True)
                 else:
                     await query.answer("❌ No footer text set for this clone.", show_alert=True)
