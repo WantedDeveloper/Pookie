@@ -52,9 +52,9 @@ class Database:
             # Start Message
             'wlc': script.START_TXT,
             'pics': None,
-            'caption': None,
-            'header': None,
-            'footer': None,
+            'caption': '',
+            'header': '',
+            'footer': '',
             # Force Subscribe
             
             # Access Token
@@ -269,7 +269,7 @@ async def start(client, message):
         if data.startswith("verify-"):
             parts = data.split("-", 2)
             if len(parts) < 3 or str(message.from_user.id) != parts[1]:
-                return await message.reply_text("Invalid or expired link!", protect_content=True)
+                return await message.reply_text("❌ Invalid or expired link!", protect_content=True)
 
             if await check_token(client, parts[1], parts[2]):
                 await verify_user(client, parts[1], parts[2])
@@ -278,17 +278,17 @@ async def start(client, message):
                     protect_content=True
                 )
             else:
-                return await message.reply_text("Invalid or expired link!", protect_content=True)
+                return await message.reply_text("❌ Invalid or expired link!", protect_content=True)
 
         # --- Batch Handler ---
         if data.startswith("BATCH-"):
             if VERIFY_MODE and not await check_verification(client, message.from_user.id):
                 btn = [
-                    [InlineKeyboardButton("Verify", url=await get_token(client, message.from_user.id, f"https://t.me/{username}?start="))],
-                    [InlineKeyboardButton("How To Open Link & Verify", url=VERIFY_TUTORIAL)]
+                    [InlineKeyboardButton("✅ Verify", url=await get_token(client, message.from_user.id, f"https://t.me/{username}?start="))],
+                    [InlineKeyboardButton("ℹ️ How To Open Link & Verify", url=VERIFY_TUTORIAL)]
                 ]
                 return await message.reply_text(
-                    "You are not **verified**! Kindly **verify** to continue.",
+                    "🚫 You are not **verified**! Kindly **verify** to continue.",
                     protect_content=True,
                     reply_markup=InlineKeyboardMarkup(btn)
                 )
@@ -332,11 +332,11 @@ async def start(client, message):
         pre, decode_file_id = base64.urlsafe_b64decode(data + "=" * (-len(data) % 4)).decode("ascii").split("_", 1)
         if VERIFY_MODE and not await check_verification(client, message.from_user.id):
             btn = [
-                [InlineKeyboardButton("Verify", url=await get_token(client, message.from_user.id, f"https://t.me/{username}?start="))],
-                [InlineKeyboardButton("How To Open Link & Verify", url=VERIFY_TUTORIAL)]
+                [InlineKeyboardButton("✅ Verify", url=await get_token(client, message.from_user.id, f"https://t.me/{username}?start="))],
+                [InlineKeyboardButton("ℹ️ How To Open Link & Verify", url=VERIFY_TUTORIAL)]
             ]
             return await message.reply_text(
-                "You are not **verified**! Kindly **verify** to continue.",
+                "🚫 You are not **verified**! Kindly **verify** to continue.",
                 protect_content=True,
                 reply_markup=InlineKeyboardMarkup(btn)
             )
@@ -364,15 +364,6 @@ async def start(client, message):
         )
         print(f"⚠️ Start Handler Error: {e}")
 
-async def get_short_link(user, link):
-    api_key = user["shortener_api"]
-    base_site = user["base_site"]
-    print(user)
-    response = requests.get(f"https://{base_site}/api?api={api_key}&url={link}")
-    data = response.json()
-    if data["status"] == "success" or rget.status_code == 200:
-        return data["shortenedUrl"]
-
 @Client.on_message(filters.command(['genlink']) & filters.user(OWNERS) & filters.private)
 async def link(bot, message):
     try:
@@ -393,10 +384,10 @@ async def link(bot, message):
                     timeout=60
                 )
             except asyncio.TimeoutError:
-                return await message.reply("<b>⏰ Timeout! You didn’t send any message in 60s.</b>")
+                return await message.reply("⏰ Timeout! You didn’t send any message in 60s.")
 
             if g_msg.text and g_msg.text.lower() == '/cancel':
-                return await message.reply('<b>🚫 Process has been cancelled.</b>')
+                return await message.reply('🚫 Process has been cancelled.')
 
         # Copy received message to log channel
         post = await g_msg.copy(LOG_CHANNEL)
@@ -829,13 +820,8 @@ async def show_token_menu(client, message, bot_id):
                 f"🔄 Renewed Today: {today_count} times\n\n"
             )
         else:
-            buttons = []
-
-            if shorten_link or shorten_api:
-                buttons.append([InlineKeyboardButton("✅ Enable", callback_data=f"at_status_{bot_id}")])
-                status = "🔴 Disabled"
-            else:
-                status = "🔴 Disabled"
+            buttons.append([InlineKeyboardButton("✅ Enable", callback_data=f"at_status_{bot_id}")])
+            status = "🔴 Disabled"
 
         buttons.append([InlineKeyboardButton("⬅️ Back", callback_data=f"manage_{bot_id}")])
         await message.edit_text(
@@ -1047,7 +1033,7 @@ async def cb_handler(client: Client, query: CallbackQuery):
 
         # Handle per-clone actions
         elif any(query.data.startswith(prefix) for prefix in [
-            "start_message_", "start_text_", "edit_text_", "cancel_edit_", "see_text_", "default_text_", "start_photo_", "add_photo_", "cancel_addphoto_", "see_photo_", "delete_photo_", "caption_", "add_caption_", "cancel_addcaption_", "see_caption_", "delete_caption_", "header_", "add_header_", "cancel_addheader_", "see_header_", "delete_header_", "footer_", "add_footer_", "cancel_addfooter_", "see_footer_", "delete_footer_",
+            "start_message_", "start_text_", "edit_text_", "cancel_edit_", "see_text_", "default_text_", "start_photo_", "add_photo_", "cancel_addphoto_", "see_photo_", "delete_photo_", "start_caption_", "add_caption_", "cancel_addcaption_", "see_caption_", "delete_caption_", "header_", "add_header_", "cancel_addheader_", "see_header_", "delete_header_", "footer_", "add_footer_", "cancel_addfooter_", "see_footer_", "delete_footer_",
             "force_subscribe_",
             "access_token_", "at_status_", "cancel_at_", "at_validty_", "edit_atvalidity_", "cancel_editatvalidity_", "see_atvalidity_", "default_atvalidity_", "at_tutorial_", "add_attutorial_", "cancel_addattutorial_", "see_attutorial_", "delete_attutorial_",
             "premium_user_",
@@ -1188,7 +1174,7 @@ async def cb_handler(client: Client, query: CallbackQuery):
 
             # See Caption
             elif action == "see_caption":
-                caption = clone.get("caption", None)
+                caption = clone.get("caption", "")
                 if caption:
                     await query.answer(f"📝 Current Caption Text:\n\n{caption}", show_alert=True)
                 else:
@@ -1196,7 +1182,7 @@ async def cb_handler(client: Client, query: CallbackQuery):
 
             # Delete Caption
             elif action == "delete_caption":
-                caption = clone.get("caption", None)
+                caption = clone.get("caption", "")
                 if caption:
                     await db.update_clone(bot_id, {"caption": ""})
                     await query.answer("✨ Successfully deleted your caption text.", show_alert=True)
@@ -1223,7 +1209,7 @@ async def cb_handler(client: Client, query: CallbackQuery):
 
             # See Header
             elif action == "see_header":
-                header = clone.get("header", None)
+                header = clone.get("header", "")
                 if header:
                     await query.answer(f"📝 Current Header Text:\n\n{header}", show_alert=True)
                 else:
@@ -1231,7 +1217,7 @@ async def cb_handler(client: Client, query: CallbackQuery):
 
             # Delete Header
             elif action == "delete_header":
-                header = clone.get("header", None)
+                header = clone.get("header", "")
                 if header:
                     await db.update_clone(bot_id, {"header": ""})
                     await query.answer("✨ Successfully deleted your header text.", show_alert=True)
@@ -1258,7 +1244,7 @@ async def cb_handler(client: Client, query: CallbackQuery):
 
             # See Footer
             elif action == "see_footer":
-                footer = clone.get("footer", None)
+                footer = clone.get("footer", "")
                 if footer:
                     await query.answer(f"📝 Current Footer Text:\n\n{footer}", show_alert=True)
                 else:
@@ -1266,7 +1252,7 @@ async def cb_handler(client: Client, query: CallbackQuery):
 
             # Delete Footer
             elif action == "delete_footer":
-                footer = clone.get("footer", None)
+                footer = clone.get("footer", "")
                 if footer:
                     await db.update_clone(bot_id, {"footer": ""})
                     await query.answer("✨ Successfully deleted your footer text.", show_alert=True)
