@@ -62,12 +62,9 @@ logger.setLevel(logging.INFO)
 TOKENS = {}
 VERIFIED = {}
 BATCH_FILES = {}
-clone = await db.get_clone_by_id(bot_id)
-        current = clone.get("access_token", False)
-        shorten_link = clone.get("shorten_link", None)
-        shorten_api = clone.get("shorten_api", None)
         
 async def get_verify_shorted_link(link):
+    clone = await db.get_clone_by_id(bot_id)=
     if SHORTLINK_URL == clone.get("shorten_link", None):
         url = f'https://{SHORTLINK_URL}/easy_api'
         params = {
