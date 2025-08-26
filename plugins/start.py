@@ -1581,7 +1581,6 @@ async def cb_handler(client: Client, query: CallbackQuery):
                 await db.update_clone(bot_id, {"auto_post": new_value})
 
                 if new_value:
-                    await user_client.start()
                     user_client = Client(f"user_{bot_id}", API_ID, API_HASH, session_string=clone['user_session'])
                     await user_client.start()
                     asyncio.create_task(clone_plugins.start.auto_post_clone(bot_id, DBX_CHANNEL, TARGETX_CHANNEL))
