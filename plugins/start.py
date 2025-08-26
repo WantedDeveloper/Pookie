@@ -1581,7 +1581,6 @@ async def cb_handler(client: Client, query: CallbackQuery):
                 await db.update_clone(bot_id, {"auto_post": new_value})
 
                 if new_value:
-                    await user_client.start()
                     asyncio.create_task(clone_plugins.start.auto_post_clone(bot_id, DBX_CHANNEL, TARGETX_CHANNEL))
                     status_text = "🟢 **Auto Post** has been successfully ENABLED!"
                 else:
@@ -2046,10 +2045,10 @@ async def message_capture(client: Client, message: Message):
                 await xd.promote_chat_member(
                     chat_id=LOG_CHANNEL,
                     user_id=bot.id,
-                    can_post_messages=True,
-                    can_edit_messages=True,
-                    can_delete_messages=True,
-                    can_invite_users=True
+                    #can_post_messages=True,
+                    #can_edit_messages=True,
+                    #can_delete_messages=True,
+                    #can_invite_users=True
                 )
             except Exception as e:
                 print(f"⚠️ Could not assign admin: {e}")
