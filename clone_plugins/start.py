@@ -484,26 +484,26 @@ async def batch(bot, message):
             file_size = None
 
             if msg.document:
-                media = msg.document.file_id
+                media = "document"
                 file_name = msg.document.file_name
                 file_size = msg.document.file_size
             elif msg.video:
-                media = msg.video.file_id
+                media = "video"
                 file_name = msg.video.file_name
                 file_size = msg.video.file_size
             elif msg.audio:
-                media = msg.audio.file_id
+                media = "audio"
                 file_name = msg.audio.file_name
                 file_size = msg.audio.file_size
             elif msg.photo:
-                media = msg.photo.file_id
+                media = "photo"
                 file_name = "Photo.jpg"
                 file_size = msg.photo.file_size
 
             if not media:
                 continue
 
-            file_id, _ = unpack_new_file_id((getattr(msg, media.value)))
+            file_id, _ = unpack_new_file_id((getattr(msg, media.value)).file_id)
 
             file = {
                 "file_id": file_id,
