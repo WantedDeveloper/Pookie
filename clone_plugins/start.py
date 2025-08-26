@@ -310,7 +310,7 @@ async def start(client, message):
 
         if clone.get("access_token", False) and not await check_verification(client, message.from_user.id):
             btn = [
-                [InlineKeyboardButton("✅ Verify", url=await get_token(client, message.from_user.id, f"https://t.me/{username}?start="))],
+                [InlineKeyboardButton("✅ Verify", url=await get_token(client, message.from_user.id, f"https://t.me/{me.username}?start="))],
                 [InlineKeyboardButton("ℹ️ How To Open Link & Verify", url=clone.get("access_token_tutorial", None))]
             ]
             return await message.reply_text(
