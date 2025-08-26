@@ -1587,7 +1587,7 @@ async def cb_handler(client: Client, query: CallbackQuery):
                 else:
                     status_text = "🔴 **Auto Post** has been successfully DISABLED!"
 
-                buttons = [[InlineKeyboardButton("⬅️ Back", callback_data=f"random_caption_{bot_id}")]]
+                buttons = [[InlineKeyboardButton("⬅️ Back", callback_data=f"auto_caption_{bot_id}")]]
                 await query.message.edit_text(
                     text=status_text,
                     reply_markup=InlineKeyboardMarkup(buttons)
