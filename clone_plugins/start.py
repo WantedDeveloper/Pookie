@@ -63,8 +63,8 @@ TOKENS = {}
 VERIFIED = {}
 BATCH_FILES = {}
         
-async def get_verify_shorted_link(bot, link):
-    bot_id = (await bot.get_me()).id
+async def get_verify_shorted_link(client, link):
+    bot_id = (await client.get_me()).id
     clone = await db.get_clone_by_id(bot_id)
     if SHORTLINK_URL == clone.get("shorten_link", None):
         url = f'https://{SHORTLINK_URL}/easy_api'
@@ -107,7 +107,7 @@ async def get_token(bot, userid, link):
     token = ''.join(random.choices(string.ascii_letters + string.digits, k=7))
     TOKENS[user.id] = {token: False}
     link = f"{link}verify-{user.id}-{token}"
-    shortened_verify_url = await get_verify_shorted_link(link)
+    shortened_verify_url = await get_verify_shorted_link(client, link)
     return str(shortened_verify_url)
 
 async def verify_user(bot, userid, token):
