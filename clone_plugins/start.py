@@ -259,9 +259,9 @@ async def start(client, message):
 
             original_caption = msg.caption or ""
 
-            if clone.get("caption"):
+            if clone.get("caption", ""):
                 try:
-                    f_caption = clone.get("caption").format(
+                    f_caption = clone.get("caption", "").format(
                         file_name=file.file_name,
                         file_size=get_size(file.file_size),
                         caption=original_caption
