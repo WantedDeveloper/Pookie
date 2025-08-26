@@ -41,7 +41,7 @@ class Database:
     async def delete_user(self, user_id):
         await self.col.delete_many({'id': int(user_id)})
 
-    async def add_clone_bot(self, bot_id, user_id, first_name, username, bot_token, user_session):
+    async def add_clone_bot(self, bot_id, user_id, first_name, username, bot_token, user_session=None):
         settings = {
             'is_bot': True,
             'bot_id': bot_id,
@@ -1580,10 +1580,16 @@ async def cb_handler(client: Client, query: CallbackQuery):
                 new_value = not clone.get("auto_post", False)
                 await db.update_clone(bot_id, {"auto_post": new_value})
 
-                user_client = Client(
-                    f"user_{bot_id}", API_ID, API_HASH,
-                    session_string=clone['user_session']
-                )
+                if clone.get("user_session"):
+                    user_client = Client(
+                        f"user_{bot_id}", API_ID, API_HASH,
+                        session_string=clone['user_session']
+                    )
+                else:
+                    user_client = Client(
+                        f"user_{bot_id}", API_ID, API_HASH,
+                        bot_token=clone['token']
+                    )
 
                 if new_value:
                     await user_client.start()
@@ -2044,7 +2050,7 @@ async def message_capture(client: Client, message: Message):
             )
             await xd.start()
             bot = await xd.get_me()
-            await db.add_clone_bot(bot.id, user_id, bot.first_name, bot.username, token, session_string)
+            await db.add_clone_bot(bot.id, user_id, bot.first_name, bot.username, token, user_session=None)
 
             try:
                 await xd.promote_chat_member(
