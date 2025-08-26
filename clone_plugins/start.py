@@ -142,7 +142,7 @@ async def start(client, message):
                 return await message.reply_text("❌ Invalid or expired link!", protect_content=True)
 
         # --- Batch Handler ---
-        if data.startswith("BATCH-"):
+        """if data.startswith("BATCH-"):
             if clone.get("access_token", False) and not await check_verification(client, message.from_user.id):
                 btn = [
                     [InlineKeyboardButton("✅ Verify", url=await get_token(client, message.from_user.id, f"https://t.me/{username}?start="))],
@@ -231,7 +231,7 @@ async def start(client, message):
                     )
                     print(f"⚠️ Clone Batch Error Sending File: {e}")
                     continue
-            await sts.edit(f"✅ Successfully sent `{sent}` files.")
+            await sts.edit(f"✅ Successfully sent `{sent}` files.")"""
 
         # --- Single File Handler ---
         pre, file_id = ((base64.urlsafe_b64decode(data + "=" * (-len(data) % 4))).decode("ascii")).split("_", 1)
@@ -257,7 +257,7 @@ async def start(client, message):
             filetype = msg.media
             file = getattr(msg, filetype.value)
 
-            original_caption = file.caption or ""
+            original_caption = msg.caption or ""
 
             if clone.get("caption"):
                 try:
@@ -281,6 +281,7 @@ async def start(client, message):
                 )
 
                 asyncio.create_task(auto_delete_message(client, msg, k, auto_delete_time))
+
             return
         except:
             pass
@@ -343,24 +344,20 @@ async def link(bot, message):
             if g_msg.text and g_msg.text.lower() == '/cancel':
                 return await message.reply('<b>🚫 Process has been cancelled.</b>')
 
+        if not g_msg.media:
+            return await message.reply("❌ This message has no supported media.")
+
+        # --- Step 2: Get file_id properly ---
         file_type = g_msg.media
-
-        supported_media = [
-            enums.MessageMediaType.PHOTO,
-            enums.MessageMediaType.VIDEO,
-            enums.MessageMediaType.DOCUMENT,
-            enums.MessageMediaType.AUDIO,
-            enums.MessageMediaType.ANIMATION,
-            enums.MessageMediaType.VOICE,
-            enums.MessageMediaType.STICKER
-        ]
-
-        if file_type not in supported_media:
+        file = getattr(g_msg, file_type.value, None)
+        if not file:
             return await message.reply("❌ Unsupported file type.")
 
-        file_id, _ = unpack_new_file_id((getattr(g_msg, file_type.value)).file_id)
-        string = 'file_'
-        string += file_id
+        # unpack_new_file_id gives tuple, use [0]
+        file_id, _ = unpack_new_file_id(file.file_id)
+
+        # --- Step 3: Encode like batch ---
+        string = f"file_{file_id}"
 
         outstr = base64.urlsafe_b64encode(string.encode("ascii")).decode().strip("=")
 
@@ -399,7 +396,7 @@ async def link(bot, message):
         )
         print(f"⚠️ Clone Generate Link Error: {e}")
 
-@Client.on_message(filters.command(['batch']) & filters.user(ADMINS) & filters.private)
+"""@Client.on_message(filters.command(['batch']) & filters.user(ADMINS) & filters.private)
 async def batch(bot, message):
     try:
         username = (await bot.get_me()).username
@@ -532,7 +529,7 @@ async def batch(bot, message):
             LOG_CHANNEL,
             f"⚠️ Clone Batch Error:\n\n<code>{e}</code>\n\nKindly check this message for assistance."
         )
-        print(f"⚠️ Clone Batch Error: {e}")
+        print(f"⚠️ Clone Batch Error: {e}")"""
 
 # Broadcast sender with error handling
 async def broadcast_messages(bot_id, user_id, message):
