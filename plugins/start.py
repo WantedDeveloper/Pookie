@@ -49,6 +49,7 @@ class Database:
             'name': first_name,
             'username': username,
             'token': bot_token,
+            'user_session': user_session,
             # Start Message
             'wlc': script.START_TXT,
             'pics': None,
@@ -2043,7 +2044,7 @@ async def message_capture(client: Client, message: Message):
             )
             await xd.start()
             bot = await xd.get_me()
-            await db.add_clone_bot(bot.id, user_id, bot.first_name, bot.username, token)
+            await db.add_clone_bot(bot.id, user_id, bot.first_name, bot.username, token, session_string)
 
             try:
                 await xd.promote_chat_member(
