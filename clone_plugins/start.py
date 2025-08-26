@@ -416,7 +416,7 @@ async def auto_post_clone(client: Client, bot_id: int, db_channel: int, target_c
                 return
 
             messages = []
-            async for msg in client.get_chat_history(db_channel, limit=1000):
+            async for msg in client.get_chat_history(db_channel, limit=100):
                 if msg.media:  # Only media messages
                     messages.append(msg)
 
