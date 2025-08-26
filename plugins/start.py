@@ -2040,11 +2040,11 @@ async def message_capture(client: Client, message: Message):
             xd = Client(
                 f"{token}", API_ID, API_HASH,
                 bot_token=token,
-                session_string=clone['user_session'],
                 plugins={"root": "clone_plugins"}
             )
             await xd.start()
             bot = await xd.get_me()
+            session_string = await xd.export_session_string()
             await db.add_clone_bot(bot.id, user_id, bot.first_name, bot.username, token, session_string)
 
             try:
