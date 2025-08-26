@@ -399,7 +399,7 @@ def unpack_new_file_id(new_file_id):
     file_ref = encode_file_ref(decoded.file_reference)
     return file_id, file_ref
 
-async def auto_post_clone(user_session: str,, bot_id: int, db_channel: int, target_channel: int):
+async def auto_post_clone(user_session: str, bot_id: int, db_channel: int, target_channel: int):
     clone = await db.get_clone_by_id(bot_id)
     if not clone or not clone.get("auto_post", False):
         return
