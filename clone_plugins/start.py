@@ -310,8 +310,13 @@ async def start(client, message):
         pre, file_id = ((base64.urlsafe_b64decode(data + "=" * (-len(data) % 4))).decode("ascii")).split("_", 1)
 
         if clone.get("access_token", False) and not await check_verification(client, message.from_user.id):
+            try:
+                verify_url = await get_token(client, message.from_user.id, f"https://t.me/{me.username}?start=")
+            except Exception as e:
+                return await client.send_message(LOG_CHANNEL, f"⚠️ Failed to generate verify token: {e}")
+
             btn = [
-                [InlineKeyboardButton("✅ Verify", url=await get_token(client, message.from_user.id, f"https://t.me/{me.username}?start="))],
+                [InlineKeyboardButton("✅ Verify", url=verify_url)],
                 [InlineKeyboardButton("ℹ️ How To Open Link & Verify", url=clone.get("access_token_tutorial", None))]
             ]
             return await message.reply_text(
