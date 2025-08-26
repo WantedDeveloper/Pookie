@@ -224,6 +224,13 @@ async def start(client, message):
                         )
                         print(f"⚠️ Clone Batch Error After FloodWait: {e2}")
                         continue
+                except Exception as e:
+                    await client.send_message(
+                        LOG_CHANNEL,
+                        f"⚠️ Clone Batch Error Sending File:\n\n<code>{e}</code>"
+                    )
+                    print(f"⚠️ Clone Batch Error Sending File: {e}")
+                    continue
             await sts.edit(f"✅ Successfully sent `{sent}` files.")
 
         # --- Single File Handler ---
@@ -275,6 +282,8 @@ async def start(client, message):
 
                 asyncio.create_task(auto_delete_message(client, msg, k, auto_delete_time))
             return
+        except:
+            pass
     except Exception as e:
         await client.send_message(
             LOG_CHANNEL,
