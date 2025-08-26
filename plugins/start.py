@@ -1587,7 +1587,6 @@ async def cb_handler(client: Client, query: CallbackQuery):
                     asyncio.create_task(clone_plugins.start.auto_post_clone(bot_id, DBX_CHANNEL, TARGETX_CHANNEL))
                     status_text = "🟢 **Auto Post** has been successfully ENABLED!"
                 else:
-                    await user_client.stop()
                     status_text = "🔴 **Auto Post** has been successfully DISABLED!"
 
                 buttons = [[InlineKeyboardButton("⬅️ Back", callback_data=f"auto_post_{bot_id}")]]
