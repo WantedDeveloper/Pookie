@@ -57,6 +57,8 @@ clonedb = Database(CLONE_DB_URI, CDB_NAME)
 
 logger = logging.getLogger(__name__)
 
+BATCH_FILES = {}
+
 def get_size(size):
     """Get size in readable format"""
 
@@ -119,6 +121,12 @@ async def start(client, message):
 
         # --- Verification Handler ---
         data = message.command[1]
+        try:
+            pre, file_id = data.split('_', 1)
+        except:
+            file_id = data
+            pre = ""
+
         if data.startswith("verify-"):
             parts = data.split("-", 2)
             if len(parts) < 3 or str(message.from_user.id) != parts[1]:
@@ -133,13 +141,99 @@ async def start(client, message):
             else:
                 return await message.reply_text("❌ Invalid or expired link!", protect_content=True)
 
-        # --- Single File Handler ---
-        try:
-            pre, file_id = data.split('_', 1)
-        except:
-            file_id = data
-            pre = ""   
+        # --- Batch Handler ---
+        if data.startswith("BATCH-"):
+            if clone.get("access_token", False) and not await check_verification(client, message.from_user.id):
+                btn = [
+                    [InlineKeyboardButton("✅ Verify", url=await get_token(client, message.from_user.id, f"https://t.me/{username}?start="))],
+                    [InlineKeyboardButton("ℹ️ How To Open Link & Verify", url=clone.get("access_token_tutorial", None))]
+                ]
+                return await message.reply_text(
+                    "🚫 You are not **verified**! Kindly **verify** to continue.",
+                    protect_content=True,
+                    reply_markup=InlineKeyboardMarkup(btn)
+                )
 
+            sts = await message.reply("Please wait...")
+            file_id = data.split("-", 1)[1]
+            msgs = BATCH_FILES.get(file_id)
+
+            if not msgs:
+                file = await client.download_media(file_id)
+                with open(file) as file_data:
+                    msgs = json.loads(file_data.read())
+                os.remove(file)
+                BATCH_FILES[file_id] = msgs
+
+            sent = 0
+            for msg in msgs:
+                original_caption = msg.get("caption") or ""
+                file_name = msg.get("file_name") or "Unknown"
+                file_size = get_size(msg.get("file_size") or 0)
+
+                if clone.get("caption"):
+                    try:
+                        f_caption = clone.get("caption").format(
+                            file_name=file_name,
+                            file_size=file_size,
+                            caption=original_caption
+                        )
+                    except:
+                        f_caption = original_caption or f"<code>{file_name}</code>"
+                else:
+                    f_caption = original_caption or f"<code>{file_name}</code>"
+
+                try:
+                    m = await client.send_cached_media(
+                        chat_id=message.from_user.id,
+                        file_id=msg.get("file_id"),
+                        caption=f_caption,
+                        protect_content=clone.get("forward_protect", False)
+                    )
+                    sent += 1
+
+                    if clone.get("auto_delete", False):
+                        auto_delete_time = int(clone.get("auto_delete_time", 1))
+                        k = await m.reply(
+                            clone.get('auto_delete_msg', script.AD_TXT).format(time=auto_delete_time),
+                            quote=True
+                        )
+                        asyncio.create_task(auto_delete_message(client, m, k, auto_delete_time))
+                except FloodWait as e:
+                    await asyncio.sleep(e.x)
+                    try:
+                        m = await client.send_cached_media(
+                            chat_id=message.from_user.id,
+                            file_id=msg.get("file_id"),
+                            caption=f_caption,
+                            protect_content=clone.get("forward_protect", False)
+                        )
+                        sent += 1
+
+                        if clone.get("auto_delete", False):
+                            auto_delete_time = int(clone.get("auto_delete_time", 1))
+                            k = await m.reply(
+                                clone.get('auto_delete_msg', script.AD_TXT).format(time=auto_delete_time),
+                                quote=True
+                            )
+                            asyncio.create_task(auto_delete_message(client, m, k, auto_delete_time))
+                    except Exception as e2:
+                        await client.send_message(
+                            LOG_CHANNEL,
+                            f"⚠️ Clone Batch Error After FloodWait:\n\n<code>{e2}</code>"
+                        )
+                        print(f"⚠️ Clone Batch Error After FloodWait: {e2}")
+                        continue
+                except Exception as e:
+                    await client.send_message(
+                        LOG_CHANNEL,
+                        f"⚠️ Clone Batch Error Sending File:\n\n<code>{e}</code>"
+                    )
+                    print(f"⚠️ Clone Batch Error Sending File: {e}")
+                    continue
+            await sts.edit(f"✅ Successfully sent `{sent}` files.")
+
+        # --- Single File Handler ---
         pre, file_id = ((base64.urlsafe_b64decode(data + "=" * (-len(data) % 4))).decode("ascii")).split("_", 1)
 
         if clone.get("access_token", False) and not await check_verification(client, message.from_user.id):
@@ -188,8 +282,6 @@ async def start(client, message):
 
                 asyncio.create_task(auto_delete_message(client, msg, k, auto_delete_time))
             return
-        except:
-            pass
     except Exception as e:
         await client.send_message(
             LOG_CHANNEL,
@@ -382,9 +474,39 @@ async def batch(bot, message):
             if not msg or msg.empty or msg.service:
                 continue
 
+            if not (msg.document or msg.video or msg.audio or msg.photo):
+                continue
+
+            media = None
+            file_name = None
+            file_size = None
+
+            if msg.document:
+                media = msg.document.file_id
+                file_name = msg.document.file_name
+                file_size = msg.document.file_size
+            elif msg.video:
+                media = msg.video.file_id
+                file_name = msg.video.file_name
+                file_size = msg.video.file_size
+            elif msg.audio:
+                media = msg.audio.file_id
+                file_name = msg.audio.file_name
+                file_size = msg.audio.file_size
+            elif msg.photo:
+                media = msg.photo.file_id
+                file_name = "Photo.jpg"
+                file_size = msg.photo.file_size
+
+            if not media:
+                continue
+
             file = {
-                "channel_id": f_chat_id,
-                "msg_id": msg.id
+                "file_id": media,
+                "caption": msg.caption,
+                "file_name": file_name,
+                "file_size": file_size,
+                "protect": False
             }
             og_msg += 1
             outlist.append(file)
