@@ -41,7 +41,7 @@ class Database:
     async def delete_user(self, user_id):
         await self.col.delete_many({'id': int(user_id)})
 
-    async def add_clone_bot(self, bot_id, user_id, first_name, username, bot_token, user_session):
+    async def add_clone_bot(self, bot_id, user_id, first_name, username, bot_token):
         settings = {
             'is_bot': True,
             'bot_id': bot_id,
@@ -49,7 +49,6 @@ class Database:
             'name': first_name,
             'username': username,
             'token': bot_token,
-            'user_session': user_session,
             # Start Message
             'wlc': script.START_TXT,
             'pics': None,
@@ -127,11 +126,6 @@ class Database:
 
     async def delete_clone(self, bot_id):
         await self.bot.delete_one({'bot_id': int(bot_id)})
-        """await self.settings.delete_many({'bot_id': int(bot_id)})
-        await self.settings.update_many(
-            #{'bot_id': int(bot_id)},
-            #{'$set': {'active': False}}  # Add or use a field like 'active' to indicate clone is deleted
-        #)"""
 
     async def increment_users_count(self, bot_id):
         await self.bot.update_one({'bot_id': int(bot_id)}, {'$inc': {'users_count': 1}})
@@ -370,7 +364,7 @@ async def start(client, message):
         )
         print(f"⚠️ Start Handler Error: {e}")
 
-@Client.on_message(filters.command(['genlink']) & filters.user(OWNERS) & filters.private)
+@Client.on_message(filters.command(['genlink']) & filters.user(ADMINS) & filters.private)
 async def link(bot, message):
     try:
         try:
@@ -422,7 +416,7 @@ async def link(bot, message):
         )
         print(f"⚠️ Generate Link Error: {e}")
 
-@Client.on_message(filters.command(['batch']) & filters.user(OWNERS) & filters.private)
+@Client.on_message(filters.command(['batch']) & filters.user(ADMINS) & filters.private)
 async def batch(bot, message):
     try:
         try:
@@ -562,7 +556,7 @@ def make_progress_bar(done, total):
     return "🟩" * filled + "⬛" * empty
 
 # Broadcast command
-@Client.on_message(filters.command("broadcast") & filters.user(OWNERS) & filters.private)
+@Client.on_message(filters.command("broadcast") & filters.user(ADMINS) & filters.private)
 async def broadcast(bot, message):
     try:
         try:
@@ -806,6 +800,7 @@ async def show_token_menu(client, message, bot_id):
         shorten_link = clone.get("shorten_link", None)
         shorten_api = clone.get("shorten_api", None)
         validity = clone.get("access_token_validity", 24)
+        tutorial = clone.get("access_token_tutorial", None)
         renew_log = clone.get("access_token_renew_log", {})
 
         # Get today's renewal count
@@ -815,7 +810,7 @@ async def show_token_menu(client, message, bot_id):
         if current:
             buttons = [
                 [InlineKeyboardButton("⏱ Validity", callback_data=f"at_validty_{bot_id}"),
-                InlineKeyboardButton("📝 Tutorial", callback_data=f"at_tutorial_{bot_id}"),
+                InlineKeyboardButton("📘 Tutorial", callback_data=f"at_tutorial_{bot_id}"),
                 InlineKeyboardButton("❌ Disable", callback_data=f"at_status_{bot_id}")]
             ]
             status = (
@@ -823,6 +818,7 @@ async def show_token_menu(client, message, bot_id):
                 f"🔗 Shorten Link: {shorten_link or 'Not Set'}\n"
                 f"🛠 Shorten API: {shorten_api or 'Not Set'}\n"
                 f"⏱ Validity: {validity} hour\n"
+                f"📘 Tutorial: {tutorial or 'Not Set'}\n"
                 f"🔄 Renewed Today: {today_count} times\n\n"
             )
         else:
@@ -1024,7 +1020,7 @@ async def cb_handler(client: Client, query: CallbackQuery):
                  InlineKeyboardButton('🔗 Link Message', callback_data=f'link_message_{bot_id}')],
                 [InlineKeyboardButton('🔔 Force Subscribe', callback_data=f'force_subscribe_{bot_id}'),
                  InlineKeyboardButton('🔑 Access Token', callback_data=f'access_token_{bot_id}')],
-                [InlineKeyboardButton('🔑 Auto Post', callback_data=f'auto_post_{bot_id}'),
+                [InlineKeyboardButton('📤 Auto Post', callback_data=f'auto_post_{bot_id}'),
                  InlineKeyboardButton('💎 Premium User', callback_data=f'premium_user_{bot_id}')],
                 [InlineKeyboardButton('⏳ Auto Delete', callback_data=f'auto_delete_{bot_id}'),
                  InlineKeyboardButton('🚫 Forward Protect', callback_data=f'forward_protect_{bot_id}')],
@@ -1558,7 +1554,9 @@ async def cb_handler(client: Client, query: CallbackQuery):
                 if not clone:
                     return await query.answer("Clone not found!", show_alert=True)
 
-                current = clone.get("auto_post", False)
+                await query.answer("soon...", show_alert=True)
+
+                """current = clone.get("auto_post", False)
                 if current:
                     buttons = [[InlineKeyboardButton("❌ Disable", callback_data=f"ap_status_{bot_id}")]]
                     status = "🟢 Enabled"
@@ -1570,7 +1568,7 @@ async def cb_handler(client: Client, query: CallbackQuery):
                 await query.message.edit_text(
                     text=script.RANDOM_CAPTION_TXT.format(status=f"{status}"),
                     reply_markup=InlineKeyboardMarkup(buttons)
-                )
+                )"""
 
             # Auto Post Status
             elif action == "ap_status":
@@ -2039,20 +2037,7 @@ async def message_capture(client: Client, message: Message):
             )
             await xd.start()
             bot = await xd.get_me()
-            session_string = await xd.export_session_string()
-            await db.add_clone_bot(bot.id, user_id, bot.first_name, bot.username, token, session_string)
-
-            try:
-                await xd.promote_chat_member(
-                    chat_id=LOG_CHANNEL,
-                    user_id=bot.id,
-                    #can_post_messages=True,
-                    #can_edit_messages=True,
-                    #can_delete_messages=True,
-                    #can_invite_users=True
-                )
-            except Exception as e:
-                print(f"⚠️ Could not assign admin: {e}")
+            await db.add_clone_bot(bot.id, user_id, bot.first_name, bot.username, token)
 
             await msg.edit_text(f"✅ Successfully cloned your **bot**: @{bot.username}")
             await asyncio.sleep(2)
