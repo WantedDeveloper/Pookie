@@ -196,6 +196,45 @@ class Database:
 
 db = Database(DB_URI, DB_NAME)
 
+class JoinReqs:
+
+    def __init__(self):
+        if DB_URI:
+            self.client = motor.motor_asyncio.AsyncIOMotorClient(OTHER_DB_URI)
+            self.db = self.client["JoinReqs"]
+            self.col = self.db[str(AUTH_CHANNEL)]
+        else:
+            self.client = None
+            self.db = None
+            self.col = None
+
+    def isActive(self):
+        if self.client is not None:
+            return True
+        else:
+            return False
+
+    async def add_user(self, user_id, first_name, username, date):
+        try:
+            await self.col.insert_one({"_id": int(user_id),"user_id": int(user_id), "first_name": first_name, "username": username, "date": date})
+        except:
+            pass
+
+    async def get_user(self, user_id):
+        return await self.col.find_one({"user_id": int(user_id)})
+
+    async def get_all_users(self):
+        return await self.col.find().to_list(None)
+
+    async def delete_user(self, user_id):
+        await self.col.delete_one({"user_id": int(user_id)})
+
+    async def delete_all_users(self):
+        await self.col.delete_many({})
+
+    async def get_all_users_count(self):
+        return await self.col.count_documents({})
+
 logger = logging.getLogger(__name__)
 
 BATCH_FILES = {}
@@ -215,6 +254,39 @@ AUTO_DELETE_MESSAGE = {}
 ADD_MODERATOR = {}
 
 START_TIME = time.time()
+
+join_db = JoinReqs
+
+async def is_subscribed(bot, query):
+    if REQUEST_TO_JOIN_MODE == True and join_db().isActive():
+        try:
+            user = await join_db().get_user(query.from_user.id)
+            if user and user["user_id"] == query.from_user.id:
+                return True
+            else:
+                try:
+                    user_data = await bot.get_chat_member(AUTH_CHANNEL, query.from_user.id)
+                except UserNotParticipant:
+                    pass
+                except Exception as e:
+                    logger.exception(e)
+                else:
+                    if user_data.status != enums.ChatMemberStatus.BANNED:
+                        return True
+        except Exception as e:
+            logger.exception(e)
+            return False
+    else:
+        try:
+            user = await bot.get_chat_member(AUTH_CHANNEL, query.from_user.id)
+        except UserNotParticipant:
+            pass
+        except Exception as e:
+            logger.exception(e)
+        else:
+            if user.status != enums.ChatMemberStatus.BANNED:
+                return True
+        return False
 
 def get_size(size):
     """Get size in readable format"""
@@ -254,6 +326,65 @@ async def start(client, message):
 
         # If /start only (no arguments)
         if len(message.command) == 1:
+            buttons = [
+                [
+                    InlineKeyboardButton('💁‍♀️ Help', callback_data='help'),
+                    InlineKeyboardButton('😊 About', callback_data='about')
+                ],
+                [InlineKeyboardButton('🤖 Create Your Own Clone', callback_data='clone')],
+                [InlineKeyboardButton('🔒 Close', callback_data='close')]
+            ]
+            return await message.reply_text(
+                script.START_TXT.format(user=message.from_user.mention, bot=client.me.mention),
+                reply_markup=InlineKeyboardMarkup(buttons)
+            )
+
+        if AUTH_CHANNEL and not await is_subscribed(client, message):
+        #try:
+            if REQUEST_TO_JOIN_MODE == True:
+                invite_link = await client.create_chat_invite_link(chat_id=(int(AUTH_CHANNEL)), creates_join_request=True)
+            else:
+                invite_link = await client.create_chat_invite_link(int(AUTH_CHANNEL))
+        except Exception as e:
+            print(e)
+            await message.reply_text("Make sure Bot is admin in Forcesub channel")
+            return
+        try:
+            btn = [[InlineKeyboardButton("ʙᴀᴄᴋᴜᴘ ᴄʜᴀɴɴᴇʟ", url=invite_link.invite_link)]]
+            if message.command[1] != "subscribe":
+                if REQUEST_TO_JOIN_MODE == True:
+                    if TRY_AGAIN_BTN == True:
+                        try:
+                            kk, file_id = message.command[1].split("_", 1)
+                            btn.append([InlineKeyboardButton("↻ ᴛʀʏ ᴀɢᴀɪɴ", callback_data=f"checksub#{kk}#{file_id}")])
+                        except (IndexError, ValueError):
+                            btn.append([InlineKeyboardButton("↻ ᴛʀʏ ᴀɢᴀɪɴ", url=f"https://t.me/{BOT_USERNAME}?start={message.command[1]}")])
+                else:
+                    try:
+                        kk, file_id = message.command[1].split("_", 1)
+                        btn.append([InlineKeyboardButton("↻ ᴛʀʏ ᴀɢᴀɪɴ", callback_data=f"checksub#{kk}#{file_id}")])
+                    except (IndexError, ValueError):
+                        btn.append([InlineKeyboardButton("↻ ᴛʀʏ ᴀɢᴀɪɴ", url=f"https://t.me/{BOT_USERNAME}?start={message.command[1]}")])
+            if REQUEST_TO_JOIN_MODE == True:
+                if TRY_AGAIN_BTN == True:
+                    text = "**🕵️ ʏᴏᴜ ᴅᴏ ɴᴏᴛ ᴊᴏɪɴ ᴍʏ ʙᴀᴄᴋᴜᴘ ᴄʜᴀɴɴᴇʟ ғɪʀsᴛ ᴊᴏɪɴ ᴄʜᴀɴɴᴇʟ ᴛʜᴇɴ ᴛʀʏ ᴀɢᴀɪɴ**"
+                else:
+                    await db.set_msg_command(message.from_user.id, com=message.command[1])
+                    text = "**🕵️ ʏᴏᴜ ᴅᴏ ɴᴏᴛ ᴊᴏɪɴ ᴍʏ ʙᴀᴄᴋᴜᴘ ᴄʜᴀɴɴᴇʟ ғɪʀsᴛ ᴊᴏɪɴ ᴄʜᴀɴɴᴇʟ**"
+            else:
+                text = "**🕵️ ʏᴏᴜ ᴅᴏ ɴᴏᴛ ᴊᴏɪɴ ᴍʏ ʙᴀᴄᴋᴜᴘ ᴄʜᴀɴɴᴇʟ ғɪʀsᴛ ᴊᴏɪɴ ᴄʜᴀɴɴᴇʟ ᴛʜᴇɴ ᴛʀʏ ᴀɢᴀɪɴ**"
+            await client.send_message(
+                chat_id=message.from_user.id,
+                text=text,
+                reply_markup=InlineKeyboardMarkup(btn),
+                parse_mode=enums.ParseMode.MARKDOWN
+            )
+            return
+        #except Exception as e:
+            #print(e)
+            #return await message.reply_text("something wrong with force subscribe.")
+            
+        if len(message.command) == 2 and message.command[1] in ["subscribe", "error", "okay", "help"]:
             buttons = [
                 [
                     InlineKeyboardButton('💁‍♀️ Help', callback_data='help'),
@@ -1082,6 +1213,14 @@ async def cb_handler(client: Client, query: CallbackQuery):
                 text=script.START_TXT.format(user=query.from_user.mention, bot=me.mention),
                 reply_markup=InlineKeyboardMarkup(buttons)
             )
+
+        elif query.data.startswith("checksub"):
+            ident = query.data.split("_", 1)[1]
+            if AUTH_CHANNEL and not await is_subscribed(client, query):
+                await query.answer("Jᴏɪɴ ᴏᴜʀ Bᴀᴄᴋ-ᴜᴘ ᴄʜᴀɴɴᴇʟ ᴍᴀʜɴ! 😒", show_alert=True)
+                return
+            ident, kk, file_id = query.data.split("#")
+            await query.answer(url=f"https://t.me/{BOT_USERNAME}?start={kk}_{file_id}")
 
         # Help
         elif query.data == "help":
