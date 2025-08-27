@@ -2557,15 +2557,25 @@ async def message_capture(client: Client, message: Message):
         if step == "channel":
             ch = new_text.lstrip("@")
 
-            if ch.startswith("-100") or ch.isdigit():
-                chat_id = int(ch)
-            else:
-                chat_id = ch
+            try:
+                if ch.startswith("-100") or ch.isdigit():
+                    chat_id = int(ch)
+                else:
+                    chat = await client.get_chat(ch)
+                    chat_id = chat.id
+            except Exception as e:
+                await orig_msg.edit_text(f"❌ Could not fetch chat: {e}")
+                await asyncio.sleep(2)
+                await show_fsub_menu(client, orig_msg, bot_id)
+                ADD_FSUB.pop(user_id, None)
+                return
 
             try:
                 member = await client.get_chat_member(chat_id, (await client.get_me()).id)
                 if not member.status in ("administrator", "creator"):
                     await orig_msg.edit_text(f"🚫 Bot is not admin in `{chat_id}`. Please add as admin first.")
+                    await asyncio.sleep(2)
+                    await show_fsub_menu(client, orig_msg, bot_id)
                     ADD_FSUB.pop(user_id, None)
                     return
             except Exception as e:
