@@ -878,7 +878,7 @@ async def show_fsub_menu(client, message, bot_id):
 
         buttons.append([InlineKeyboardButton("⬅️ Back", callback_data=f"manage_{bot_id}")])
 
-        if fsub_data
+        if fsub_data:
             text = text
         else:
             text = '📢 No active Force Subscribe channels.\n\n➕ Add one below:'
