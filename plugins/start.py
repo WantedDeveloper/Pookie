@@ -1573,7 +1573,7 @@ async def cb_handler(client: Client, query: CallbackQuery):
                 ADD_FSUB[user_id] = {
                     "orig_msg": query.message,
                     "bot_id": bot_id,
-                    "step": "name"
+                    "step": "channel"
                 }
                 buttons = [[InlineKeyboardButton("❌ Cancel", callback_data=f"cancel_addfsub_{bot_id}")]]
                 await query.message.edit_text(
