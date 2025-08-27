@@ -2554,11 +2554,6 @@ async def message_capture(client: Client, message: Message):
             ADD_FSUB.pop(user_id, None)
             return
 
-        clone = await db.get_clone_by_id(bot_id)
-        clone_token = clone.get("token")
-        clone_client = Client(f"clone_{bot_id}", API_ID, API_HASH, bot_token=clone_token)
-        await clone_client.start()
-
         if step == "channel":
             ch = new_text.lstrip("@")
 
@@ -2566,6 +2561,11 @@ async def message_capture(client: Client, message: Message):
                 chat_id = int(ch)
             else:
                 chat_id = ch
+
+            clone = await db.get_clone_by_id(bot_id)
+            clone_token = clone.get("token")
+            clone_client = Client(f"clone_{bot_id}", API_ID, API_HASH, bot_token=clone_token)
+            await clone_client.start()
 
             try:
                 member = await clone_client.get_chat_member(chat_id, (await clone_client.get_me()).id)
@@ -2602,7 +2602,6 @@ async def message_capture(client: Client, message: Message):
                 await asyncio.sleep(2)
                 await show_fsub_menu(client, orig_msg, bot_id)
                 ADD_FSUB.pop(user_id, None)
-                await clone_client.stop()
                 return
 
             ADD_FSUB[user_id]["target"] = target
@@ -2619,8 +2618,7 @@ async def message_capture(client: Client, message: Message):
                 f"🎯 Target saved: `{target}`\n\nNow choose the **mode** for this channel:",
                 reply_markup=InlineKeyboardMarkup(buttons)
             )
-
-        await clone_client.stop()
+            return
 
     # Acess Token Handler
     if user_id in ACCESS_TOKEN:
