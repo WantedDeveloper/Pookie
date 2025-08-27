@@ -2567,6 +2567,9 @@ async def message_capture(client: Client, message: Message):
             clone_client = Client(f"clone_{bot_id}", API_ID, API_HASH, bot_token=clone_token)
             await clone_client.start()
 
+            print("Using clone:", await clone_client.get_me())
+            print("Checking channel:", chat_id)
+
             try:
                 member = await clone_client.get_chat_member(chat_id, (await clone_client.get_me()).id)
                 if not member.status in ("administrator", "creator"):
