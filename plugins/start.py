@@ -324,6 +324,30 @@ async def start(client, message):
                 script.LOG_TEXT.format(message.from_user.id, message.from_user.mention)
             )
 
+        if AUTH_CHANNEL and not await is_subscribed(client, message):
+            # Create invite link
+            if REQUEST_TO_JOIN_MODE:
+                invite_link = await client.create_chat_invite_link(chat_id=int(AUTH_CHANNEL), creates_join_request=True)
+            else:
+                invite_link = await client.create_chat_invite_link(int(AUTH_CHANNEL))
+
+            # Build buttons
+            btn = [[InlineKeyboardButton("Join Channel", url=invite_link.invite_link)]]
+            if len(message.command) > 1:
+                try:
+                    kk, file_id = message.command[1].split("_", 1)
+                    btn.append([InlineKeyboardButton("↻ Try Again", callback_data=f"checksub#{kk}#{file_id}")])
+                except (IndexError, ValueError):
+                    btn.append([InlineKeyboardButton("↻ Try Again", url=f"https://t.me/{BOT_USERNAME}?start={message.command[1]}")])
+
+            text = "**You must join the channel first to use this bot.**"
+            return await client.send_message(
+                message.from_user.id,
+                text=text,
+                reply_markup=InlineKeyboardMarkup(btn),
+                parse_mode=enums.ParseMode.MARKDOWN
+            )
+
         # If /start only (no arguments)
         if len(message.command) == 1:
             buttons = [
@@ -339,64 +363,7 @@ async def start(client, message):
                 reply_markup=InlineKeyboardMarkup(buttons)
             )
 
-        if AUTH_CHANNEL and not await is_subscribed(client, message):
-        #try:
-            if REQUEST_TO_JOIN_MODE == True:
-                invite_link = await client.create_chat_invite_link(chat_id=(int(AUTH_CHANNEL)), creates_join_request=True)
-            else:
-                invite_link = await client.create_chat_invite_link(int(AUTH_CHANNEL))
-        #except Exception as e:
-            #print(e)
-            #await message.reply_text("Make sure Bot is admin in Forcesub channel")
-            #return
-        #try:
-            btn = [[InlineKeyboardButton("ʙᴀᴄᴋᴜᴘ ᴄʜᴀɴɴᴇʟ", url=invite_link.invite_link)]]
-            if message.command[1] != "subscribe":
-                if REQUEST_TO_JOIN_MODE == True:
-                    if TRY_AGAIN_BTN == True:
-                        try:
-                            kk, file_id = message.command[1].split("_", 1)
-                            btn.append([InlineKeyboardButton("↻ ᴛʀʏ ᴀɢᴀɪɴ", callback_data=f"checksub#{kk}#{file_id}")])
-                        except (IndexError, ValueError):
-                            btn.append([InlineKeyboardButton("↻ ᴛʀʏ ᴀɢᴀɪɴ", url=f"https://t.me/{BOT_USERNAME}?start={message.command[1]}")])
-                else:
-                    try:
-                        kk, file_id = message.command[1].split("_", 1)
-                        btn.append([InlineKeyboardButton("↻ ᴛʀʏ ᴀɢᴀɪɴ", callback_data=f"checksub#{kk}#{file_id}")])
-                    except (IndexError, ValueError):
-                        btn.append([InlineKeyboardButton("↻ ᴛʀʏ ᴀɢᴀɪɴ", url=f"https://t.me/{BOT_USERNAME}?start={message.command[1]}")])
-            if REQUEST_TO_JOIN_MODE == True:
-                if TRY_AGAIN_BTN == True:
-                    text = "**🕵️ ʏᴏᴜ ᴅᴏ ɴᴏᴛ ᴊᴏɪɴ ᴍʏ ʙᴀᴄᴋᴜᴘ ᴄʜᴀɴɴᴇʟ ғɪʀsᴛ ᴊᴏɪɴ ᴄʜᴀɴɴᴇʟ ᴛʜᴇɴ ᴛʀʏ ᴀɢᴀɪɴ**"
-                else:
-                    await db.set_msg_command(message.from_user.id, com=message.command[1])
-                    text = "**🕵️ ʏᴏᴜ ᴅᴏ ɴᴏᴛ ᴊᴏɪɴ ᴍʏ ʙᴀᴄᴋᴜᴘ ᴄʜᴀɴɴᴇʟ ғɪʀsᴛ ᴊᴏɪɴ ᴄʜᴀɴɴᴇʟ**"
-            else:
-                text = "**🕵️ ʏᴏᴜ ᴅᴏ ɴᴏᴛ ᴊᴏɪɴ ᴍʏ ʙᴀᴄᴋᴜᴘ ᴄʜᴀɴɴᴇʟ ғɪʀsᴛ ᴊᴏɪɴ ᴄʜᴀɴɴᴇʟ ᴛʜᴇɴ ᴛʀʏ ᴀɢᴀɪɴ**"
-            await client.send_message(
-                chat_id=message.from_user.id,
-                text=text,
-                reply_markup=InlineKeyboardMarkup(btn),
-                parse_mode=enums.ParseMode.MARKDOWN
-            )
-            return
-        #except Exception as e:
-            #print(e)
-            #return await message.reply_text("something wrong with force subscribe.")
-            
-        if len(message.command) == 2 and message.command[1] in ["subscribe", "error", "okay", "help"]:
-            buttons = [
-                [
-                    InlineKeyboardButton('💁‍♀️ Help', callback_data='help'),
-                    InlineKeyboardButton('😊 About', callback_data='about')
-                ],
-                [InlineKeyboardButton('🤖 Create Your Own Clone', callback_data='clone')],
-                [InlineKeyboardButton('🔒 Close', callback_data='close')]
-            ]
-            return await message.reply_text(
-                script.START_TXT.format(user=message.from_user.mention, bot=client.me.mention),
-                reply_markup=InlineKeyboardMarkup(buttons)
-            )
+        
 
         # --- Verification Handler ---
         data = message.command[1]
