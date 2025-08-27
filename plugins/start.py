@@ -2554,6 +2554,7 @@ async def message_capture(client: Client, message: Message):
             ADD_FSUB.pop(user_id, None)
             return
 
+        clone = await db.get_clone_by_id(bot_id)
         clone_token = clone.get("token")
         clone_client = Client(f"clone_{bot_id}", API_ID, API_HASH, bot_token=clone_token)
         await clone_client.start()
