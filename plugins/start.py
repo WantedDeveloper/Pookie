@@ -2568,13 +2568,7 @@ async def message_capture(client: Client, message: Message):
             await clone_client.start()
 
             try:
-                chat = await clone_client.get_chat(chat_id)
-                print("Bot can access chat:", chat.title)
-            except Exception as e:
-                print("Cannot access chat:", e)
-
-            try:
-                member = await clone_client.get_chat_member(chat_id, clone.id)
+                member = await clone_client.get_chat_member(chat_id, clone["bot_id"])
                 if not member.status in ("administrator", "creator"):
                     await orig_msg.edit_text(f"🚫 Bot is not admin in `{chat_id}`. Please add as admin first.")
                     await asyncio.sleep(2)
