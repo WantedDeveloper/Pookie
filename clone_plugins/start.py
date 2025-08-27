@@ -62,7 +62,7 @@ logger.setLevel(logging.INFO)
 TOKENS = {}
 VERIFIED = {}
 BATCH_FILES = {}
-        
+
 async def get_verify_shorted_link(client, link):
     bot_id = (await client.get_me()).id
     clone = await db.get_clone_by_id(bot_id)
@@ -113,24 +113,25 @@ async def get_token(bot, userid, link):
 async def verify_user(bot, userid, token):
     user = await bot.get_users(userid)
     TOKENS[user.id] = {token: True}
-    tz = pytz.timezone('Asia/Kolkata')
-    today = datetime.date.today()
-    VERIFIED[user.id] = str(today)
+
+    clone = await db.get_bot((await bot.get_me()).id)
+    validity_hours = clone.get("access_token_validity", 24)
+
+    VERIFIED[user.id] = datetime.datetime.now() + datetime.timedelta(hours=validity_hours)
 
 async def check_verification(bot, userid):
     user = await bot.get_users(userid)
-    tz = pytz.timezone('Asia/Kolkata')
-    today = datetime.date.today()
-    if user.id in VERIFIED.keys():
-        EXP = VERIFIED[user.id]
-        years, month, day = EXP.split('-')
-        comp = datetime.date(int(years), int(month), int(day))
-        if comp<today:
-            return False
-        else:
-            return True
-    else:
+    expiry = VERIFIED.get(user.id, None)
+
+    if not expiry:
         return False
+
+    if datetime.datetime.now() > expiry:
+        # Expired, remove from VERIFIED so user must re-verify
+        del VERIFIED[user.id]
+        return False
+
+    return True
 
 def get_size(size):
     """Get size in readable format"""
@@ -310,15 +311,15 @@ async def start(client, message):
         pre, file_id = ((base64.urlsafe_b64decode(data + "=" * (-len(data) % 4))).decode("ascii")).split("_", 1)
 
         if clone.get("access_token", False) and not await check_verification(client, message.from_user.id):
-            try:
-                verify_url = await get_token(client, message.from_user.id, f"https://t.me/{me.username}?start=")
-            except Exception as e:
-                return await client.send_message(LOG_CHANNEL, f"⚠️ Failed to generate verify token: {e}")
+            verify_url = await get_token(client, message.from_user.id, f"https://t.me/{me.username}?start=")
+            btn = [[InlineKeyboardButton("✅ Verify", url=verify_url)]]
 
-            btn = [
-                [InlineKeyboardButton("✅ Verify", url=verify_url)],
-                [InlineKeyboardButton("ℹ️ How To Open Link & Verify", url=clone.get("access_token_tutorial", None))]
-            ]
+            tutorial_url = clone.get("access_token_tutorial", None)
+            if tutorial_url:
+                btn.append([InlineKeyboardButton("ℹ️ Tutorial", url=tutorial_url)])
+
+            btn.append([InlineKeyboardButton("♻️ Try Again", url=f"https://t.me/{BOT_USERNAME}?start={file_id}")])
+
             return await message.reply_text(
                 "🚫 You are not **verified**! Kindly **verify** to continue.",
                 protect_content=clone.get("forward_protect", False),
