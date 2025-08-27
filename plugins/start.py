@@ -2289,6 +2289,7 @@ async def message_capture(client: Client, message: Message):
 
             await orig_msg.edit_text("✏️ Updating your clone's **start button**, please wait...")
             try:
+                clone = await db.get_clone_by_id(bot_id)
                 buttons_data = clone.get("button", [])
                 buttons_data.append({"name": btn_name, "url": btn_url})
                 await db.update_clone(bot_id, {"button": buttons_data})
