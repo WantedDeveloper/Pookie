@@ -766,7 +766,7 @@ async def show_button_menu(client, message, bot_id):
         for i, btn in enumerate(buttons_data):
             buttons.append(
                 [InlineKeyboardButton(btn["name"], url=btn["url"]),
-                  InlineKeyboardButton("❌", callback_data=f"del_button_{i}_{bot_id}")]
+                  InlineKeyboardButton("❌", callback_data=f"delete_button_{i}_{bot_id}")]
             )
 
         if len(buttons_data) < 3:
