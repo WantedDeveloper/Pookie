@@ -59,7 +59,7 @@ class Database:
             'header': None,
             'footer': None,
             # Force Subscribe
-            
+            'force_subscribe': [],
             # Access Token
             'access_token': False,
             'shorten_link': None,
@@ -71,7 +71,7 @@ class Database:
             'auto_post': False,
             'last_posted_id': 0,
             # Premium User
-            
+            'premium': [],
             # Auto Delete
             'auto_delete': False,
             'auto_delete_time': 1,
@@ -206,6 +206,7 @@ CAPTION_TEXT = {}
 ADD_BUTTON = {}
 HEADER_TEXT = {}
 FOOTER_TEXT = {}
+ADD_FSUB = {}
 ACCESS_TOKEN = {}
 ACCESS_TOKEN_VALIDITY = {}
 ACCESS_TOKEN_TUTORIAL = {}
@@ -766,7 +767,7 @@ async def show_button_menu(client, message, bot_id):
         for i, btn in enumerate(buttons_data):
             buttons.append(
                 [InlineKeyboardButton(btn["name"], url=btn["url"]),
-                  InlineKeyboardButton("❌", callback_data=f"delete_button_{i}_{bot_id}")]
+                  InlineKeyboardButton("❌", callback_data=f"remove_button_{i}_{bot_id}")]
             )
 
         if len(buttons_data) < 3:
@@ -822,6 +823,74 @@ async def show_footer_menu(client, message, bot_id):
             f"⚠️ Show Footer Menu Error:\n\n<code>{e}</code>\n\nKindly check this message to get assistance."
         )
         print(f"⚠️ Show Footer Menu Error: {e}")
+
+async def show_fsub_menu(client, message, bot_id):
+    try:
+        clone = await db.get_clone_by_id(bot_id)
+        fsub_data = clone.get("force_subscribe", [])
+
+        buttons = []
+        changed = False
+        new_fsub_data = []
+        text = ""
+
+        for i, btn in enumerate(fsub_data):
+            target = btn.get("limit", 0)
+            joined = btn.get("joined", 0)
+
+            if target != 0 and joined >= target:
+                changed = True
+                continue  
+
+            new_fsub_data.append(btn)
+
+        if changed:
+            await db.update_clone(bot_id, {"force_subscribe": new_fsub_data})
+            fsub_data = new_fsub_data
+
+        for i, btn in enumerate(fsub_data):
+            target = btn.get("limit", 0)
+            joined = btn.get("joined", 0)
+            ch_name = btn.get("name", "Unknown")
+            ch_link = btn.get("link", None)
+            mode = btn.get("mode", "normal")
+
+            if target == 0:
+                status = "♾️ Unlimited"
+                progress = f"👥 {joined} joined"
+            else:
+                status = "⏳ Active"
+                progress = f"👥 {joined}/{target}"
+
+            text += f"**{ch_name}** ({'✅ Normal' if mode=='normal' else '📝 Request'})\n{progress} | {status}\n\n"
+
+            row = []
+            if ch_link:
+                row.append(InlineKeyboardButton(ch_name, url=ch_link))
+            else:
+                row.append(InlineKeyboardButton(ch_name, callback_data="noop"))
+
+            row.append(InlineKeyboardButton("❌", callback_data=f"remove_fsub_{i}_{bot_id}"))
+            buttons.append(row)
+
+        if len(fsub_data) < 4:
+            buttons.append([InlineKeyboardButton("➕ Add Channel", callback_data=f"add_fsub_{bot_id}")])
+
+        buttons.append([InlineKeyboardButton("⬅️ Back", callback_data=f"manage_{bot_id}")])
+
+        await message.edit_text(
+            text=(
+                f"{script.FSUB_TXT}\n\n"
+                f"{text if fsub_data else '📢 No active Force Subscribe channels.\n\n➕ Add one below:'}"
+            ),
+            reply_markup=InlineKeyboardMarkup(buttons)
+        )
+    except Exception as e:
+        await client.send_message(
+            LOG_CHANNEL,
+            f"⚠️ Show Force Subscribe Menu Error:\n\n<code>{e}</code>\n\nKindly check this message to get assistance."
+        )
+        print(f"⚠️ Show Force Subscribe Menu Error: {e}")
 
 async def show_token_menu(client, message, bot_id):
     try:
@@ -1074,9 +1143,9 @@ async def cb_handler(client: Client, query: CallbackQuery):
 
         # Handle per-clone actions
         elif any(query.data.startswith(prefix) for prefix in [
-            "start_message_", "start_text_", "edit_text_", "cancel_edit_", "see_text_", "default_text_", "start_photo_", "add_photo_", "cancel_addphoto_", "see_photo_", "delete_photo_", "start_caption_", "add_caption_", "cancel_addcaption_", "see_caption_", "delete_caption_", "start_button_", "add_button_", "cancel_addbutton_", "delete_button_",
+            "start_message_", "start_text_", "edit_text_", "cancel_edit_", "see_text_", "default_text_", "start_photo_", "add_photo_", "cancel_addphoto_", "see_photo_", "delete_photo_", "start_caption_", "add_caption_", "cancel_addcaption_", "see_caption_", "delete_caption_", "start_button_", "add_button_", "cancel_addbutton_", "remove_button_",
             "link_message_", "random_caption_", "rc_status_", "header_", "add_header_", "cancel_addheader_", "see_header_", "delete_header_", "footer_", "add_footer_", "cancel_addfooter_", "see_footer_", "delete_footer_",
-            "force_subscribe_",
+            "force_subscribe_", "add_fsub_", "fsub_mode_", "cancel_addfsub_", "remove_fsub_",
             "access_token_", "at_status_", "cancel_at_", "at_validty_", "edit_atvalidity_", "cancel_editatvalidity_", "see_atvalidity_", "default_atvalidity_", "at_tutorial_", "add_attutorial_", "cancel_addattutorial_", "see_attutorial_", "delete_attutorial_",
             "auto_post_", "ap_status_",
             "premium_user_",
@@ -1099,9 +1168,18 @@ async def cb_handler(client: Client, query: CallbackQuery):
             elif data.startswith("transfer_mod_"):
                 _, _, bot_id, mod_id = data.split("_", 3)
                 action = "transfer_mod"
-            elif data.startswith("delete_button_"):
+            elif data.startswith("remove_button_"):
                 _, _, index, bot_id = data.split("_", 3)
-                action = "delete_button"
+                action = "remove_button"
+                index = int(index)
+            elif data.startswith("fsub_mode_"):
+                mode, bot_id = data[len("fsub_mode_"):].rsplit("_", 1)
+                if mode not in ["normal", "request"]:
+                    mode = "normal"
+                action = "fsub_mode"
+            elif data.startswith("remove_fsub_"):
+                _, _, index, bot_id = data.split("_", 3)
+                action = "remove_fsub"
                 index = int(index)
             else:
                 # fallback: split last part as bot_id
@@ -1306,7 +1384,7 @@ async def cb_handler(client: Client, query: CallbackQuery):
                 await show_button_menu(client, query.message, bot_id)
 
             # Delete Button
-            elif action == "delete_button":
+            elif action == "remove_button":
                 if not clone:
                     return await query.answer("Clone not found!", show_alert=True)
 
@@ -1474,16 +1552,100 @@ async def cb_handler(client: Client, query: CallbackQuery):
                 else:
                     await query.answer("❌ No footer text set for this clone.", show_alert=True)
 
-            # Force Subscribe
+            # Force Subscribe Menu
             elif action == "force_subscribe":
                 if not clone:
                     return await query.answer("Clone not found!", show_alert=True)
 
-                buttons = [[InlineKeyboardButton('⬅️ Back', callback_data=f'manage_{bot_id}')]]
+                await show_fsub_menu(client, query.message, bot_id)
+
+            # Add Force Subscribe
+            elif action == "add_fsub":
+                if not clone:
+                    return await query.answer("Clone not found!", show_alert=True)
+
+                fsub_data = clone.get("force_subscribe", [])
+                if len(fsub_data) >= 4:
+                    return await query.answer("❌ You can only add up to 4 channel.", show_alert=True)
+
+                ADD_FSUB[user_id] = {
+                        "orig_msg": query.message,
+                        "bot_id": bot_id,
+                        "step": "name"
+                    }
+                buttons = [[InlineKeyboardButton("❌ Cancel", callback_data=f"cancel_addfsub_{bot_id}")]]
                 await query.message.edit_text(
-                    text=script.FSUB_TXT,
+                    text="✏️ Send me the **button name**.",
                     reply_markup=InlineKeyboardMarkup(buttons)
                 )
+
+            elif action == "fsub_mode":
+                if not clone:
+                    return await query.answer("Clone not found!", show_alert=True)
+
+                data = ADD_FSUB.get(user_id)
+                if not data:
+                    return await query.answer("Session expired. Please try again.", show_alert=True)
+
+                data["mode"] = mode
+
+                bot_id = data["bot_id"]
+                ch = data["channel"]
+                target = data["target"]
+                link = data.get("link")
+                name = data.get("name", "Channel")
+
+                await query.message.edit_text("✏️ Updating your clone's **force subscribe**, please wait...")
+
+                try:
+                    clone = await db.get_clone_by_id(bot_id)
+                    fsub_data = clone.get("force_subscribe", [])
+                    fsub_data.append({
+                        "channel": ch,
+                        "link": link,
+                        "name": name,
+                        "limit": target,
+                        "joined": 0,
+                        "mode": mode
+                    })
+                    await db.update_clone(bot_id, {"force_subscribe": fsub_data})
+                    await query.message.edit_text("✅ Successfully updated **force subscribe**!")
+                    await asyncio.sleep(2)
+                    await show_fsub_menu(client, query.message, bot_id)
+                except Exception as e:
+                    await client.send_message(
+                        LOG_CHANNEL,
+                        f"⚠️ Update Force Subscribe Error:\n\n<code>{e}</code>\n\nKindly check this message for assistance."
+                    )
+                    print(f"⚠️ Update Force Subscribe Error: {e}")
+                    await query.message.edit_text(f"❌ Failed to update **force subscribe**: {e}")
+                    await asyncio.sleep(2)
+                    await show_fsub_menu(client, query.message, bot_id)
+                finally:
+                    ADD_FSUB.pop(user_id, None)
+
+            # Cancel Force Subscribe
+            elif action == "cancel_addfsub":
+                if not clone:
+                    return await query.answer("Clone not found!", show_alert=True)
+
+                ADD_FSUB.pop(user_id, None)
+                await show_fsub_menu(client, query.message, bot_id)
+
+            # Delete Force Subscribe
+            elif action == "remove_fsub":
+                if not clone:
+                    return await query.answer("Clone not found!", show_alert=True)
+
+                fsub_data = clone.get("force_subscribe", [])
+                if 0 <= index < len(fsub_data):
+                    deleted_btn = fsub_data.pop(index)
+                    await db.update_clone(bot_id, {"force_subscribe": fsub_data})
+                    await query.answer(f"❌ Deleted Channel: {deleted_btn['name']}")
+                else:
+                    await query.answer("Invalid Channel index!", show_alert=True)
+
+                await show_fsub_menu(client, query.message, bot_id)
 
             # Access Token
             elif action == "access_token":
@@ -2369,6 +2531,83 @@ async def message_capture(client: Client, message: Message):
         finally:
             FOOTER_TEXT.pop(user_id, None)
         return
+
+    # Force Subscribe Handler
+    if user_id in ADD_FSUB:
+        data = ADD_FSUB[user_id]
+        orig_msg = data["orig_msg"]
+        bot_id = data["bot_id"]
+        step = data["step"]
+
+        try:
+            await message.delete()
+        except:
+            pass
+
+        new_text = message.text.strip() if message.text else ""
+        if not new_text:
+            await orig_msg.edit_text("❌ You sent an empty message. Please send a valid text.")
+            await asyncio.sleep(2)
+            await show_fsub_menu(client, orig_msg, bot_id)
+            ADD_FSUB.pop(user_id, None)
+            return
+
+        if step == "channel":
+            ch = new_text.lstrip("@")
+
+            if ch.startswith("-100") or ch.isdigit():
+                chat_id = int(ch)
+            else:
+                chat_id = ch
+
+            try:
+                member = await client.get_chat_member(chat_id, (await client.get_me()).id)
+                if not member.status in ("administrator", "creator"):
+                    await orig_msg.edit_text(f"🚫 Bot is not admin in `{chat_id}`. Please add as admin first.")
+                    ADD_FSUB.pop(user_id, None)
+                    return
+            except Exception as e:
+                await orig_msg.edit_text(f"❌ Invalid channel: {e}")
+                await asyncio.sleep(2)
+                await show_fsub_menu(client, orig_msg, bot_id)
+                ADD_FSUB.pop(user_id, None)
+                return
+
+            ADD_FSUB[user_id]["channel"] = chat_id
+            ADD_FSUB[user_id]["link"] = f"https://t.me/{ch}" if isinstance(ch, str) else None
+            ADD_FSUB[user_id]["step"] = "target"
+            await orig_msg.edit_text(
+                f"✅ Channel saved: `{chat_id}`\n\nNow send the **target number** of users to join.\n\n"
+                "👉 Send `0` for unlimited joins.\n👉 Or any number (e.g. `500`)."
+            )
+
+        elif step == "target":
+            try:
+                target = int(new_text)
+                if target < 0:
+                    raise ValueError
+            except:
+                await orig_msg.edit_text("❌ Invalid number! Please send 0 or a positive integer.")
+                await asyncio.sleep(2)
+                await show_fsub_menu(client, orig_msg, bot_id)
+                ADD_FSUB.pop(user_id, None)
+                return
+
+            ADD_FSUB[user_id]["target"] = target
+            ADD_FSUB[user_id]["step"] = "mode"
+
+            buttons = [
+                [
+                    InlineKeyboardButton("✅ Normal Join", callback_data=f"fsub_mode_normal_{bot_id}"),
+                    InlineKeyboardButton("📝 Request Join", callback_data=f"fsub_mode_request_{bot_id}")
+                ],
+                [InlineKeyboardButton("❌ Cancel", callback_data=f"cancel_addfsub_{bot_id}")]
+            ]
+            await orig_msg.edit_text(
+                f"🎯 Target saved: `{target}`\n\nNow choose the **mode** for this channel:",
+                reply_markup=InlineKeyboardMarkup(buttons)
+            )
+            return
 
     # Acess Token Handler
     if user_id in ACCESS_TOKEN:
