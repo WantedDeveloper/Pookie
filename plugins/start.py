@@ -1099,6 +1099,10 @@ async def cb_handler(client: Client, query: CallbackQuery):
             elif data.startswith("transfer_mod_"):
                 _, _, bot_id, mod_id = data.split("_", 3)
                 action = "transfer_mod"
+            elif data.startswith("delete_button_"):
+                _, _, index, bot_id = data.split("_", 3)
+                action = "delete_button"
+                index = int(index)
             else:
                 # fallback: split last part as bot_id
                 action, bot_id = data.rsplit("_", 1)
@@ -1305,10 +1309,6 @@ async def cb_handler(client: Client, query: CallbackQuery):
             elif action == "delete_button":
                 if not clone:
                     return await query.answer("Clone not found!", show_alert=True)
-
-                _, index, bot_id = query.data.split("_", 2)
-                index = int(index)
-                bot_id = int(bot_id)
 
                 buttons_data = clone.get("button", [])
                 if 0 <= index < len(buttons_data):
