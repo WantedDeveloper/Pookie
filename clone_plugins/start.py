@@ -106,7 +106,7 @@ async def get_token(bot, userid, link):
     user = await bot.get_users(userid)
     token = ''.join(random.choices(string.ascii_letters + string.digits, k=7))
     TOKENS[user.id] = {token: False}
-    link = f"{link}verify-{user.id}-{token}"
+    link = f"{link}VERIFY-{user.id}-{token}"
     shortened_verify_url = await get_verify_shorted_link(bot, link)
     return str(shortened_verify_url)
 
@@ -201,7 +201,7 @@ async def start(client, message):
             file_id = data
             pre = ""
 
-        if data.startswith("verify-"):
+        if data.startswith("VERIFY-"):
             parts = data.split("-", 2)
             if len(parts) < 3 or str(message.from_user.id) != parts[1]:
                 return await message.reply_text("❌ Invalid or expired link!", protect_content=True)
@@ -318,7 +318,7 @@ async def start(client, message):
             if tutorial_url:
                 btn.append([InlineKeyboardButton("ℹ️ Tutorial", url=tutorial_url)])
 
-            btn.append([InlineKeyboardButton("♻️ Try Again", url=f"https://t.me/{me.username}?start={file_id}")])
+            #btn.append([InlineKeyboardButton("♻️ Try Again", url=f"https://t.me/{me.username}?start={file_id}")])
 
             return await message.reply_text(
                 "🚫 You are not **verified**! Kindly **verify** to continue.",
@@ -350,7 +350,15 @@ async def start(client, message):
             else:
                 f_caption = original_caption or f"<code>{file.file_name}</code>"
 
-            await msg.edit_caption(f_caption)
+            buttons_data = clone.get("button", [])
+            buttons = []
+            for btn in buttons_data:
+                buttons.append([InlineKeyboardButton(btn["name"], url=btn["url"])])
+
+            if buttons:
+                await msg.edit_caption(f_caption, reply_markup=InlineKeyboardMarkup(buttons))
+            else:
+                await msg.edit_caption(f_caption)
 
             if clone.get("auto_delete", False):
                 auto_delete_time = clone.get("auto_delete_time", 1)
