@@ -1571,13 +1571,13 @@ async def cb_handler(client: Client, query: CallbackQuery):
                     return await query.answer("❌ You can only add up to 4 channel.", show_alert=True)
 
                 ADD_FSUB[user_id] = {
-                        "orig_msg": query.message,
-                        "bot_id": bot_id,
-                        "step": "name"
-                    }
+                    "orig_msg": query.message,
+                    "bot_id": bot_id,
+                    "step": "name"
+                }
                 buttons = [[InlineKeyboardButton("❌ Cancel", callback_data=f"cancel_addfsub_{bot_id}")]]
                 await query.message.edit_text(
-                    text="✏️ Send me the **button name**.",
+                    text="✏️ Send me the **force subscribe channel**.",
                     reply_markup=InlineKeyboardMarkup(buttons)
                 )
 
@@ -1597,7 +1597,7 @@ async def cb_handler(client: Client, query: CallbackQuery):
                 link = data.get("link")
                 name = data.get("name", "Channel")
 
-                await query.message.edit_text("✏️ Updating your clone's **force subscribe**, please wait...")
+                await query.message.edit_text("✏️ Updating your clone's **force subscribe channel**, please wait...")
 
                 try:
                     clone = await db.get_clone_by_id(bot_id)
@@ -1611,7 +1611,7 @@ async def cb_handler(client: Client, query: CallbackQuery):
                         "mode": mode
                     })
                     await db.update_clone(bot_id, {"force_subscribe": fsub_data})
-                    await query.message.edit_text("✅ Successfully updated **force subscribe**!")
+                    await query.message.edit_text("✅ Successfully updated **force subscribe channel**!")
                     await asyncio.sleep(2)
                     await show_fsub_menu(client, query.message, bot_id)
                 except Exception as e:
@@ -1620,7 +1620,7 @@ async def cb_handler(client: Client, query: CallbackQuery):
                         f"⚠️ Update Force Subscribe Error:\n\n<code>{e}</code>\n\nKindly check this message for assistance."
                     )
                     print(f"⚠️ Update Force Subscribe Error: {e}")
-                    await query.message.edit_text(f"❌ Failed to update **force subscribe**: {e}")
+                    await query.message.edit_text(f"❌ Failed to update **force subscribe channel**: {e}")
                     await asyncio.sleep(2)
                     await show_fsub_menu(client, query.message, bot_id)
                 finally:
