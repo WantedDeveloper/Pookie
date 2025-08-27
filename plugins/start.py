@@ -879,10 +879,9 @@ async def show_fsub_menu(client, message, bot_id):
         buttons.append([InlineKeyboardButton("⬅️ Back", callback_data=f"manage_{bot_id}")])
 
         await message.edit_text(
-            text=(
+            text=
                 f"{script.FSUB_TXT}\n\n"
-                f"{text if fsub_data else '📢 No active Force Subscribe channels.\n\n➕ Add one below:'}"
-            ),
+                f"{text if fsub_data else '📢 No active Force Subscribe channels.\n\n➕ Add one below:'}",
             reply_markup=InlineKeyboardMarkup(buttons)
         )
     except Exception as e:
