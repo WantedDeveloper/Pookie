@@ -813,12 +813,16 @@ async def show_token_menu(client, message, bot_id):
                 InlineKeyboardButton("📘 Tutorial", callback_data=f"at_tutorial_{bot_id}"),
                 InlineKeyboardButton("❌ Disable", callback_data=f"at_status_{bot_id}")]
             ]
+
             status = (
                 f"🟢 Enabled\n\n"
                 f"🔗 Shorten Link: {shorten_link or 'Not Set'}\n"
                 f"🛠 Shorten API: {shorten_api or 'Not Set'}\n"
                 f"⏱ Validity: {validity} hour\n"
-                f"📘 Tutorial: {tutorial or 'Not Set'}\n"
+                if tutorial_url:
+                    f"📘 Tutorial: <a href='{tutorial_url}'>Click Here</a>\n"
+                else:
+                    f"📘 Tutorial: Not Set\n"
                 f"🔄 Renewed Today: {today_count} times\n\n"
             )
         else:
