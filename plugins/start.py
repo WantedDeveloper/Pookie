@@ -1308,6 +1308,7 @@ async def cb_handler(client: Client, query: CallbackQuery):
 
                 _, index, bot_id = query.data.split("_", 2)
                 index = int(index)
+                bot_id = int(bot_id)
 
                 buttons_data = clone.get("button", [])
                 if 0 <= index < len(buttons_data):
