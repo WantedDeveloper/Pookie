@@ -824,7 +824,7 @@ async def show_token_menu(client, message, bot_id):
                 f"🔗 Shorten Link: {shorten_link or 'Not Set'}\n"
                 f"🛠 Shorten API: {shorten_api or 'Not Set'}\n"
                 f"⏱ Validity: {validity} hour\n"
-                f"{text_msg}
+                f"{text_msg}"
                 f"🔄 Renewed Today: {today_count} times\n\n"
             )
         else:
