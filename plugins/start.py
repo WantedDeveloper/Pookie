@@ -1290,6 +1290,7 @@ async def cb_handler(client: Client, query: CallbackQuery):
                 if not clone:
                     return await query.answer("Clone not found!", show_alert=True)
 
+                buttons_data = clone.get("button", [])
                 if len(buttons_data) >= 3:
                     return await query.answer("❌ You can only add up to 3 buttons.", show_alert=True)
 
