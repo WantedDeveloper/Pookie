@@ -318,7 +318,7 @@ async def start(client, message):
             if tutorial_url:
                 btn.append([InlineKeyboardButton("ℹ️ Tutorial", url=tutorial_url)])
 
-            btn.append([InlineKeyboardButton("♻️ Try Again", url=f"https://t.me/{BOT_USERNAME}?start={file_id}")])
+            btn.append([InlineKeyboardButton("♻️ Try Again", url=f"https://t.me/{me.username}?start={file_id}")])
 
             return await message.reply_text(
                 "🚫 You are not **verified**! Kindly **verify** to continue.",
