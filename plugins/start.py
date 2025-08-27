@@ -2554,35 +2554,33 @@ async def message_capture(client: Client, message: Message):
             ADD_FSUB.pop(user_id, None)
             return
 
+        clone_token = clone.get("token")
+        clone_client = Client(f"clone_{bot_id}", API_ID, API_HASH, bot_token=clone_token)
+        await clone_client.start()
+
         if step == "channel":
             ch = new_text.lstrip("@")
 
-            try:
-                if ch.startswith("-100") or ch.isdigit():
-                    chat_id = int(ch)
-                else:
-                    chat = await client.get_chat(ch)
-                    chat_id = chat.id
-            except Exception as e:
-                await orig_msg.edit_text(f"❌ Could not fetch chat: {e}")
-                await asyncio.sleep(2)
-                await show_fsub_menu(client, orig_msg, bot_id)
-                ADD_FSUB.pop(user_id, None)
-                return
+            if ch.startswith("-100") or ch.isdigit():
+                chat_id = int(ch)
+            else:
+                chat_id = ch
 
             try:
-                member = await client.get_chat_member(chat_id, (await client.get_me()).id)
+                member = await clone_client.get_chat_member(chat_id, (await clone_client.get_me()).id)
                 if not member.status in ("administrator", "creator"):
                     await orig_msg.edit_text(f"🚫 Bot is not admin in `{chat_id}`. Please add as admin first.")
                     await asyncio.sleep(2)
                     await show_fsub_menu(client, orig_msg, bot_id)
                     ADD_FSUB.pop(user_id, None)
+                    await clone_client.stop()
                     return
             except Exception as e:
                 await orig_msg.edit_text(f"❌ Invalid channel: {e}")
                 await asyncio.sleep(2)
                 await show_fsub_menu(client, orig_msg, bot_id)
                 ADD_FSUB.pop(user_id, None)
+                await clone_client.stop()
                 return
 
             ADD_FSUB[user_id]["channel"] = chat_id
@@ -2603,6 +2601,7 @@ async def message_capture(client: Client, message: Message):
                 await asyncio.sleep(2)
                 await show_fsub_menu(client, orig_msg, bot_id)
                 ADD_FSUB.pop(user_id, None)
+                await clone_client.stop()
                 return
 
             ADD_FSUB[user_id]["target"] = target
@@ -2619,7 +2618,8 @@ async def message_capture(client: Client, message: Message):
                 f"🎯 Target saved: `{target}`\n\nNow choose the **mode** for this channel:",
                 reply_markup=InlineKeyboardMarkup(buttons)
             )
-            return
+
+        await clone_client.stop()
 
     # Acess Token Handler
     if user_id in ACCESS_TOKEN:
