@@ -774,7 +774,7 @@ async def show_button_menu(client, message, bot_id):
 
             buttons.append([InlineKeyboardButton("⬅️ Back", callback_data=f"manage_{bot_id}")])
 
-        await query.message.edit_text(
+        await message.edit_text(
             text=script.BUTTON_TXT,
             reply_markup=InlineKeyboardMarkup(buttons)
         )
