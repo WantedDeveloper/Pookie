@@ -2555,16 +2555,6 @@ async def message_capture(client: Client, message: Message):
             return
 
         if step == "channel":
-            ch = new_text.lstrip("@")
-
-            if isinstance(ch, str):
-                if ch.startswith("-100") or ch.isdigit():
-                    chat_id = int(ch)
-                else:
-                    chat_id = ch  # username like "mychannel"
-            else:
-                chat_id = int(ch)
-
             clone = await db.get_clone_by_id(bot_id)
             clone_token = clone.get("token")
             clone_client = Client(
@@ -2574,6 +2564,15 @@ async def message_capture(client: Client, message: Message):
                 api_hash=API_HASH
             )
             await clone_client.start()
+
+            ch = new_text.lstrip("@")
+            if isinstance(ch, str):
+                if ch.startswith("-100") or ch.isdigit():
+                    chat_id = int(ch)
+                else:
+                    chat_id = ch  # username like "mychannel"
+            else:
+                chat_id = int(ch)
 
             try:
                 member = await clone_client.get_chat_member(chat_id, (await clone_client.get_me()).id)
