@@ -769,10 +769,10 @@ async def show_button_menu(client, message, bot_id):
                   InlineKeyboardButton("❌", callback_data=f"del_button_{i}_{bot_id}")]
             )
 
-            if len(buttons_data) < 3:
-                buttons.append([InlineKeyboardButton("➕ Add Button", callback_data=f"add_button_{bot_id}")])
+        if len(buttons_data) < 3:
+            buttons.append([InlineKeyboardButton("➕ Add Button", callback_data=f"add_button_{bot_id}")])
 
-            buttons.append([InlineKeyboardButton("⬅️ Back", callback_data=f"manage_{bot_id}")])
+        buttons.append([InlineKeyboardButton("⬅️ Back", callback_data=f"manage_{bot_id}")])
 
         await message.edit_text(
             text=script.BUTTON_TXT,
