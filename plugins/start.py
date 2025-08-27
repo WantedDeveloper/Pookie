@@ -772,7 +772,7 @@ async def show_button_menu(client, message, bot_id):
         if len(buttons_data) < 3:
             buttons.append([InlineKeyboardButton("➕ Add Button", callback_data=f"add_button_{bot_id}")])
 
-        buttons.append([InlineKeyboardButton("⬅️ Back", callback_data=f"manage_{bot_id}")])
+        buttons.append([InlineKeyboardButton("⬅️ Back", callback_data=f"start_message_{bot_id}")])
 
         await message.edit_text(
             text=script.BUTTON_TXT,
@@ -1099,18 +1099,6 @@ async def cb_handler(client: Client, query: CallbackQuery):
             elif data.startswith("transfer_mod_"):
                 _, _, bot_id, mod_id = data.split("_", 3)
                 action = "transfer_mod"
-            elif data.startswith("add_moderator_"):
-                _, _, bot_id = data.split("_", 2)
-                action = "add_moderator"
-            elif data.startswith("cancel_addmoderator_"):
-                _, _, bot_id = data.split("_", 2)
-                action = "cancel_addmoderator"
-            elif data.startswith("remove_moderator_"):
-                _, _, bot_id = data.split("_", 2)
-                action = "remove_moderator"
-            elif data.startswith("transfer_moderator_"):
-                _, _, bot_id = data.split("_", 2)
-                action = "transfer_moderator"
             else:
                 # fallback: split last part as bot_id
                 action, bot_id = data.rsplit("_", 1)
