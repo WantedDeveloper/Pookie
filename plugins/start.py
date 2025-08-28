@@ -2527,9 +2527,9 @@ async def message_capture(client: Client, message: Message):
             # Steps: channel -> target -> mode
             if step == "channel":
                 try:
-                    channel_id_int = int(new_text:)
+                    channel_id_int = int(new_text)
                 except ValueError:
-                    channel_id_int = new_text:  # username
+                    channel_id_int = new_text  # username
 
                 clone = await db.get_clone_by_id(bot_id)
                 clone_token = clone["token"]
