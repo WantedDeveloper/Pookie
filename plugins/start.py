@@ -2642,7 +2642,7 @@ async def restart_bots():
                 plugins={"root": "clone_plugins"},
             )
             await xd.start()
-            me = await xd.get_me()
-            CLONES[me.id] = xd
+            bot = await xd.get_me()
+            CLONES[str(bot.id)] = xd
         except Exception as e:
             print(f"Error while restarting bot with token {bot_token}: {e}")
