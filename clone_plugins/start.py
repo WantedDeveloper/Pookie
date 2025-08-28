@@ -213,23 +213,23 @@ async def start(client, message):
                 try:
                     chat = await client.get_chat(channel_id)
                     title = chat.title or f"Channel {channel_id}"
-                if chat.username:
-                    invite_link = f"https://t.me/{chat.username}"
-                else:
-                # Private channel/group → bot must be admin
-                    try:
-                        if mode == "request":
-                            invite = await client.create_chat_invite_link(chat.id, creates_join_request=True)
-                        else:
-                            invite = await client.create_chat_invite_link(chat.id)
-                        invite_link = invite.invite_link
-                    except Exception as e:
-                        print(f"⚠️ Cannot create invite link for {channel_id}: {e}")
-                        invite_link = None
+                    if chat.username:
+                        invite_link = f"https://t.me/{chat.username}"
+                    else:
+                    # Private channel/group → bot must be admin
+                        try:
+                            if mode == "request":
+                                invite = await client.create_chat_invite_link(chat.id, creates_join_request=True)
+                            else:
+                                invite = await client.create_chat_invite_link(chat.id)
+                            invite_link = invite.invite_link
+                        except Exception as e:
+                            print(f"⚠️ Cannot create invite link for {channel_id}: {e}")
+                            invite_link = None
                 except Exception as e:
-                print(f"⚠️ Failed to fetch chat {channel_id}: {e}")
-                title = f"Channel {channel_id}"
-                invite_link = None
+                    print(f"⚠️ Failed to fetch chat {channel_id}: {e}")
+                    title = f"Channel {channel_id}"
+                    invite_link = None
 
                 if invite_link:
                     btn.append([InlineKeyboardButton(f"🔔 Join {title}", url=invite_link)])
