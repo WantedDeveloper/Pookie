@@ -206,7 +206,7 @@ async def start(client, message):
                 target = item.get("limit", 0)
                 joined = item.get("joined", 0)
 
-                clone_client = CLONES.get(str(bot_id))
+                clone_client = CLONES.get(str(me.id))
                 if not clone_client:
                     await client.send_message(message.from_user.id, "⚠️ Clone bot not running. Start it first!")
                     return
