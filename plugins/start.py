@@ -1705,8 +1705,30 @@ async def cb_handler(client: Client, query: CallbackQuery):
 
                 await query.message.edit_text("✏️ Updating your clone's **force subscribe channel**, please wait...")
 
+                clone_token = clone.get("token")
+                clone_client = Client(
+                    name=f"clone_{bot_id}",  # unique session name
+                    bot_token=clone_token,
+                    api_id=API_ID,
+                    api_hash=API_HASH
+                )
+                await clone_client.start()
+
                 try:
-                    clone = await db.get_clone_by_id(bot_id)
+                    if isinstance(ch, str):
+                        chat_id = int(ch) if ch.startswith("-100") or ch.isdigit() else ch
+                    else:
+                        chat_id = int(ch)
+
+                    member = await clone_client.get_chat_member(chat_id, (await clone_client.get_me()).id)
+                    if not member.status in ("administrator", "creator"):
+                        await query.message.edit_text(f"🚫 Bot is not admin in `{chat_id}`. Please add as admin first.")
+                        await asyncio.sleep(2)
+                        await show_fsub_menu(client, query.message, bot_id)
+                        ADD_FSUB.pop(user_id, None)
+                        await clone_client.stop()
+                        return
+                    
                     fsub_data = clone.get("force_subscribe", [])
                     fsub_data.append({
                         "channel": ch,
@@ -2661,17 +2683,8 @@ async def message_capture(client: Client, message: Message):
             return
 
         if step == "channel":
-            clone = await db.get_clone_by_id(bot_id)
-            clone_token = clone.get("token")
-            clone_client = Client(
-                name=f"clone_{bot_id}",  # unique session name
-                bot_token=clone_token,
-                api_id=API_ID,
-                api_hash=API_HASH
-            )
-            await clone_client.start()
 
-            try:
+            """try:
                 ch = new_text.lstrip("@")
                 if isinstance(ch, str):
                     if ch.startswith("-100") or ch.isdigit():
@@ -2695,7 +2708,7 @@ async def message_capture(client: Client, message: Message):
                 await show_fsub_menu(client, orig_msg, bot_id)
                 ADD_FSUB.pop(user_id, None)
                 await clone_client.stop()
-                return
+                return"""
 
             ADD_FSUB[user_id]["channel"] = chat_id
             ADD_FSUB[user_id]["link"] = f"https://t.me/{ch}" if isinstance(ch, str) else None
