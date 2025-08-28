@@ -2379,8 +2379,7 @@ async def message_capture(client: Client, message: Message):
                 )
                 await xd.start()
                 bot = await xd.get_me()
-                bot_id = bot.id
-                CLONES[bot_id] = xd
+                CLONES[bot.id] = xd
                 await db.add_clone_bot(bot.id, user_id, bot.first_name, bot.username, token)
                 await msg.edit_text(f"✅ Successfully cloned your **bot**: @{bot.username}")
                 await asyncio.sleep(2)
@@ -2548,7 +2547,10 @@ async def message_capture(client: Client, message: Message):
 
                 clone_client = CLONES.get(bot_id)
                 if not clone_client:
-                    await message.reply_text("❌ Clone bot not running, please restart it.")
+                    await orig_msg.edit_text("❌ Clone bot not running, please restart it.")
+                    await asyncio.sleep(2)
+                    await show_fsub_menu(client, orig_msg, bot_id)
+                    ADD_FSUB.pop(user_id, None)
                     return
 
                 try:
@@ -2651,5 +2653,7 @@ async def restart_bots():
                 plugins={"root": "clone_plugins"},
             )
             await xd.start()
+            bot = await xd.get_me()
+            CLONES[bot.id] = xd
         except Exception as e:
             print(f"Error while restarting bot with token {bot_token}: {e}")
