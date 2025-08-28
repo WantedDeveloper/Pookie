@@ -2533,7 +2533,7 @@ async def message_capture(client: Client, message: Message):
 
                 clone = await db.get_clone_by_id(bot_id)
                 clone_token = clone["token"]
-                clone_client = Client("clone_temp", bot_token=clone_token)  # temporary client for check
+                clone_client = Client("clone_temp", api_id=API_ID, api_hash=API_HASH, bot_token=clone_token)  # temporary client for check
                 await clone_client.start()
 
                 try:
