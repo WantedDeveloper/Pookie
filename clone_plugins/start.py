@@ -196,6 +196,7 @@ async def start(client, message):
             await db.increment_users_count(me.id)
 
         if not await is_subscribed(client, message.from_user.id, me.id):
+            print("CLONE DATA =>", repr(clone), type(clone))
             fsub_data = clone.get("force_subscribe", [])
             print("FSUB RAW DATA =>", repr(fsub_data))
 
