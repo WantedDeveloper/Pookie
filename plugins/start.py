@@ -2335,6 +2335,9 @@ async def cb_handler(client: Client, query: CallbackQuery):
 @Client.on_message(filters.text | filters.photo)
 async def message_capture(client: Client, message: Message):
     try:
+        if not message.from_user:
+            return
+
         user_id = message.from_user.id
 
         # -------------------- CLONE CREATION --------------------
