@@ -2532,12 +2532,13 @@ async def message_capture(client: Client, message: Message):
                     channel_id_int = new_text  # username
 
                 clone = await db.get_clone_by_id(bot_id)
-                clone_token = clone["token"]
-                clone_client = Client("clone_temp", api_id=API_ID, api_hash=API_HASH, bot_token=clone_token)  # temporary client for check
-                await clone_client.start()
+                clone_client=client
+                #clone_token = clone["token"]
+                #clone_client = Client("clone_{bot_id}", api_id=API_ID, api_hash=API_HASH, bot_token=clone_token)  # temporary client for check
+                #await clone_client.start()
 
                 try:
-                    member = await clone_client.get_chat_member(channel_id_int, bot_id)
+                    member = await clone_client.get_chat_member(channel_id_int, clone["bot_id"])
                     if member.status not in [enums.ChatMemberStatus.ADMINISTRATOR, enums.ChatMemberStatus.OWNER]:
                         await orig_msg.edit_text("❌ The clone bot is NOT an admin in this channel. Add it as admin first.")
                         await asyncio.sleep(2)
