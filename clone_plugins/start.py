@@ -200,8 +200,11 @@ async def start(client, message):
 
             buttons = []
             for item in fsub_data:
+                print("FSUB DATA =>", fsub_data)
                 channel_id = item.get("chat_id")
+                mode = item.get("mode", "normal")
                 if not channel_id:
+                    print("⚠️ Skipping FSUB entry, no chat_id:", item)
                     continue
 
                 try:
@@ -209,12 +212,11 @@ async def start(client, message):
                 except ValueError:
                     pass
 
-                mode = item.get("mode", "normal")
-
                 try:
                     chat = await client.get_chat(channel_id)
-                    title = chat.title
-                except:
+                    title = chat.title or f"Channel {channel_id}"
+                except Exception as e:
+                    print(f"⚠️ Failed to get chat {channel_id}: {e}")
                     title = f"Channel {channel_id}"
 
                 if mode == "request":
