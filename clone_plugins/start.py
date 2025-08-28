@@ -76,7 +76,7 @@ async def is_subscribed(bot, user_id: int, bot_id: int):
         return True  # no channels set → no fsub
 
     for item in fsub_data:
-        channel_id = int(item["chat_id"])
+        channel_id = int(item["channel"])
         mode = item.get("mode", "normal")
 
         try:
@@ -197,25 +197,19 @@ async def start(client, message):
 
         if not await is_subscribed(client, message.from_user.id, me.id):
             fsub_data = clone.get("force_subscribe", [])
-            print("🔍 DEBUG fsub_data =", fsub_data)
 
-            btn = []
+            buttons = []
             for item in fsub_data:
-                if not isinstance(item, dict):
-                    print("❌ Invalid fsub_data entry (not dict):", item)
-                    continue
-
-                if "chat_id" not in item:
-                    print("❌ Missing chat_id in fsub_data entry:", item)
+                channel_id = int(item["channel"])
+                mode = item.get("mode", "normal")
+                if not channel_id:
+                    print("⚠️ Skipping FSUB entry, no chat_id:", item)
                     continue
 
                 try:
-                    channel_id = int(item["chat_id"])
-                except Exception as e:
-                    print(f"❌ chat_id not int for item {item}: {e}")
-                    continue
-                
-                mode = item.get("mode", "normal")
+                    channel_id = int(channel_id)
+                except ValueError:
+                    pass
 
                 try:
                     chat = await client.get_chat(channel_id)
@@ -229,20 +223,20 @@ async def start(client, message):
                 else:
                     invite = await client.create_chat_invite_link(channel_id)
 
-                btn.append([InlineKeyboardButton(f"🔔 Join {title}", url=invite.invite_link)])
+                buttons.append([InlineKeyboardButton(f"🔔 Join {title}", url=invite.invite_link)])
 
             if len(message.command) > 1:
                 start_arg = message.command[1]
                 try:
                     kk, file_id = start_arg.split("_", 1)
-                    btn.append([InlineKeyboardButton("♻️ Try Again", callback_data=f"checksub#{kk}#{file_id}")])
+                    buttons.append([InlineKeyboardButton("♻️ Try Again", callback_data=f"checksub#{kk}#{file_id}")])
                 except:
-                    btn.append([InlineKeyboardButton("♻️ Try Again", url=f"https://t.me/{me.username}?start={start_arg}")])
+                    buttons.append([InlineKeyboardButton("♻️ Try Again", url=f"https://t.me/{me.username}?start={start_arg}")])
 
             return await client.send_message(
                 message.from_user.id,
                 "🚨 You must join the channel first to use this bot.",
-                reply_markup=InlineKeyboardMarkup(btn),
+                reply_markup=InlineKeyboardMarkup(buttons),
                 parse_mode=enums.ParseMode.MARKDOWN
             )
 
