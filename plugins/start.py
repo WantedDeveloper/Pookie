@@ -2526,14 +2526,6 @@ async def message_capture(client: Client, message: Message):
                 ADD_FSUB.pop(user_id, None)
                 return
 
-            clone_client = CLONES.get(str(bot_id))
-            if not clone_client:
-                await orig_msg.edit_text("❌ Clone bot not running, please restart it.")
-                await asyncio.sleep(2)
-                await show_fsub_menu(client, orig_msg, bot_id)
-                ADD_FSUB.pop(user_id, None)
-                return
-
             # Steps: channel -> target -> mode
             if step == "channel":
                 try:
@@ -2541,6 +2533,15 @@ async def message_capture(client: Client, message: Message):
                 except ValueError:
                     channel_id_int = new_text
 
+                """clone_client = CLONES.get(str(bot_id))
+                if not clone_client:
+                    await orig_msg.edit_text("❌ Clone bot not running, please restart it.")
+                    await asyncio.sleep(2)
+                    await show_fsub_menu(client, orig_msg, bot_id)
+                    ADD_FSUB.pop(user_id, None)
+                    return"""
+
+                clone_client = await db.get_clone_by_id(bot_id)
                 try:
                     chat = await clone_client.get_chat(channel_id_int)
                     ch_name = chat.title or "Unknown"
