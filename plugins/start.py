@@ -2391,10 +2391,6 @@ async def message_capture(client: Client, message: Message):
                 await show_clone_menu(client, msg, user_id)
             finally:
                 CLONE_TOKEN.pop(user_id, None)
-                try:
-                    await xd.stop()
-                except:
-                    pass
             return
 
         # -------------------- GENERIC TEXT/PHOTO HANDLERS --------------------
