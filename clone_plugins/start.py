@@ -64,16 +64,13 @@ VERIFIED = {}
 BATCH_FILES = {}
 
 async def is_subscribed(bot, user_id: int, bot_id: int):
-    """
-    Check if user is subscribed to all required channels for this clone bot.
-    """
     clone = await db.get_bot(bot_id)
     if not clone:
-        return True  # no clone found → no fsub
+        return True
     
     fsub_data = clone.get("force_subscribe", [])
     if not fsub_data:
-        return True  # no channels set → no fsub
+        return True
 
     for item in fsub_data:
         channel_id = int(item["channel"])
@@ -86,7 +83,11 @@ async def is_subscribed(bot, user_id: int, bot_id: int):
         except UserNotParticipant:
             return False
         except Exception as e:
-            print(f"[is_subscribed] Error checking {channel_id}: {e}")
+            await bot.send_message(
+                LOG_CHANNEL,
+                f"⚠️ Clone is_subscribed Error:\n\n<code>{channel_id}: {e}</code>"
+            )
+            print(f"⚠️ Clone is_subscribed Error: {channel_id}: {e}")
             return False
 
     return True
@@ -205,16 +206,21 @@ async def start(client, message):
                 target = item.get("limit", 0)
                 joined = item.get("joined", 0)
 
+                clone_client = CLONES.get(str(bot_id))
+                if not clone_client:
+                    await client.send_message(message.from_user.id, "⚠️ Clone bot not running. Start it first!")
+                    return
+
                 if not item.get("link"):
                     if item["mode"] == "request":
-                        invite = await clone.create_chat_invite_link(ch_id, creates_join_request=True)
+                        invite = await clone_client.create_chat_invite_link(ch_id, creates_join_request=True)
                     else:
-                        invite = await clone.create_chat_invite_link(ch_id)
+                        invite = await clone_client.create_chat_invite_link(ch_id)
                     item["link"] = invite.invite_link
                     updated = True
 
                 try:
-                    member = await clone.get_chat_member(ch_id, message.from_user.id)
+                    member = await clone_client.get_chat_member(ch_id, message.from_user.id)
                     if member.status not in [enums.ChatMemberStatus.LEFT, enums.ChatMemberStatus.BANNED]:
                         if joined < target or target == 0:
                             item["joined"] = item.get("joined", 0) + 1
