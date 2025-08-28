@@ -197,45 +197,40 @@ async def start(client, message):
 
         if not await is_subscribed(client, message.from_user.id, me.id):
             fsub_data = clone.get("force_subscribe", [])
+            print("🔍 DEBUG fsub_data =", fsub_data)
 
-            buttons = []
+            btn = []
             for item in fsub_data:
+                if not isinstance(item, dict):
+                    print("❌ Invalid fsub_data entry (not dict):", item)
+                    continue
+
+                if "chat_id" not in item:
+                    print("❌ Missing chat_id in fsub_data entry:", item)
+                    continue
+
                 try:
                     channel_id = int(item["chat_id"])
-                except Exception:
-                    print(f"⚠️ Invalid chat_id in FSUB data: {item}")
+                except Exception as e:
+                    print(f"❌ chat_id not int for item {item}: {e}")
                     continue
                 
                 mode = item.get("mode", "normal")
 
-                
-
                 try:
                     chat = await client.get_chat(channel_id)
                     title = chat.title or f"Channel {channel_id}"
-                    if chat.username:
-                        invite_link = f"https://t.me/{chat.username}"
-                    else:
-                    # Private channel/group → bot must be admin
-                        try:
-                            if mode == "request":
-                                invite = await client.create_chat_invite_link(chat.id, creates_join_request=True)
-                            else:
-                                invite = await client.create_chat_invite_link(chat.id)
-                            invite_link = invite.invite_link
-                        except Exception as e:
-                            print(f"⚠️ Cannot create invite link for {channel_id}: {e}")
-                            invite_link = None
                 except Exception as e:
-                    print(f"⚠️ Failed to fetch chat {channel_id}: {e}")
+                    print(f"⚠️ Failed to get chat {channel_id}: {e}")
                     title = f"Channel {channel_id}"
-                    invite_link = None
 
-                if invite_link:
-                    btn.append([InlineKeyboardButton(f"🔔 Join {title}", url=invite_link)])
+                if mode == "request":
+                    invite = await client.create_chat_invite_link(channel_id, creates_join_request=True)
                 else:
-                    print(f"⚠️ Skipping FSUB entry: No valid invite link for {channel_id}")
-            
+                    invite = await client.create_chat_invite_link(channel_id)
+
+                btn.append([InlineKeyboardButton(f"🔔 Join {title}", url=invite.invite_link)])
+
             if len(message.command) > 1:
                 start_arg = message.command[1]
                 try:
