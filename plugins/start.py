@@ -2533,11 +2533,23 @@ async def message_capture(client: Client, message: Message):
 
                 clone = await db.get_clone_by_id(bot_id)
                 #clone_token = clone["token"]
-                #clone_client = Client("clone_{bot_id}", api_id=API_ID, api_hash=API_HASH, bot_token=clone_token)  # temporary client for check
-                #await client.start()
+                #clone_client = Client("clone_temp", api_id=API_ID, api_hash=API_HASH, bot_token=clone_token)  # temporary client for check
+                #await clone_client.start()
 
                 try:
-                    member = await client.get_chat_member(channel_id_int, clone["bot_id"])
+                    chat = await client.get_chat(channel_id_int)
+                    ch_name = chat.title or "Unknown"
+                    ch_link = f"https://t.me/{chat.username}" if chat.username else None
+                except Exception as e:
+                    await orig_msg.edit_text(f"❌ Failed to get channel info: {e}")
+                    await asyncio.sleep(2)
+                    await show_fsub_menu(client, orig_msg, bot_id)
+                    ADD_FSUB.pop(user_id, None)
+                    return
+
+                try:
+                    me = await client.get_me()
+                    member = await client.get_chat_member(chat.id, me.id)
                     if member.status not in [enums.ChatMemberStatus.ADMINISTRATOR, enums.ChatMemberStatus.OWNER]:
                         await orig_msg.edit_text("❌ The clone bot is NOT an admin in this channel. Add it as admin first.")
                         await asyncio.sleep(2)
@@ -2553,17 +2565,6 @@ async def message_capture(client: Client, message: Message):
                     #await clone_client.stop()
                     return
                 #await clone_client.stop()
-
-                try:
-                    chat = await client.get_chat(channel_id_int)
-                    ch_name = chat.title or "Unknown"
-                    ch_link = f"https://t.me/{chat.username}" if chat.username else None
-                except Exception as e:
-                    await orig_msg.edit_text(f"❌ Failed to get channel info: {e}")
-                    await asyncio.sleep(2)
-                    await show_fsub_menu(client, orig_msg, bot_id)
-                    ADD_FSUB.pop(user_id, None)
-                    return
                 
                 ADD_FSUB[user_id]["channel"] = int(chat.id)
                 ADD_FSUB[user_id]["name"] = ch_name
