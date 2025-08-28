@@ -325,28 +325,30 @@ async def start(client, message):
             )
 
         if AUTH_CHANNEL and not await is_subscribed(client, message):
-            # Create invite link
-            if REQUEST_TO_JOIN_MODE:
-                invite_link = await client.create_chat_invite_link(chat_id=int(AUTH_CHANNEL), creates_join_request=True)
-            else:
-                invite_link = await client.create_chat_invite_link(int(AUTH_CHANNEL))
+            await asyncio.sleep(2)
+            if not await is_subscribed(client, message):
+                # Create invite link
+                if REQUEST_TO_JOIN_MODE:
+                    invite_link = await client.create_chat_invite_link(chat_id=int(AUTH_CHANNEL), creates_join_request=True)
+                else:
+                    invite_link = await client.create_chat_invite_link(int(AUTH_CHANNEL))
 
-            # Build buttons
-            btn = [[InlineKeyboardButton("Join Channel", url=invite_link.invite_link)]]
-            if len(message.command) > 1:
-                try:
-                    kk, file_id = message.command[1].split("_", 1)
-                    btn.append([InlineKeyboardButton("↻ Try Again", callback_data=f"checksub#{kk}#{file_id}")])
-                except (IndexError, ValueError):
-                    btn.append([InlineKeyboardButton("↻ Try Again", url=f"https://t.me/{BOT_USERNAME}?start={message.command[1]}")])
+                # Build buttons
+                btn = [[InlineKeyboardButton("Join Channel", url=invite_link.invite_link)]]
+                if len(message.command) > 1:
+                    start_arg = message.command[1]
+                    try:
+                        kk, file_id = start_arg.split("_", 1)
+                        btn.append([InlineKeyboardButton("↻ Try Again", callback_data=f"checksub#{kk}#{file_id}")])
+                    except:
+                        btn.append([InlineKeyboardButton("↻ Try Again", url=f"https://t.me/{BOT_USERNAME}?start={start_arg}")])
 
-            text = "**You must join the channel first to use this bot.**"
-            return await client.send_message(
-                message.from_user.id,
-                text=text,
-                reply_markup=InlineKeyboardMarkup(btn),
-                parse_mode=enums.ParseMode.MARKDOWN
-            )
+                return await client.send_message(
+                    message.from_user.id,
+                    "You must join the channel first to use this bot.",
+                    reply_markup=InlineKeyboardMarkup(btn),
+                    parse_mode=enums.ParseMode.MARKDOWN
+                )
 
         # If /start only (no arguments)
         if len(message.command) == 1:
@@ -362,8 +364,6 @@ async def start(client, message):
                 script.START_TXT.format(user=message.from_user.mention, bot=client.me.mention),
                 reply_markup=InlineKeyboardMarkup(buttons)
             )
-
-        
 
         # --- Verification Handler ---
         data = message.command[1]
@@ -1167,8 +1167,16 @@ async def cb_handler(client: Client, query: CallbackQuery):
     try:
         user_id = query.from_user.id
 
+        if query.data.startswith("checksub"):
+            if AUTH_CHANNEL and not await is_subscribed(client, query):
+                await query.answer("Join our channel first.", show_alert=True)
+                return
+            
+            _, kk, file_id = query.data.split("#")
+            await query.answer(url=f"https://t.me/{BOT_USERNAME}?start={kk}_{file_id}")
+
         # Start Menu
-        if query.data == "start":
+        elif query.data == "start":
             buttons = [
                 [InlineKeyboardButton('💁‍♀️ Help', callback_data='help'),
                  InlineKeyboardButton('ℹ️ About', callback_data='about')],
@@ -1180,14 +1188,6 @@ async def cb_handler(client: Client, query: CallbackQuery):
                 text=script.START_TXT.format(user=query.from_user.mention, bot=me.mention),
                 reply_markup=InlineKeyboardMarkup(buttons)
             )
-
-        elif query.data.startswith("checksub"):
-            ident = query.data.split("_", 1)[1]
-            if AUTH_CHANNEL and not await is_subscribed(client, query):
-                await query.answer("Jᴏɪɴ ᴏᴜʀ Bᴀᴄᴋ-ᴜᴘ ᴄʜᴀɴɴᴇʟ ᴍᴀʜɴ! 😒", show_alert=True)
-                return
-            ident, kk, file_id = query.data.split("#")
-            await query.answer(url=f"https://t.me/{BOT_USERNAME}?start={kk}_{file_id}")
 
         # Help
         elif query.data == "help":
@@ -2661,6 +2661,8 @@ async def message_capture(client: Client, message: Message):
             return
 
         if step == "channel":
+            ch = new_text.lstrip("@")
+
             clone = await db.get_clone_by_id(bot_id)
             clone_token = clone.get("token")
             clone_client = Client(
@@ -2671,16 +2673,15 @@ async def message_capture(client: Client, message: Message):
             )
             await clone_client.start()
 
-            ch = new_text.lstrip("@")
-            if isinstance(ch, str):
-                if ch.startswith("-100") or ch.isdigit():
-                    chat_id = int(ch)
-                else:
-                    chat_id = ch  # username like "mychannel"
-            else:
-                chat_id = int(ch)
-
             try:
+                if isinstance(ch, str):
+                    if ch.startswith("-100") or ch.isdigit():
+                        chat_id = int(ch)
+                    else:
+                        chat_id = ch  # username like "mychannel"
+                else:
+                    chat_id = int(ch)
+
                 member = await clone_client.get_chat_member(chat_id, (await clone_client.get_me()).id)
                 if not member.status in ("administrator", "creator"):
                     await orig_msg.edit_text(f"🚫 Bot is not admin in `{chat_id}`. Please add as admin first.")
