@@ -240,6 +240,7 @@ join_db = JoinReqs
 logger = logging.getLogger(__name__)
 
 BATCH_FILES = {}
+CLONES = {}
 CLONE_TOKEN = {}
 START_TEXT = {}
 START_PHOTO = {}
@@ -2377,6 +2378,7 @@ async def message_capture(client: Client, message: Message):
                     plugins={"root": "clone_plugins"}
                 )
                 await xd.start()
+                CLONES[bot_id] = xd
                 bot = await xd.get_me()
                 await db.add_clone_bot(bot.id, user_id, bot.first_name, bot.username, token)
 
@@ -2531,7 +2533,7 @@ async def message_capture(client: Client, message: Message):
                 except ValueError:
                     channel_id_int = new_text  # username
 
-                clone = await db.get_clone_by_id(bot_id)
+                #clone = await db.get_clone_by_id(bot_id)
                 #clone_token = clone["token"]
                 #clone_client = Client("clone_temp", api_id=API_ID, api_hash=API_HASH, bot_token=clone_token)  # temporary client for check
                 #await clone_client.start()
@@ -2547,9 +2549,14 @@ async def message_capture(client: Client, message: Message):
                     ADD_FSUB.pop(user_id, None)
                     return
 
+                clone_client = CLONES.get(bot_id)
+                if not clone_client:
+                    await message.reply_text("❌ Clone bot not running, please restart it.")
+                    return
+
                 try:
-                    me = await clone["bot_id"].get_me()
-                    member = await client.get_chat_member(chat.id, me.id)
+                    me = await clone_client.get_me()
+                    member = await clone_client.get_chat_member(chat.id, me.id)
                     if member.status not in [enums.ChatMemberStatus.ADMINISTRATOR, enums.ChatMemberStatus.OWNER]:
                         await orig_msg.edit_text("❌ The clone bot is NOT an admin in this channel. Add it as admin first.")
                         await asyncio.sleep(2)
