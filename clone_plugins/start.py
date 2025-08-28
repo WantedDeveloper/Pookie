@@ -197,14 +197,19 @@ async def start(client, message):
 
         if not await is_subscribed(client, message.from_user.id, me.id):
             fsub_data = clone.get("force_subscribe", [])
+            print("FSUB RAW DATA =>", repr(fsub_data))
 
             buttons = []
-            for item in fsub_data:
-                print("FSUB DATA =>", fsub_data)
+            for idx, item in enumerate(fsub_data, start=1):
+                print(f"FSUB ITEM {idx} =>", repr(item))
+
+                if not isinstance(item, dict):
+                    print("⚠️ Skipping non-dict entry:", item)
+                    continue
+
                 channel_id = item.get("chat_id")
-                mode = item.get("mode", "normal")
                 if not channel_id:
-                    print("⚠️ Skipping FSUB entry, no chat_id:", item)
+                    print("⚠️ Skipping item without chat_id:", item)
                     continue
 
                 try:
@@ -232,7 +237,7 @@ async def start(client, message):
                     kk, file_id = start_arg.split("_", 1)
                     btn.append([InlineKeyboardButton("♻️ Try Again", callback_data=f"checksub#{kk}#{file_id}")])
                 except:
-                    btn.append([InlineKeyboardButton("♻️ Try Again", url=f"https://t.me/{me}?start={start_arg}")])
+                    btn.append([InlineKeyboardButton("♻️ Try Again", url=f"https://t.me/{me.username}?start={start_arg}")])
 
             return await client.send_message(
                 message.from_user.id,
@@ -915,7 +920,7 @@ async def cb_handler(client: Client, query: CallbackQuery):
                 return
             
             _, kk, file_id = query.data.split("#")
-            await query.answer(url=f"https://t.me/{me}?start={kk}_{file_id}")
+            await query.answer(url=f"https://t.me/{me.username}?start={kk}_{file_id}")
 
         # Start Menu
         elif query.data == "start":
