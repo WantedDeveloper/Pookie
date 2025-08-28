@@ -2378,27 +2378,24 @@ async def message_capture(client: Client, message: Message):
                     plugins={"root": "clone_plugins"}
                 )
                 await xd.start()
-                CLONES[bot_id] = xd
                 bot = await xd.get_me()
+                bot_id = bot.id
+                CLONES[bot_id] = xd
                 await db.add_clone_bot(bot.id, user_id, bot.first_name, bot.username, token)
-
                 await msg.edit_text(f"✅ Successfully cloned your **bot**: @{bot.username}")
                 await asyncio.sleep(2)
                 await show_clone_menu(client, msg, user_id)
-
             except Exception as e:
                 await client.send_message(LOG_CHANNEL, f"⚠️ Create Bot Error:\n<code>{e}</code>")
                 await msg.edit_text(f"❌ Failed to create **bot**: {e}")
                 await asyncio.sleep(2)
                 await show_clone_menu(client, msg, user_id)
-
             finally:
                 CLONE_TOKEN.pop(user_id, None)
                 try:
                     await xd.stop()
                 except:
                     pass
-
             return
 
         # -------------------- GENERIC TEXT/PHOTO HANDLERS --------------------
