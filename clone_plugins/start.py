@@ -9,7 +9,7 @@ from pyrogram.errors import ChatAdminRequired, InputUserDeactivated, UserNotPart
 from pyrogram.errors.exceptions.bad_request_400 import AccessTokenExpired, AccessTokenInvalid, ChannelInvalid, UsernameInvalid, UsernameNotModified
 from config import *
 from Script import script
-from plugins.start import db
+from plugins.start import db, CLONES
 
 class Database:
     
@@ -207,14 +207,14 @@ async def start(client, message):
 
                 if not item.get("link"):
                     if item["mode"] == "request":
-                        invite = await clone_client.create_chat_invite_link(ch_id, creates_join_request=True)
+                        invite = await clone.create_chat_invite_link(ch_id, creates_join_request=True)
                     else:
-                        invite = await clone_client.create_chat_invite_link(ch_id)
+                        invite = await clone.create_chat_invite_link(ch_id)
                     item["link"] = invite.invite_link
                     updated = True
 
                 try:
-                    member = await clone_client.get_chat_member(ch_id, message.from_user.id)
+                    member = await clone.get_chat_member(ch_id, message.from_user.id)
                     if member.status not in [enums.ChatMemberStatus.LEFT, enums.ChatMemberStatus.BANNED]:
                         if joined < target or target == 0:
                             item["joined"] = item.get("joined", 0) + 1
