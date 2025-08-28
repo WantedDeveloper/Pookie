@@ -235,6 +235,8 @@ class JoinReqs:
     async def get_all_users_count(self):
         return await self.col.count_documents({})
 
+join_db = JoinReqs
+
 logger = logging.getLogger(__name__)
 
 BATCH_FILES = {}
@@ -254,8 +256,6 @@ AUTO_DELETE_MESSAGE = {}
 ADD_MODERATOR = {}
 
 START_TIME = time.time()
-
-join_db = JoinReqs
 
 async def is_subscribed(bot, query):
     if REQUEST_TO_JOIN_MODE == True and join_db().isActive():
@@ -1265,7 +1265,6 @@ async def cb_handler(client: Client, query: CallbackQuery):
 
             data = query.data
 
-            # Default values
             action = None
             bot_id = None
             mod_id = None
@@ -1290,7 +1289,6 @@ async def cb_handler(client: Client, query: CallbackQuery):
                 action = "remove_fsub"
                 index = int(index)
             else:
-                # fallback: split last part as bot_id
                 action, bot_id = data.rsplit("_", 1)
 
             clone = await db.get_clone_by_id(bot_id)
@@ -1535,7 +1533,7 @@ async def cb_handler(client: Client, query: CallbackQuery):
                     buttons = [[InlineKeyboardButton("✅ Enable", callback_data=f"rc_status_{bot_id}")]]
                     status = "🔴 Disabled"
 
-                buttons.append([InlineKeyboardButton("⬅️ Back", callback_data=f"manage_{bot_id}")])
+                buttons.append([InlineKeyboardButton("⬅️ Back", callback_data=f"link_message_{bot_id}")])
                 await query.message.edit_text(
                     text=script.RANDOM_CAPTION_TXT.format(status=f"{status}"),
                     reply_markup=InlineKeyboardMarkup(buttons)
@@ -1696,7 +1694,6 @@ async def cb_handler(client: Client, query: CallbackQuery):
                     return await query.answer("Session expired. Please try again.", show_alert=True)
 
                 data["mode"] = mode
-
                 bot_id = data["bot_id"]
                 ch = data["channel"]
                 target = data["target"]
@@ -1705,35 +1702,12 @@ async def cb_handler(client: Client, query: CallbackQuery):
 
                 await query.message.edit_text("✏️ Updating your clone's **force subscribe channel**, please wait...")
 
-                clone_token = clone.get("token")
-                clone_client = Client(
-                    name=f"clone_{bot_id}",  # unique session name
-                    bot_token=clone_token,
-                    api_id=API_ID,
-                    api_hash=API_HASH
-                )
-                await clone_client.start()
-
                 try:
-                    if isinstance(ch, str):
-                        chat_id = int(ch) if ch.startswith("-100") or ch.isdigit() else ch
-                    else:
-                        chat_id = int(ch)
-
-                    member = await clone_client.get_chat_member(chat_id, (await clone_client.get_me()).id)
-                    if not member.status in ("administrator", "creator"):
-                        await query.message.edit_text(f"🚫 Bot is not admin in `{chat_id}`. Please add as admin first.")
-                        await asyncio.sleep(2)
-                        await show_fsub_menu(client, query.message, bot_id)
-                        ADD_FSUB.pop(user_id, None)
-                        await clone_client.stop()
-                        return
-                    
                     fsub_data = clone.get("force_subscribe", [])
                     fsub_data.append({
                         "channel": ch,
-                        "link": link,
                         "name": name,
+                        "link": link,
                         "limit": target,
                         "joined": 0,
                         "mode": mode
@@ -2372,7 +2346,6 @@ async def message_capture(client: Client, message: Message):
             except:
                 pass
 
-            # Check if user already cloned a bot
             if await db.is_clone_exist(user_id):
                 await msg.edit_text("You have already cloned a **bot**. Delete it first.")
                 await asyncio.sleep(2)
@@ -2380,7 +2353,6 @@ async def message_capture(client: Client, message: Message):
                 CLONE_TOKEN.pop(user_id, None)
                 return
 
-            # Ensure forwarded from BotFather
             if not (message.forward_from and message.forward_from.id == 93372553):
                 await msg.edit_text("❌ Please forward the BotFather message containing your **bot token**.")
                 await asyncio.sleep(2)
@@ -2388,7 +2360,6 @@ async def message_capture(client: Client, message: Message):
                 CLONE_TOKEN.pop(user_id, None)
                 return
 
-            # Extract token
             try:
                 token = re.findall(r"\b(\d+:[A-Za-z0-9_-]+)\b", message.text or "")[0]
             except IndexError:
@@ -2398,7 +2369,6 @@ async def message_capture(client: Client, message: Message):
                 CLONE_TOKEN.pop(user_id, None)
                 return
 
-            # Create bot
             await msg.edit_text("👨‍💻 Creating your **bot**, please wait...")
             try:
                 xd = Client(
@@ -2451,7 +2421,6 @@ async def message_capture(client: Client, message: Message):
                 except:
                     pass
 
-                # Validate content
                 if input_type == "text":
                     content = message.text.strip() if message.text else ""
                     if not content:
@@ -2469,7 +2438,6 @@ async def message_capture(client: Client, message: Message):
                         return
                     content = message.photo[-1].file_id
 
-                # Update DB
                 await orig_msg.edit_text(f"✏️ Updating **{db_field.replace('_', ' ')}**, please wait...")
                 try:
                     if db_field == "moderators":
@@ -2516,6 +2484,9 @@ async def message_capture(client: Client, message: Message):
                 ADD_BUTTON[user_id]["step"] = "url"
                 await orig_msg.edit_text(f"✅ Button name saved: **{new_text}**\n\nNow send the URL.")
             elif step == "url":
+                if not (new_text.startswith("https://") or new_text.startswith("http://")):
+                    new_text = "https://" + new_text
+                    await orig_msg.edit_text(f"⚠️ URL missing scheme. Automatically added `https://` → `{new_text}`")
                 btn_name = data["btn_name"]
                 btn_url = new_text
                 await orig_msg.edit_text("✏️ Updating **start button**, please wait...")
@@ -2555,17 +2526,74 @@ async def message_capture(client: Client, message: Message):
 
             # Steps: channel -> target -> mode
             if step == "channel":
-                ADD_FSUB[user_id]["channel"] = new_text
+                try:
+                    channel_id_int = int(new_text:)
+                except ValueError:
+                    channel_id_int = new_text:  # username
+
+                clone = await db.get_clone_by_id(bot_id)
+                clone_token = clone["token"]
+                clone_client = Client("clone_temp", bot_token=clone_token)  # temporary client for check
+                await clone_client.start()
+
+                try:
+                    member = await clone_client.get_chat_member(channel_id_int, bot_id)
+                    if member.status not in [enums.ChatMemberStatus.ADMINISTRATOR, enums.ChatMemberStatus.OWNER]:
+                        await orig_msg.edit_text("❌ The clone bot is NOT an admin in this channel. Add it as admin first.")
+                        await asyncio.sleep(2)
+                        await show_fsub_menu(client, orig_msg, bot_id)
+                        ADD_FSUB.pop(user_id, None)
+                        await clone_client.stop()
+                        return
+                except Exception as e:
+                    await orig_msg.edit_text(f"❌ Failed to check clone bot in channel: {e}")
+                    await asyncio.sleep(2)
+                    await show_fsub_menu(client, orig_msg, bot_id)
+                    ADD_FSUB.pop(user_id, None)
+                    await clone_client.stop()
+                    return
+                await clone_client.stop()
+
+                try:
+                    chat = await client.get_chat(channel_id_int)
+                    ch_name = chat.title or "Unknown"
+                    ch_link = f"https://t.me/{chat.username}" if chat.username else None
+                except Exception as e:
+                    await orig_msg.edit_text(f"❌ Failed to get channel info: {e}")
+                    await asyncio.sleep(2)
+                    await show_fsub_menu(client, orig_msg, bot_id)
+                    ADD_FSUB.pop(user_id, None)
+                    return
+                
+                ADD_FSUB[user_id]["channel"] = int(chat.id)
+                ADD_FSUB[user_id]["name"] = ch_name
+                ADD_FSUB[user_id]["link"] = ch_link
                 ADD_FSUB[user_id]["step"] = "target"
                 await orig_msg.edit_text(f"✅ Channel saved: `{new_text}`\n\nNow send the target number of users.")
             elif step == "target":
                 try:
                     target = int(new_text)
+                    if target < 0:
+                        raise ValueError
                     ADD_FSUB[user_id]["target"] = target
                     ADD_FSUB[user_id]["step"] = "mode"
                     await orig_msg.edit_text(f"✅ Target saved: `{target}`\n\nNow choose the mode.")
+                    buttons = [
+                        [
+                            InlineKeyboardButton("✅ Normal Join", callback_data=f"fsub_mode_normal_{bot_id}"),
+                            InlineKeyboardButton("📝 Request Join", callback_data=f"fsub_mode_request_{bot_id}")
+                        ],
+                        [InlineKeyboardButton("❌ Cancel", callback_data=f"cancel_addfsub_{bot_id}")]
+                    ]
+                    await orig_msg.edit_text(
+                        f"🎯 Target saved: `{target}`\n\nNow choose the **mode** for this channel:",
+                        reply_markup=InlineKeyboardMarkup(buttons)
+                    )
                 except:
                     await orig_msg.edit_text("❌ Invalid number! Send 0 or a positive integer.")
+                    await asyncio.sleep(2)
+                    await show_fsub_menu(client, orig_msg, bot_id)
+                    ADD_FSUB.pop(user_id, None)
                     return
             return
 
@@ -2587,6 +2615,7 @@ async def message_capture(client: Client, message: Message):
                 return
 
             if step == "link":
+                new_text = new_text.removeprefix("https://").removeprefix("http://")
                 ACCESS_TOKEN[user_id]["shorten_link"] = new_text
                 ACCESS_TOKEN[user_id]["step"] = "api"
                 await orig_msg.edit_text("✅ Shorten link saved! Now send your API key.")
@@ -2598,12 +2627,12 @@ async def message_capture(client: Client, message: Message):
                 ACCESS_TOKEN.pop(user_id, None)
 
     except Exception as e:
-        # Global fallback
         await client.send_message(LOG_CHANNEL, f"⚠️ Unexpected Error in message_capture:\n<code>{e}</code>")
-        try: await message.delete()
-        except: pass
-
-
+        print(f"⚠️ Unexpected Error in message_capture: {e}"))
+        try:
+            await message.delete()
+        except:
+            pass
 
 async def restart_bots():
     bots_cursor = await db.get_all_bots()
