@@ -2533,20 +2533,20 @@ async def message_capture(client: Client, message: Message):
                 except ValueError:
                     channel_id_int = new_text
 
-                try:
-                    chat = await client.get_chat(channel_id_int)
-                    ch_name = chat.title or "Unknown"
-                    ch_link = f"https://t.me/{chat.username}" if chat.username else None
-                except Exception as e:
-                    await orig_msg.edit_text(f"❌ Failed to get channel info: {e}")
+                clone_client = CLONES.get(str(bot_id))
+                if not clone_client:
+                    await orig_msg.edit_text("❌ Clone bot not running, please restart it.")
                     await asyncio.sleep(2)
                     await show_fsub_menu(client, orig_msg, bot_id)
                     ADD_FSUB.pop(user_id, None)
                     return
 
-                clone_client = CLONES.get(str(bot_id))
-                if not clone_client:
-                    await orig_msg.edit_text("❌ Clone bot not running, please restart it.")
+                try:
+                    chat = await clone_client.get_chat(channel_id_int)
+                    ch_name = chat.title or "Unknown"
+                    ch_link = f"https://t.me/{chat.username}" if chat.username else None
+                except Exception as e:
+                    await orig_msg.edit_text(f"❌ Failed to get channel info: {e}")
                     await asyncio.sleep(2)
                     await show_fsub_menu(client, orig_msg, bot_id)
                     ADD_FSUB.pop(user_id, None)
@@ -2632,10 +2632,6 @@ async def message_capture(client: Client, message: Message):
     except Exception as e:
         await client.send_message(LOG_CHANNEL, f"⚠️ Unexpected Error in message_capture:\n<code>{e}</code>")
         print(f"⚠️ Unexpected Error in message_capture: {e}")
-        try:
-            await message.delete()
-        except:
-            pass
 
 async def restart_bots():
     bots_cursor = await db.get_all_bots()
