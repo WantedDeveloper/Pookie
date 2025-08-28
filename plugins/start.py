@@ -328,25 +328,23 @@ async def start(client, message):
         if AUTH_CHANNEL and not await is_subscribed(client, message):
             await asyncio.sleep(2)
             if not await is_subscribed(client, message):
-                # Create invite link
                 if REQUEST_TO_JOIN_MODE:
                     invite_link = await client.create_chat_invite_link(chat_id=int(AUTH_CHANNEL), creates_join_request=True)
                 else:
                     invite_link = await client.create_chat_invite_link(int(AUTH_CHANNEL))
 
-                # Build buttons
-                btn = [[InlineKeyboardButton("Join Channel", url=invite_link.invite_link)]]
+                btn = [[InlineKeyboardButton("🔔 Join Channel", url=invite_link.invite_link)]]
                 if len(message.command) > 1:
                     start_arg = message.command[1]
                     try:
                         kk, file_id = start_arg.split("_", 1)
-                        btn.append([InlineKeyboardButton("↻ Try Again", callback_data=f"checksub#{kk}#{file_id}")])
+                        btn.append([InlineKeyboardButton("♻️ Try Again", callback_data=f"checksub#{kk}#{file_id}")])
                     except:
-                        btn.append([InlineKeyboardButton("↻ Try Again", url=f"https://t.me/{BOT_USERNAME}?start={start_arg}")])
+                        btn.append([InlineKeyboardButton("♻️ Try Again", url=f"https://t.me/{BOT_USERNAME}?start={start_arg}")])
 
                 return await client.send_message(
                     message.from_user.id,
-                    "You must join the channel first to use this bot.",
+                    "🚨 You must join the channel first to use this bot.",
                     reply_markup=InlineKeyboardMarkup(btn),
                     parse_mode=enums.ParseMode.MARKDOWN
                 )
@@ -2525,11 +2523,6 @@ async def message_capture(client: Client, message: Message):
                 except ValueError:
                     channel_id_int = new_text  # username
 
-                #clone = await db.get_clone_by_id(bot_id)
-                #clone_token = clone["token"]
-                #clone_client = Client("clone_temp", api_id=API_ID, api_hash=API_HASH, bot_token=clone_token)  # temporary client for check
-                #await clone_client.start()
-
                 try:
                     chat = await client.get_chat(channel_id_int)
                     ch_name = chat.title or "Unknown"
@@ -2557,16 +2550,13 @@ async def message_capture(client: Client, message: Message):
                         await asyncio.sleep(2)
                         await show_fsub_menu(client, orig_msg, bot_id)
                         ADD_FSUB.pop(user_id, None)
-                        #await clone_client.stop()
                         return
                 except Exception as e:
                     await orig_msg.edit_text(f"❌ Failed to check clone bot in channel: {e}")
                     await asyncio.sleep(2)
                     await show_fsub_menu(client, orig_msg, bot_id)
                     ADD_FSUB.pop(user_id, None)
-                    #await clone_client.stop()
                     return
-                #await clone_client.stop()
                 
                 ADD_FSUB[user_id]["channel"] = int(chat.id)
                 ADD_FSUB[user_id]["name"] = ch_name
