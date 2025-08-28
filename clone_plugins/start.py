@@ -208,12 +208,11 @@ async def start(client, message):
                 
                 mode = item.get("mode", "normal")
 
+                
+
                 try:
                     chat = await client.get_chat(channel_id)
                     title = chat.title or f"Channel {channel_id}"
-                except Exception as e:
-                    title = f"Channel {channel_id}"
-
                 if chat.username:
                     invite_link = f"https://t.me/{chat.username}"
                 else:
@@ -227,7 +226,7 @@ async def start(client, message):
                     except Exception as e:
                         print(f"⚠️ Cannot create invite link for {channel_id}: {e}")
                         invite_link = None
-            except Exception as e:
+                except Exception as e:
                 print(f"⚠️ Failed to fetch chat {channel_id}: {e}")
                 title = f"Channel {channel_id}"
                 invite_link = None
