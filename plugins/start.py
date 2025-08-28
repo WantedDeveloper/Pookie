@@ -2379,7 +2379,7 @@ async def message_capture(client: Client, message: Message):
                 )
                 await xd.start()
                 bot = await xd.get_me()
-                CLONES[bot.id] = xd
+                CLONES[str(bot.id)] = xd
                 await db.add_clone_bot(bot.id, user_id, bot.first_name, bot.username, token)
                 await msg.edit_text(f"✅ Successfully cloned your **bot**: @{bot.username}")
                 await asyncio.sleep(2)
@@ -2541,7 +2541,7 @@ async def message_capture(client: Client, message: Message):
                     ADD_FSUB.pop(user_id, None)
                     return
 
-                clone_client = CLONES.get(bot_id)
+                clone_client = CLONES.get(str(bot_id))
                 if not clone_client:
                     await orig_msg.edit_text("❌ Clone bot not running, please restart it.")
                     await asyncio.sleep(2)
