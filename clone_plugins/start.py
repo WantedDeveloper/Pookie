@@ -63,6 +63,34 @@ TOKENS = {}
 VERIFIED = {}
 BATCH_FILES = {}
 
+async def is_subscribed(bot, user_id: int, bot_id: int):
+    """
+    Check if user is subscribed to all required channels for this clone bot.
+    """
+    clone = await db.get_bot(bot_id)
+    if not clone:
+        return True  # no clone found → no fsub
+    
+    fsub_data = clone.get("force_subscribe", [])
+    if not fsub_data:
+        return True  # no channels set → no fsub
+
+    for item in fsub_data:
+        channel_id = int(item["chat_id"])
+        mode = item.get("mode", "normal")
+
+        try:
+            member = await bot.get_chat_member(channel_id, user_id)
+            if member.status == enums.ChatMemberStatus.BANNED:
+                return False
+        except UserNotParticipant:
+            return False
+        except Exception as e:
+            print(f"[is_subscribed] Error checking {channel_id}: {e}")
+            return False
+
+    return True
+
 async def get_verify_shorted_link(client, link):
     bot_id = (await client.get_me()).id
     clone = await db.get_clone_by_id(bot_id)
@@ -166,6 +194,42 @@ async def start(client, message):
         if not await clonedb.is_user_exist(me.id, message.from_user.id):
             await clonedb.add_user(me.id, message.from_user.id)
             await db.increment_users_count(me.id)
+
+        if not await is_subscribed(client, message.from_user.id, bot_id):
+            fsub_data = clone.get("force_subscribe", [])
+
+            buttons = []
+            for item in fsub_data:
+                channel_id = int(item["chat_id"])
+                mode = item.get("mode", "normal")
+
+                try:
+                    chat = await client.get_chat(channel_id)
+                    title = chat.title
+                except:
+                    title = f"Channel {channel_id}"
+
+                if mode == "request":
+                    invite = await client.create_chat_invite_link(channel_id, creates_join_request=True)
+                else:
+                    invite = await client.create_chat_invite_link(channel_id)
+
+                buttons.append([InlineKeyboardButton(f"🔔 Join {title}", url=invite.invite_link)])
+
+            if len(message.command) > 1:
+                start_arg = message.command[1]
+                try:
+                    kk, file_id = start_arg.split("_", 1)
+                    btn.append([InlineKeyboardButton("♻️ Try Again", callback_data=f"checksub#{kk}#{file_id}")])
+                except:
+                    btn.append([InlineKeyboardButton("♻️ Try Again", url=f"https://t.me/{me}?start={start_arg}")])
+
+            return await client.send_message(
+                message.from_user.id,
+                "🚨 You must join the channel first to use this bot.",
+                reply_markup=InlineKeyboardMarkup(btn),
+                parse_mode=enums.ParseMode.MARKDOWN
+            )
 
         # --- No extra args: Show start menu ---
         if len(message.command) == 1:
@@ -835,8 +899,16 @@ async def cb_handler(client: Client, query: CallbackQuery):
     try:
         me = await client.get_me()
 
+        if query.data.startswith("checksub"):
+            if not await is_subscribed(client, query):
+                await query.answer("Join our channel first.", show_alert=True)
+                return
+            
+            _, kk, file_id = query.data.split("#")
+            await query.answer(url=f"https://t.me/{me}?start={kk}_{file_id}")
+
         # Start Menu
-        if query.data == "start":
+        elif query.data == "start":
             buttons = [
                 [InlineKeyboardButton('💁‍♀️ Help', callback_data='help'),
                  InlineKeyboardButton('ℹ️ About', callback_data='about')],
