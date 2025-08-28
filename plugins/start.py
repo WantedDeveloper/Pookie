@@ -2541,7 +2541,7 @@ async def message_capture(client: Client, message: Message):
                     ADD_FSUB.pop(user_id, None)
                     return"""
 
-                clone_client = await db.get_clone_by_id(bot_id)
+                clone_client = await db.get_clone_by_id(str(bot_id))
                 try:
                     chat = await clone_client.get_chat(channel_id_int)
                     ch_name = chat.title or "Unknown"
