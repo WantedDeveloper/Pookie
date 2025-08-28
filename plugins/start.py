@@ -2632,14 +2632,17 @@ async def restart_bots():
     bots = await bots_cursor.to_list(None)
     for bot in bots:
         bot_token = bot['token']
+        bot_id = bot_data['_id']
         try:
             xd = Client(
-                f"{bot_token}", API_ID, API_HASH,
+                name=f"clone_{bot_id}",  # unique session name per clone
+                api_id=API_ID,
+                api_hash=API_HASH,
                 bot_token=bot_token,
                 plugins={"root": "clone_plugins"},
             )
             await xd.start()
-            bot = await xd.get_me()
-            CLONES[bot.id] = xd
+            me = await xd.get_me()
+            CLONES[me.id] = xd
         except Exception as e:
             print(f"Error while restarting bot with token {bot_token}: {e}")
