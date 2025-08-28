@@ -197,33 +197,36 @@ async def start(client, message):
 
         if not await is_subscribed(client, message.from_user.id, me.id):
             fsub_data = clone.get("force_subscribe", [])
-
             buttons = []
-            for item in fsub_data:
-                channel_id = int(item["channel"])
-                mode = item.get("mode", "normal")
-                if not channel_id:
-                    print("⚠️ Skipping FSUB entry, no chat_id:", item)
-                    continue
+            updated = False
+
+            for item in fsub_data:                
+                ch_id = item["channel"]
+                target = item.get("limit", 0)
+                joined = item.get("joined", 0)
+
+                if not item.get("link"):
+                    if item["mode"] == "request":
+                        invite = await clone_client.create_chat_invite_link(ch_id, creates_join_request=True)
+                    else:
+                        invite = await clone_client.create_chat_invite_link(ch_id)
+                    item["link"] = invite.invite_link
+                    updated = True
 
                 try:
-                    channel_id = int(channel_id)
-                except ValueError:
+                    member = await clone_client.get_chat_member(ch_id, message.from_user.id)
+                    if member.status not in [enums.ChatMemberStatus.LEFT, enums.ChatMemberStatus.BANNED]:
+                        if joined < target or target == 0:
+                            item["joined"] = item.get("joined", 0) + 1
+                            updated = True
+                except UserNotParticipant:
                     pass
 
-                try:
-                    chat = await client.get_chat(channel_id)
-                    title = chat.title or f"Channel {channel_id}"
-                except Exception as e:
-                    print(f"⚠️ Failed to get chat {channel_id}: {e}")
-                    title = f"Channel {channel_id}"
+                if not target != 0 and item["joined"] >= target:
+                    buttons.append([InlineKeyboardButton(f"🔔 Join Channel", url=item["link"])])
 
-                if mode == "request":
-                    invite = await client.create_chat_invite_link(channel_id, creates_join_request=True)
-                else:
-                    invite = await client.create_chat_invite_link(channel_id)
-
-                buttons.append([InlineKeyboardButton(f"🔔 Join {title}", url=invite.invite_link)])
+            if updated:
+                await db.update_clone(bot_id, {"force_subscribe": fsub_data})
 
             if len(message.command) > 1:
                 start_arg = message.command[1]
