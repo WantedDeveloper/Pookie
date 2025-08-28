@@ -200,7 +200,15 @@ async def start(client, message):
 
             buttons = []
             for item in fsub_data:
-                channel_id = int(item["chat_id"])
+                channel_id = item.get("chat_id")
+                if not channel_id:
+                    continue
+
+                try:
+                    channel_id = int(channel_id)
+                except ValueError:
+                    pass
+
                 mode = item.get("mode", "normal")
 
                 try:
