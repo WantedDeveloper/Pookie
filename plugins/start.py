@@ -1692,6 +1692,7 @@ async def cb_handler(client: Client, query: CallbackQuery):
                 if not data:
                     return await query.answer("Session expired. Please try again.", show_alert=True)
 
+                mode = mode
                 data["mode"] = mode
                 bot_id = data["bot_id"]
                 ch = data["channel"]
@@ -1703,14 +1704,23 @@ async def cb_handler(client: Client, query: CallbackQuery):
 
                 try:
                     fsub_data = clone.get("force_subscribe", [])
-                    fsub_data.append({
-                        "channel": ch,
-                        "name": name,
-                        "link": link,
-                        "limit": target,
-                        "joined": 0,
-                        "mode": mode
-                    })
+                    existing = next((x for x in fsub_data if x["channel"] == ch), None)
+                    if existing:
+                        existing.update({
+                            "name": name,
+                            "limit": target,
+                            "mode": mode,
+                            "link": existing.get("link")
+                        })
+                    else:
+                        fsub_data.append({
+                            "channel": ch,
+                            "name": name,
+                            "link": None,
+                            "limit": target,
+                            "joined": 0,
+                            "mode": mode
+                        })
                     await db.update_clone(bot_id, {"force_subscribe": fsub_data})
                     await query.message.edit_text("✅ Successfully updated **force subscribe channel**!")
                     await asyncio.sleep(2)
@@ -2335,9 +2345,6 @@ async def cb_handler(client: Client, query: CallbackQuery):
 @Client.on_message(filters.text | filters.photo)
 async def message_capture(client: Client, message: Message):
     try:
-        if not message.from_user:
-            return
-
         user_id = message.from_user.id
 
         # -------------------- CLONE CREATION --------------------
@@ -2524,7 +2531,7 @@ async def message_capture(client: Client, message: Message):
                 try:
                     channel_id_int = int(new_text)
                 except ValueError:
-                    channel_id_int = new_text  # username
+                    channel_id_int = new_text
 
                 try:
                     chat = await client.get_chat(channel_id_int)
