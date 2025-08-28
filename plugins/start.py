@@ -2632,7 +2632,7 @@ async def restart_bots():
     bots = await bots_cursor.to_list(None)
     for bot in bots:
         bot_token = bot['token']
-        bot_id = bot_data['_id']
+        bot_id = bot['_id']
         try:
             xd = Client(
                 name=f"clone_{bot_id}",  # unique session name per clone
