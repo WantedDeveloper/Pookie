@@ -2548,7 +2548,7 @@ async def message_capture(client: Client, message: Message):
                     return
 
                 try:
-                    me = await client.get_me()
+                    me = await clone["bot_id"].get_me()
                     member = await client.get_chat_member(chat.id, me.id)
                     if member.status not in [enums.ChatMemberStatus.ADMINISTRATOR, enums.ChatMemberStatus.OWNER]:
                         await orig_msg.edit_text("❌ The clone bot is NOT an admin in this channel. Add it as admin first.")
