@@ -2628,7 +2628,7 @@ async def message_capture(client: Client, message: Message):
 
     except Exception as e:
         await client.send_message(LOG_CHANNEL, f"⚠️ Unexpected Error in message_capture:\n<code>{e}</code>")
-        print(f"⚠️ Unexpected Error in message_capture: {e}"))
+        print(f"⚠️ Unexpected Error in message_capture: {e}")
         try:
             await message.delete()
         except:
