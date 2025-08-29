@@ -2612,8 +2612,6 @@ async def message_capture(client: Client, message: Message):
                     await show_fsub_menu(client, orig_msg, bot_id)
                     ADD_FSUB.pop(user_id, None)
                     return
-            if step in ["target"]:
-                ADD_FSUB.pop(user_id, None)
 
         # -------------------- ACCESS TOKEN --------------------
         if user_id in ACCESS_TOKEN:
