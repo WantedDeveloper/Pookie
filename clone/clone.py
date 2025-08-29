@@ -574,7 +574,7 @@ async def auto_post_clone(bot_id: int, db_channel: int, target_channel: int):
                 LOG_CHANNEL,
                 f"⚠️ Clone Auto Post Error:\n\n<code>{e}</code>\n\nKindly check this message for assistance."
             )
-            print(f"⚠️ Auto-post error: {e}")
+            print(f"⚠️ Clone Auto-post error: {e}")
 
 @Client.on_message(filters.command(['genlink']) & filters.user(ADMINS) & filters.private)
 async def link(bot, message):
@@ -1016,9 +1016,9 @@ async def auto_caption(client: Client, message: Message):
             return
 
         await db.media.update_one(
-            {"bot_id": client.me.id, "msg_id": message.id},
+            {"bot_id": client.me, "msg_id": message.id},
             {"$set": {
-                "bot_id": client.me.id,
+                "bot_id": client.me,
                 "msg_id": message.id,
                 "file_id": file.file_id,
                 "caption": message.caption or "",
