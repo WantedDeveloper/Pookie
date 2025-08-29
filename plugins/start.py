@@ -2607,7 +2607,7 @@ async def message_capture(client: Client, message: Message):
                     await show_fsub_menu(client, orig_msg, bot_id)
                     ADD_FSUB.pop(user_id, None)
                     return
-                finally
+                finally:
                     ADD_FSUB.pop(user_id, None)
             return
 
