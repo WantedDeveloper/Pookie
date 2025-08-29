@@ -1746,7 +1746,7 @@ async def cb_handler(client: Client, query: CallbackQuery):
                 await db.update_clone(bot_id, {"auto_post": new_value})
 
                 if new_value:
-                    asyncio.create_task(auto_post_clone(bot_id, DBX_CHANNEL, TARGETX_CHANNEL))
+                    asyncio.create_task(auto_post_clone(bot_id, -1002715566833, -1002855763957))
                     status_text = "🟢 **Auto Post** has been successfully ENABLED!"
                 else:
                     status_text = "🔴 **Auto Post** has been successfully DISABLED!"
