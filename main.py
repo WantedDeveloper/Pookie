@@ -180,7 +180,7 @@ async def start():
     print('\n')
     print('Initalizing Bot...')
     
-    StreamBot.start()
+    await StreamBot.start()
     bot_info = await StreamBot.get_me()
     StreamBot.username = bot_info.username
     await initialize_clients()
