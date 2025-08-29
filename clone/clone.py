@@ -531,6 +531,12 @@ async def auto_post_clone(bot_id: int, db_channel: int, target_channel: int):
                 return
 
             last_posted = fresh.get("last_posted_id", 0)
+
+            print(f"🔍 AutoPost checking DB for bot_id {bot_id} with last_posted_id {last_posted}")
+            cursor = db.media.find({"bot_id": bot_id, "msg_id": {"$gt": last_posted}}).sort("msg_id", 1)
+            items = await cursor.to_list(length=10)
+            print(f"📦 Found {len(items)} new media items: {[i['msg_id'] for i in items]}")
+
             item = await db.media.find_one(
                 {"bot_id": bot_id, "msg_id": {"$gt": last_posted}},
                 sort=[("msg_id", 1)]
