@@ -512,86 +512,76 @@ def unpack_new_file_id(new_file_id):
     return file_id, file_ref
 
 async def auto_post_clone(bot_id: int, db, target_channel: int):
-    """
-    Auto post media captured by bot to target channel.
-    Arguments:
-    - bot_id: ID of the bot
-    - db: the same db object used in capture
-    - target_channel: where to post
-    """
-    clone_client = get_client(bot_id)
-    if not clone_client:
-        print("⚠️ Clone client not running!")
+    clone = await db.get_clone_by_id(bot_id)
+    if not clone or not clone.get("auto_post", False):
         return
 
-    print(f"▶️ AutoPost started for bot {bot_id}")
-    print(f"ℹ️ Using DB instance: {db}")
+    clone_client = get_client(bot_id)
+    if not clone_client:
+        message.reply("⚠️ Clone client not running!")
+        return
 
     while True:
         try:
             fresh = await db.get_clone_by_id(bot_id)
             if not fresh or not fresh.get("auto_post", False):
-                print("⏹️ AutoPost stopped (disabled in DB)")
                 return
 
             last_posted = fresh.get("last_posted_id", 0)
-            print(f"🔍 Checking media for bot_id={bot_id} with last_posted_id={last_posted}")
-
-            # Inspect the collection to make sure we see saved media
-            all_media = await db.media.find({"bot_id": bot_id}).sort("msg_id", 1).to_list(20)
-            print(f"🗂️ All media in DB for bot {bot_id}: {[{'msg_id': m['msg_id'], 'file_id': m['file_id']} for m in all_media]}")
-
-            # Fetch next media to post
             item = await db.media.find_one(
                 {"bot_id": bot_id, "msg_id": {"$gt": last_posted}},
                 sort=[("msg_id", 1)]
             )
 
             if not item:
-                print("⌛ No new media found, sleeping 60s...")
                 await asyncio.sleep(60)
                 continue
 
-            print(f"📤 Found media to post: msg_id={item['msg_id']} file_id={item['file_id']}")
+            media_type = None
+            if "photo" in item.get("file_id", ""):
+                media_type = "photo"
+            elif "video" in item.get("file_id", ""):
+                media_type = "video"
+            else:
+                media_type = "document"
 
-            # Build share link
             file_id, _ = unpack_new_file_id(item["file_id"])
             string = f"file_{file_id}"
             outstr = base64.urlsafe_b64encode(string.encode("ascii")).decode().strip("=")
-            bot_username = clone_client.me.username
+            bot_username = (await clone_client.get_me()).username
             share_link = f"https://t.me/{bot_username}?start={outstr}"
 
-            # Build caption
-            header = fresh.get("header", "")
-            footer = fresh.get("footer", "")
+            header = clone.get("header", None)
+            footer = clone.get("footer", None)
             selected_caption = random.choice(script.CAPTION_LIST)
-            text = f"{header}\n\n{selected_caption}\n\nHere is your link:\n{share_link}\n\n{footer}"
 
-            # Send media (photo placeholder for now)
-            await clone_client.send_photo(
-                chat_id=target_channel,
-                photo="https://i.ibb.co/JRBF3zQt/images.jpg",
-                caption=text
-            )
+            text = ""
+            if header:
+                text += f"{header}\n\n"
 
-            print(f"✅ Posted msg_id {item['msg_id']} to {target_channel}")
+            text += f"{selected_caption}\n\nHere is your link:\n{share_link}"
 
-            # Update last_posted_id
+            if footer:
+                text += f"\n\n{footer}"
+
+            if media_type == "photo":
+                await clone_client.send_photo(chat_id=target_channel, photo=db_image, caption=text)
+            elif media_type == "video":
+                await clone_client.send_video(chat_id=target_channel, video=db_image, caption=text)
+            else:
+                await clone_client.send_document(chat_id=target_channel, document=db_image, caption=text)
+
             await db.update_clone(bot_id, {"last_posted_id": item["msg_id"]})
 
-            # Sleep before next post
-            sleep_time = int(fresh.get("interval_sec", 5400))
-            print(f"⏳ Sleeping {sleep_time}s before next post...")
+            sleep_time = int(fresh.get("interval_sec", 30))
             await asyncio.sleep(sleep_time)
 
         except Exception as e:
-            print(f"⚠️ Auto-post error: {e}")
-            try:
-                await clone_client.send_message(LOG_CHANNEL, f"⚠️ Auto Post Error:\n<code>{e}</code>")
-            except Exception as send_error:
-                print(f"⚠️ Failed to send log message: {send_error}")
-            await asyncio.sleep(30)
-
+            await clone_client.send_message(
+                LOG_CHANNEL,
+                f"⚠️ Clone Auto Post Error:\n\n<code>{e}</code>\n\nKindly check this message for assistance."
+            )
+            print(f"⚠️ Clone Auto-post error: {e}")
 
 @Client.on_message(filters.command(['genlink']) & filters.user(ADMINS) & filters.private)
 async def link(bot, message):
@@ -980,55 +970,8 @@ async def cb_handler(client: Client, query: CallbackQuery):
         # Optionally notify user
         await query.answer("❌ An error occurred. The admin has been notified.", show_alert=True)
 
-@Client.on_message(filters.photo | filters.video | filters.document)
-async def auto_capture_media(client: Client, message: Message):
-    print(f"🟢 Captured media msg {message.id} in chat {message.chat.id}")  # debug log
-
-    try:
-        me = await client.get_me()
-        clone = await db.get_clone_by_id(me.id)
-        if not clone:
-            print(f"⚠️ No clone data found for bot {me.id}")
-            return
-
-        # Determine file type and ID
-        file_id = None
-        if message.photo:
-            file_id = message.photo.file_id
-            media_type = "photo"
-        elif message.video:
-            file_id = message.video.file_id
-            media_type = "video"
-        elif message.document:
-            file_id = message.document.file_id
-            media_type = "document"
-        else:
-            print(f"⚠️ Unknown media type for msg {message.id}")
-            return
-
-        print(f"💾 Saving {media_type} msg {message.id} with file_id {file_id} to DB")
-
-        # Save media info to DB
-        await db.media.update_one(
-            {"bot_id": me.id, "msg_id": message.id},
-            {"$set": {
-                "bot_id": me.id,
-                "msg_id": message.id,
-                "file_id": file_id,
-                "caption": message.caption or "",
-                "date": int(message.date.timestamp())
-            }},
-            upsert=True
-        )
-
-        print(f"✅ Media msg {message.id} saved successfully")
-
-    except Exception as e:
-        print(f"⚠️ Auto Capture Media Error: {e}")
-        
-
-"""@Client.on_message(filters.group | filters.channel)
-async def auto_caption(client: Client, message: Message):
+@Client.on_message(filters.group | filters.channel)
+async def message_capture(client: Client, message: Message):
     try:
         me = await client.get_me()
         clone = await db.get_clone_by_id(me.id)
@@ -1055,24 +998,46 @@ async def auto_caption(client: Client, message: Message):
         if footer:
             new_text += f"\n\n{footer}"
 
-        # Only act if bot username mentioned (your condition)
         if f'{me.username}' in text:
-            # delete original message
             await message.delete()
 
-            # resend depending on media/text
-            if message.caption or message.photo or message.video or message.document:
-                await client.send_cached_media(
-                    chat_id=message.chat.id,
-                    file_id=message.photo.file_id if message.photo else (
-                        message.video.file_id if message.video else (
-                            message.document.file_id if message.document else None
-                        )
-                    ),
-                    caption=new_text
-                )
+            file_id = None
+            if message.photo:
+                file_id = message.photo.file_id
+            elif message.video:
+                file_id = message.video.file_id
+            elif message.document:
+                file_id = message.document.file_id
+
+            if file_id:
+                await client.send_cached_media(chat_id=message.chat.id, file_id=file_id, caption=new_text)
             else:
                 await client.send_message(message.chat.id, new_text)
 
+        media_file_id = None
+        if message.photo:
+            media_file_id = message.photo.file_id
+            media_type = "photo"
+        elif message.video:
+            media_file_id = message.video.file_id
+            media_type = "video"
+        elif message.document:
+            media_file_id = message.document.file_id
+            media_type = "document"
+
+        if media_file_id:
+            await db.media.update_one(
+                {"bot_id": me.id, "msg_id": message.id},
+                {"$set": {
+                    "bot_id": me.id,
+                    "msg_id": message.id,
+                    "file_id": media_file_id,
+                    "caption": message.caption or "",
+                    "date": int(message.date.timestamp())
+                }},
+                upsert=True
+            )
+
     except Exception as e:
-        print(f"⚠️ Auto Caption Error: {e}")"""
+        await client.send_message(LOG_CHANNEL, f"⚠️ Clone Unexpected Error in message_capture:\n<code>{e}</code>")
+        print(f"⚠️ Clone Unexpected Error in message_capture: {e}")
