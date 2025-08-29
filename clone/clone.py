@@ -228,7 +228,7 @@ async def start(client, message):
                 except UserNotParticipant:
                     pass
 
-                if not target != 0 and item["joined"] >= target:
+                if target == 0 or item["joined"] < target:
                     btn.append([InlineKeyboardButton(f"🔔 Join Channel", url=item["link"])])
 
             if updated:
@@ -245,7 +245,7 @@ async def start(client, message):
             return await client.send_message(
                 message.from_user.id,
                 "🚨 You must join the channel first to use this bot.",
-                reply_markup=InlineKeyboardMarkup(btn),
+                reply_markup=InlineKeyboardMarkup(btn) if btn else None,
                 parse_mode=enums.ParseMode.MARKDOWN
             )
 
