@@ -8,7 +8,6 @@ from aiohttp import web
 from plugins.config import LOG_CHANNEL, PORT
 from plugins.script import script
 from owner.owner import restart_bots
-from TechVJ.server import web_server
 
 # Get logging configurations
 logging.config.fileConfig('logging.conf')
