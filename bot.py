@@ -13,21 +13,21 @@ logging.getLogger("pyrogram").setLevel(logging.ERROR)
 
 from pyrogram import Client, __version__
 from pyrogram.raw.all import layer
-from config import LOG_CHANNEL, PORT
+from plugins.config import LOG_CHANNEL, PORT
 from typing import Union, Optional, AsyncGenerator
 from pyrogram import types
-from Script import script 
+from plugins.script import script
 from datetime import date, datetime 
 import pytz
 from aiohttp import web
 from TechVJ.server import web_server
 
 import asyncio
-from plugins.start import restart_bots
+from owner.owner import restart_bots
 from TechVJ.bot import StreamBot
 from TechVJ.bot.clients import initialize_clients
 
-ppath = "plugins/*.py"
+ppath = "owner/*.py"
 files = glob.glob(ppath)
 StreamBot.start()
 loop = asyncio.get_event_loop()
@@ -42,12 +42,12 @@ async def start():
         with open(name) as a:
             patt = Path(a.name)
             plugin_name = patt.stem.replace(".py", "")
-            plugins_dir = Path(f"plugins/{plugin_name}.py")
-            import_path = "plugins.{}".format(plugin_name)
+            plugins_dir = Path(f"owner/{plugin_name}.py")
+            import_path = "owner.{}".format(plugin_name)
             spec = importlib.util.spec_from_file_location(import_path, plugins_dir)
             load = importlib.util.module_from_spec(spec)
             spec.loader.exec_module(load)
-            sys.modules["plugins." + plugin_name] = load
+            sys.modules["owner." + plugin_name] = load
             print("✅ Imported => " + plugin_name)
     me = await StreamBot.get_me()
     tz = pytz.timezone('Asia/Kolkata')
