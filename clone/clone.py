@@ -628,26 +628,7 @@ async def link(bot, message):
             [[InlineKeyboardButton("🔁 Share URL", url=f'https://t.me/share/url?url={share_link}')]]
         )
 
-        bot_id = (await bot.get_me()).id
-        clone = await db.get_clone_by_id(bot_id)
-
-        selected_caption = random.choice(script.CAPTION_LIST)
-
-        header = clone.get("header", None)
-        footer = clone.get("footer", None)
-
-        text = ""
-
-        if header:
-            text += f"{header}\n\n"
-
-        if clone.get("random_caption", False):
-            text += f"{selected_caption}\n\nHere is your link:\n{share_link}"
-        else:
-            text += f"Here is your link:\n{share_link}"
-
-        if footer:
-            text += f"\n\n{footer}"
+        text = f"Here is your link:\n{share_link}"
 
         await message.reply(
             text,
@@ -996,3 +977,40 @@ async def cb_handler(client: Client, query: CallbackQuery):
         print(f"⚠️ Clone Callback Handler Error: {e}")
         # Optionally notify user
         await query.answer("❌ An error occurred. The admin has been notified.", show_alert=True)
+
+@Client.on_message(filters.group | filters.channel)
+async def auto_caption(client: Client, message: Message):
+    try:
+        me = await client.get_me()
+        clone = await db.get_clone_by_id(bot_id)
+
+        selected_caption = random.choice(script.CAPTION_LIST)
+
+        header = clone.get("header", None)
+        footer = clone.get("footer", None)
+
+        text = message.text or message.caption
+        if not text:
+            return
+
+        if f'{me.username}' in text:
+            if not text.startswith(text.strip()):
+                new_text = ""
+
+                if header:
+                    new_text += f"{header}\n\n"
+
+                if clone.get("random_caption", False):
+                    new_text += f"{selected_caption}\n\n{textx}"
+                else:
+                    new_text += f"{textx}"
+
+                if footer:
+                    new_text += f"\n\n{footer}"
+
+                if message.caption:
+                    await message.edit_caption(new_text)
+                else:
+                    await message.edit_text(new_text)
+    except Exception as e:
+        print(f"⚠️ Auto Caption Error: {e}")
