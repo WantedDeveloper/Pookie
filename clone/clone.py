@@ -157,7 +157,6 @@ async def check_verification(bot, userid):
         return False
 
     if datetime.datetime.now() > expiry:
-        # Expired, remove from VERIFIED so user must re-verify
         del VERIFIED[user.id]
         return False
 
@@ -233,7 +232,7 @@ async def start(client, message):
                     buttons.append([InlineKeyboardButton(f"🔔 Join Channel", url=item["link"])])
 
             if updated:
-                await db.update_clone(bot_id, {"force_subscribe": fsub_data})
+                await db.update_clone(me.id, {"force_subscribe": fsub_data})
 
             if len(message.command) > 1:
                 start_arg = message.command[1]
