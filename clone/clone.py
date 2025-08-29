@@ -996,21 +996,34 @@ async def auto_caption(client: Client, message: Message):
         new_text = ""
 
         if header:
-           new_text += f"{header}\n\n"
+            new_text += f"{header}\n\n"
 
         if clone.get("random_caption", False):
-           new_text += f"{selected_caption}\n\n{text}"
+            new_text += f"{selected_caption}\n\n{text}"
         else:
-           new_text += f"{text}"
+            new_text += f"{text}"
 
         if footer:
-          new_text += f"\n\n{footer}"
+            new_text += f"\n\n{footer}"
 
+        # Only act if bot username mentioned (your condition)
         if f'{me.username}' in text:
-            if not text.startswith(new_text.strip()):
-                if message.caption:
-                    await message.edit_caption(new_text)
-                else:
-                    await message.edit_text(new_text)
+            # delete original message
+            await message.delete()
+
+            # resend depending on media/text
+            if message.caption or message.photo or message.video or message.document:
+                await client.send_cached_media(
+                    chat_id=message.chat.id,
+                    file_id=message.photo.file_id if message.photo else (
+                        message.video.file_id if message.video else (
+                            message.document.file_id if message.document else None
+                        )
+                    ),
+                    caption=new_text
+                )
+            else:
+                await client.send_message(message.chat.id, new_text)
+
     except Exception as e:
         print(f"⚠️ Auto Caption Error: {e}")
