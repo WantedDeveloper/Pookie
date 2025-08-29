@@ -1016,9 +1016,9 @@ async def auto_caption(client: Client, message: Message):
             return
 
         await db.media.update_one(
-            {"bot_id": client.me, "msg_id": message.id},
+            {"bot_id": me.id, "msg_id": message.id},
             {"$set": {
-                "bot_id": client.me,
+                "bot_id": me.id,
                 "msg_id": message.id,
                 "file_id": file.file_id,
                 "caption": message.caption or "",
