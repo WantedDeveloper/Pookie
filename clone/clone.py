@@ -512,10 +512,6 @@ def unpack_new_file_id(new_file_id):
     return file_id, file_ref
 
 async def auto_post_clone(bot_id: int, db_channel: int, target_channel: int):
-    clone = await db.get_clone_by_id(bot_id)
-    if not clone or not clone.get("auto_post", False):
-        return
-
     clone_client = get_client(bot_id)
     if not clone_client:
         print("⚠️ Clone client not running!")
@@ -523,72 +519,73 @@ async def auto_post_clone(bot_id: int, db_channel: int, target_channel: int):
 
     print(f"▶️ AutoPost started for bot {bot_id}")
 
-    while clone.get("auto_post", False):
+    while True:
         try:
+            # fresh clone data from DB
             fresh = await db.get_clone_by_id(bot_id)
             if not fresh or not fresh.get("auto_post", False):
                 print("⏹️ AutoPost stopped (disabled in DB)")
                 return
 
             last_posted = fresh.get("last_posted_id", 0)
-
             print(f"🔍 AutoPost checking DB for bot_id {bot_id} with last_posted_id {last_posted}")
+
+            # Fetch new media
             cursor = db.media.find({"bot_id": bot_id, "msg_id": {"$gt": last_posted}}).sort("msg_id", 1)
-            items = await cursor.to_list(length=10)
+            items = await cursor.to_list(length=1)
+
             print(f"📦 Found {len(items)} new media items: {[i['msg_id'] for i in items]}")
 
-            item = await db.media.find_one(
-                {"bot_id": bot_id, "msg_id": {"$gt": last_posted}},
-                sort=[("msg_id", 1)]
-            )
-
-            if not item:
+            if not items:
                 print("⌛ No new media found, sleeping 60s...")
                 await asyncio.sleep(60)
                 continue
 
+            item = items[0]
+
+            # Build genlink
             file_id, _ = unpack_new_file_id(item["file_id"])
             string = f"file_{file_id}"
             outstr = base64.urlsafe_b64encode(string.encode("ascii")).decode().strip("=")
-            bot_username = (await clone_client.get_me()).username
+            bot_username = clone_client.me.username
             share_link = f"https://t.me/{bot_username}?start={outstr}"
 
-            header = clone.get("header", None)
-            footer = clone.get("footer", None)
+            # Build caption
+            header = fresh.get("header", None)
+            footer = fresh.get("footer", None)
             selected_caption = random.choice(script.CAPTION_LIST)
 
             text = ""
             if header:
                 text += f"{header}\n\n"
-
             text += f"{selected_caption}\n\nHere is your link:\n{share_link}"
-
             if footer:
                 text += f"\n\n{footer}"
 
-            # Send photo with link
+            # Send media
             await clone_client.send_photo(
                 chat_id=target_channel,
-                photo="https://i.ibb.co/JRBF3zQt/images.jpg",
+                photo="https://i.ibb.co/JRBF3zQt/images.jpg",  # placeholder image
                 caption=text
             )
 
             print(f"✅ Posted msg_id {item['msg_id']} to {target_channel}")
 
-            # Update last posted
+            # Update last_posted_id
             await db.update_clone(bot_id, {"last_posted_id": item["msg_id"]})
 
-            # Wait 1.5 hours (5400s) before next post
-            sleep_time = int(fresh.get("interval_sec", 30))
+            # Sleep for interval
+            sleep_time = int(fresh.get("interval_sec", 5400))
             print(f"⏳ Sleeping {sleep_time}s before next post...")
             await asyncio.sleep(sleep_time)
 
         except Exception as e:
-            await clone_client.send_message(
-                LOG_CHANNEL,
-                f"⚠️ Clone Auto Post Error:\n\n<code>{e}</code>\n\nKindly check this message for assistance."
-            )
             print(f"⚠️ Clone Auto-post error: {e}")
+            try:
+                await clone_client.send_message(LOG_CHANNEL, f"⚠️ Clone Auto Post Error:\n<code>{e}</code>")
+            except Exception as send_error:
+                print(f"⚠️ Failed to send log message: {send_error}")
+            await asyncio.sleep(30)
 
 @Client.on_message(filters.command(['genlink']) & filters.user(ADMINS) & filters.private)
 async def link(bot, message):
