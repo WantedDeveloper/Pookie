@@ -2659,8 +2659,8 @@ async def restart_bots():
                 plugins={"root": "clone_plugins"},
             )
             await xd.start()
-            set_client(bot_id, xd)
-            bot_user = await xd.get_me()
-            print(f"✅ Restarted clone bot @{bot_user.username} ({bot_id})")
+            bot = await xd.get_me()
+            set_client(bot.id, xd)
+            print(f"✅ Restarted clone bot @{bot.username} ({bot.id})")
         except Exception as e:
-            print(f"Error while restarting bot with token {bot_id}: {e}")
+            print(f"Error while restarting bot with token {bot.id}: {e}")
