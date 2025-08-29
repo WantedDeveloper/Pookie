@@ -30,7 +30,7 @@ class StreamXBot(Client):
             api_hash=API_HASH,
             bot_token=BOT_TOKEN,
             workers=50,
-            plugins={"root": "plugins"},
+            plugins={"root": "owner"},
             sleep_threshold=5,
         )
 
