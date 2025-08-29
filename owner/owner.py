@@ -1721,9 +1721,9 @@ async def cb_handler(client: Client, query: CallbackQuery):
                 if not clone:
                     return await query.answer("Clone not found!", show_alert=True)
 
-                await query.answer("soon...", show_alert=True)
+                #await query.answer("soon...", show_alert=True)
 
-                """current = clone.get("auto_post", False)
+                current = clone.get("auto_post", False)
                 if current:
                     buttons = [[InlineKeyboardButton("❌ Disable", callback_data=f"ap_status_{bot_id}")]]
                     status = "🟢 Enabled"
@@ -1735,7 +1735,7 @@ async def cb_handler(client: Client, query: CallbackQuery):
                 await query.message.edit_text(
                     text=script.RANDOM_CAPTION_TXT.format(status=f"{status}"),
                     reply_markup=InlineKeyboardMarkup(buttons)
-                )"""
+                )
 
             # Auto Post Status
             elif action == "ap_status":
@@ -1746,9 +1746,7 @@ async def cb_handler(client: Client, query: CallbackQuery):
                 await db.update_clone(bot_id, {"auto_post": new_value})
 
                 if new_value:
-                    user_session = clone.get("user_session")
-                    if user_session:
-                        asyncio.create_task(auto_post_clone(user_session, bot_id, DBX_CHANNEL, TARGETX_CHANNEL))
+                    asyncio.create_task(auto_post_clone(bot_id, DBX_CHANNEL, TARGETX_CHANNEL))
                     status_text = "🟢 **Auto Post** has been successfully ENABLED!"
                 else:
                     status_text = "🔴 **Auto Post** has been successfully DISABLED!"
