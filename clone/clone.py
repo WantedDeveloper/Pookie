@@ -523,37 +523,21 @@ async def auto_post_clone(bot_id: int, db_channel: int, target_channel: int):
 
     while clone.get("auto_post", False):
         try:
-            try:
-                await clone_client.get_chat(db_channel)
-                await clone_client.get_chat(target_channel)
-            except Exception as e:
-                print(f"Access Error: {e}")
+            fresh = await db.get_clone_by_id(bot_id)
+            if not fresh or not fresh.get("auto_post", False):
                 return
 
-            messages = []
-            async for msg in clone_client.get_chat_history(db_channel, limit=1000):
-                if msg.media:
-                    messages.append(msg)
+            last_posted = fresh.get("last_posted_id", 0)
+            item = await db.media_col.find_one(
+                {"bot_id": bot_id, "msg_id": {"$gt": last_posted}},
+                sort=[("msg_id", 1)]
+            )
 
-            if not messages:
+            if not item:
+                await asyncio.sleep(60)
                 continue
 
-            last_posted = clone.get("last_posted_id", 0)
-            unposted_msgs = [m for m in messages if m.message_id > last_posted]
-
-            if not unposted_msgs:
-                unposted_msgs = messages
-                await db.update_clone(bot_id, {"last_posted_id": 0})
-
-            next_msg = unposted_msgs[0]
-
-            file_type = next_msg.media
-            file = getattr(next_msg, file_type.value, None)
-            if not file:
-                await db.update_clone(bot_id, {"last_posted_id": next_msg.message_id})
-                continue
-
-            file_id, _ = unpack_new_file_id(file.file_id)
+            file_id, _ = unpack_new_file_id(item["file_id"])
             string = f"file_{file_id}"
             outstr = base64.urlsafe_b64encode(string.encode("ascii")).decode().strip("=")
             bot_username = (await clone_client.get_me()).username
@@ -580,10 +564,10 @@ async def auto_post_clone(bot_id: int, db_channel: int, target_channel: int):
             )
 
             # Update last posted
-            await db.update_clone(bot_id, {"last_posted_id": next_msg.message_id})
+            await db.update_clone(bot_id, {"last_posted_id": item["msg_id"]})
 
             # Wait 1.5 hours (5400s) before next post
-            await asyncio.sleep(5400)
+            await asyncio.sleep(int(fresh.get("interval_sec", 5400)))
 
         except Exception as e:
             await clone_client.send_message(
@@ -1025,6 +1009,23 @@ async def auto_caption(client: Client, message: Message):
                 )
             else:
                 await client.send_message(message.chat.id, new_text)
+
+        file_type = message.media
+        file = getattr(message, file_type.value, None)
+        if not file:
+            return
+
+        await db.media_col.update_one(
+            {"bot_id": client.me.id, "msg_id": message.id},
+            {"$set": {
+                "bot_id": client.me.id,
+                "msg_id": message.id,
+                "file_id": file.file_id,
+                "caption": message.caption or "",
+                "date": int(message.date.timestamp())
+            }},
+            upsert=True
+        )
 
     except Exception as e:
         print(f"⚠️ Auto Caption Error: {e}")
