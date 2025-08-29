@@ -1021,8 +1021,10 @@ async def auto_caption(client: Client, message: Message):
         file_type = message.media
         file = getattr(message, file_type.value, None)
         if not file:
+            print(f"⚠️ No media object found in msg {message.id}, skipping DB save")
             return
 
+        print(f"💾 Saving media msg {message.id} to DB, file_id: {file.file_id}")
         await db.media.update_one(
             {"bot_id": client.me.id, "msg_id": message.id},
             {"$set": {
