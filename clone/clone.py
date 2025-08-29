@@ -999,7 +999,7 @@ async def auto_caption(client: Client, message: Message):
            new_text += f"{header}\n\n"
 
         if clone.get("random_caption", False):
-           new_text += f"{selected_caption}\n\n{textx}"
+           new_text += f"{selected_caption}\n\n{text}"
         else:
            new_text += f"{text}"
 
