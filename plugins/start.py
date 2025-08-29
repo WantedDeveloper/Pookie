@@ -240,7 +240,6 @@ join_db = JoinReqs
 logger = logging.getLogger(__name__)
 
 BATCH_FILES = {}
-CLONES = {}
 CLONE_TOKEN = {}
 START_TEXT = {}
 START_PHOTO = {}
@@ -257,6 +256,16 @@ AUTO_DELETE_MESSAGE = {}
 ADD_MODERATOR = {}
 
 START_TIME = time.time()
+
+_clone_clients = {}
+
+def set_client(bot_id: int, client):
+    """Store clone client instance per bot_id"""
+    _clone_clients[bot_id] = client
+
+def get_client(bot_id: int):
+    """Get clone client instance for a bot_id"""
+    return _clone_clients.get(bot_id)
 
 async def is_subscribed(bot, query):
     if REQUEST_TO_JOIN_MODE == True and join_db().isActive():
@@ -2387,7 +2396,7 @@ async def message_capture(client: Client, message: Message):
                 )
                 await xd.start()
                 bot = await xd.get_me()
-                CLONES[str(bot.id)] = xd
+                set_client(bot.id, xd)
                 await db.add_clone_bot(bot.id, user_id, bot.first_name, bot.username, token)
                 await msg.edit_text(f"✅ Successfully cloned your **bot**: @{bot.username}")
                 await asyncio.sleep(2)
@@ -2533,7 +2542,7 @@ async def message_capture(client: Client, message: Message):
                 except ValueError:
                     channel_id_int = new_text
 
-                clone_client = CLONES.get(str(bot_id))
+                clone_client = get_client(bot_id)
                 if not clone_client:
                     await orig_msg.edit_text("❌ Clone bot not running, please restart it.")
                     await asyncio.sleep(2)
@@ -2598,6 +2607,8 @@ async def message_capture(client: Client, message: Message):
                     await show_fsub_menu(client, orig_msg, bot_id)
                     ADD_FSUB.pop(user_id, None)
                     return
+                finally
+                    ADD_FSUB.pop(user_id, None)
             return
 
         # -------------------- ACCESS TOKEN --------------------
@@ -2648,7 +2659,8 @@ async def restart_bots():
                 plugins={"root": "clone_plugins"},
             )
             await xd.start()
-            bot = await xd.get_me()
-            CLONES[str(bot.id)] = xd
+            set_client(bot_id, xd)
+            bot_user = await xd.get_me()
+            print(f"✅ Restarted clone bot @{bot_user.username} ({bot_id})")
         except Exception as e:
-            print(f"Error while restarting bot with token {bot_token}: {e}")
+            print(f"Error while restarting bot with token {bot_id}: {e}")
