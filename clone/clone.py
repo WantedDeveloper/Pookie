@@ -198,13 +198,15 @@ async def start(client, message):
 
         if not await is_subscribed(client, message.from_user.id, me.id):
             fsub_data = clone.get("force_subscribe", [])
-            btn = []
             updated = False
+            buttons = []
+            new_fsub_data = []
 
             for item in fsub_data:                
                 ch_id = item["channel"]
                 target = item.get("limit", 0)
                 joined = item.get("joined", 0)
+                mode = item.get("mode", "normal")
 
                 clone_client = get_client(me.id)
                 if not clone_client:
@@ -212,44 +214,58 @@ async def start(client, message):
                     return
 
                 if not item.get("link"):
-                    if item["mode"] == "request":
+                    if mode == "request":
                         invite = await clone_client.create_chat_invite_link(ch_id, creates_join_request=True)
                     else:
                         invite = await clone_client.create_chat_invite_link(ch_id)
                     item["link"] = invite.invite_link
                     updated = True
 
-                try:
-                    member = await clone_client.get_chat_member(ch_id, message.from_user.id)
-                    if member.status not in [enums.ChatMemberStatus.LEFT, enums.ChatMemberStatus.BANNED]:
-                        if joined < target or target == 0:
-                            item["joined"] = item.get("joined", 0) + 1
-                            updated = True
-                except UserNotParticipant:
-                    pass
+                if mode == "normal":
+                    try:
+                        member = await clone_client.get_chat_member(ch_id, message.from_user.id)
+                        if member.status not in [enums.ChatMemberStatus.LEFT, enums.ChatMemberStatus.BANNED]:
+                            if target == 0 or joined < target:
+                                item["joined"] = joined + 1
+                                updated = True
+                    except UserNotParticipant:
+                        pass
 
-                if target == 0 or item["joined"] < target:
-                    btn.append([InlineKeyboardButton(f"🔔 Join Channel", url=item["link"])])
+                elif mode == "request":
+                    if target == 0 or joined < target:
+                        item["joined"] = joined + 1
+                        updated = True
+
+                if target != 0 and item["joined"] >= target:
+                    updated = True
+                    continue
+                else:
+                    new_fsub_data.append(item)
 
             if updated:
-                await db.update_clone(me.id, {"force_subscribe": fsub_data})
+                await db.update_clone(me.id, {"force_subscribe": new_fsub_data})
 
-            if len(message.command) > 1:
-                start_arg = message.command[1]
-                try:
-                    kk, file_id = start_arg.split("_", 1)
-                    btn.append([InlineKeyboardButton("♻️ Try Again", callback_data=f"checksub#{kk}#{file_id}")])
-                except:
-                    btn.append([InlineKeyboardButton("♻️ Try Again", url=f"https://t.me/{me.username}?start={start_arg}")])
+            if not new_fsub_data:
+                pass
+            else:
+                for item in new_fsub_data:
+                    buttons.append([InlineKeyboardButton("🔔 Join Channel", url=item["link"])])
 
-            return await client.send_message(
-                message.from_user.id,
-                "🚨 You must join the channel first to use this bot.",
-                reply_markup=InlineKeyboardMarkup(btn) if btn else None,
-                parse_mode=enums.ParseMode.MARKDOWN
-            )
+                if len(message.command) > 1:
+                    start_arg = message.command[1]
+                    try:
+                        kk, file_id = start_arg.split("_", 1)
+                        buttons.append([InlineKeyboardButton("♻️ Try Again", callback_data=f"checksub#{kk}#{file_id}")])
+                    except:
+                        buttons.append([InlineKeyboardButton("♻️ Try Again", url=f"https://t.me/{me.username}?start={start_arg}")])
 
-        # --- No extra args: Show start menu ---
+                return await client.send_message(
+                    message.from_user.id,
+                    "🚨 You must join the channel(s) first to use this bot.",
+                    reply_markup=InlineKeyboardMarkup(buttons),
+                    parse_mode=enums.ParseMode.MARKDOWN
+                )
+
         if len(message.command) == 1:
             buttons = [[
                 InlineKeyboardButton('💁‍♀️ Help', callback_data='help'),
