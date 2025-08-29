@@ -1504,7 +1504,7 @@ async def cb_handler(client: Client, query: CallbackQuery):
                 if 0 <= index < len(buttons_data):
                     deleted_btn = buttons_data.pop(index)
                     await db.update_clone(bot_id, {"button": buttons_data})
-                    await query.answer(f"❌ Deleted button: {deleted_btn['name']}")
+                    await query.answer(f"❌ Deleted button: {deleted_btn['name']}", show_alert=True)
                 else:
                     await query.answer("Invalid button index!", show_alert=True)
 
@@ -1708,7 +1708,6 @@ async def cb_handler(client: Client, query: CallbackQuery):
                 name = data.get("name", "Channel")
 
                 await query.message.edit_text("✏️ Updating your clone's **force subscribe channel**, please wait...")
-
                 try:
                     fsub_data = clone.get("force_subscribe", [])
                     existing = next((x for x in fsub_data if x["channel"] == ch), None)
@@ -1732,6 +1731,7 @@ async def cb_handler(client: Client, query: CallbackQuery):
                     await query.message.edit_text("✅ Successfully updated **force subscribe channel**!")
                     await asyncio.sleep(2)
                     await show_fsub_menu(client, query.message, bot_id)
+                    ADD_FSUB.pop(user_id, None)
                 except Exception as e:
                     await client.send_message(
                         LOG_CHANNEL,
@@ -1741,6 +1741,7 @@ async def cb_handler(client: Client, query: CallbackQuery):
                     await query.message.edit_text(f"❌ Failed to update **force subscribe channel**: {e}")
                     await asyncio.sleep(2)
                     await show_fsub_menu(client, query.message, bot_id)
+                    ADD_FSUB.pop(user_id, None)
                 finally:
                     ADD_FSUB.pop(user_id, None)
 
@@ -1761,7 +1762,7 @@ async def cb_handler(client: Client, query: CallbackQuery):
                 if 0 <= index < len(fsub_data):
                     deleted_btn = fsub_data.pop(index)
                     await db.update_clone(bot_id, {"force_subscribe": fsub_data})
-                    await query.answer(f"❌ Deleted Channel: {deleted_btn['name']}")
+                    await query.answer(f"❌ Deleted Channel: {deleted_btn['name']}", show_alert=True)
                 else:
                     await query.answer("Invalid Channel index!", show_alert=True)
 
@@ -2399,11 +2400,13 @@ async def message_capture(client: Client, message: Message):
                 await msg.edit_text(f"✅ Successfully cloned your **bot**: @{bot.username}")
                 await asyncio.sleep(2)
                 await show_clone_menu(client, msg, user_id)
+                CLONE_TOKEN.pop(user_id, None)
             except Exception as e:
                 await client.send_message(LOG_CHANNEL, f"⚠️ Create Bot Error:\n<code>{e}</code>")
                 await msg.edit_text(f"❌ Failed to create **bot**: {e}")
                 await asyncio.sleep(2)
                 await show_clone_menu(client, msg, user_id)
+                CLONE_TOKEN.pop(user_id, None)
             finally:
                 CLONE_TOKEN.pop(user_id, None)
             return
@@ -2462,11 +2465,13 @@ async def message_capture(client: Client, message: Message):
                     await orig_msg.edit_text(f"✅ Successfully updated **{db_field.replace('_', ' ')}**!")
                     await asyncio.sleep(2)
                     await globals()[menu_func](client, orig_msg, bot_id)
+                    handler_dict.pop(user_id, None)
                 except Exception as e:
                     await client.send_message(LOG_CHANNEL, f"⚠️ Error updating {db_field}:\n<code>{e}</code>")
                     await orig_msg.edit_text(f"❌ Failed to update **{db_field.replace('_', ' ')}**: {e}")
                     await asyncio.sleep(2)
                     await globals()[menu_func](client, orig_msg, bot_id)
+                    handler_dict.pop(user_id, None)
                 finally:
                     handler_dict.pop(user_id, None)
                 return
@@ -2507,11 +2512,13 @@ async def message_capture(client: Client, message: Message):
                     await orig_msg.edit_text("✅ Successfully updated **start button**!")
                     await asyncio.sleep(2)
                     await show_button_menu(client, orig_msg, bot_id)
+                    ADD_BUTTON.pop(user_id, None)
                 except Exception as e:
                     await client.send_message(LOG_CHANNEL, f"⚠️ Update button error:\n<code>{e}</code>")
                     await orig_msg.edit_text(f"❌ Failed to update **start button**: {e}")
                     await asyncio.sleep(2)
                     await show_button_menu(client, orig_msg, bot_id)
+                    ADD_BUTTON.pop(user_id, None)
                 finally:
                     ADD_BUTTON.pop(user_id, None)
             return
@@ -2605,9 +2612,8 @@ async def message_capture(client: Client, message: Message):
                     await show_fsub_menu(client, orig_msg, bot_id)
                     ADD_FSUB.pop(user_id, None)
                     return
-                finally:
-                    ADD_FSUB.pop(user_id, None)
-            return
+            if step in ["target"]:
+                ADD_FSUB.pop(user_id, None)
 
         # -------------------- ACCESS TOKEN --------------------
         if user_id in ACCESS_TOKEN:
@@ -2632,12 +2638,21 @@ async def message_capture(client: Client, message: Message):
                 ACCESS_TOKEN[user_id]["step"] = "api"
                 await orig_msg.edit_text("✅ Shorten link saved! Now send your API key.")
             elif step == "api":
-                await db.update_clone(bot_id, {"shorten_link": data["shorten_link"], "shorten_api": new_text})
-                await orig_msg.edit_text("✅ Successfully updated **access token**!")
-                await asyncio.sleep(2)
-                await show_token_menu(client, orig_msg, bot_id)
-                ACCESS_TOKEN.pop(user_id, None)
-
+                await orig_msg.edit_text("✏️ Updating **access token**, please wait...")
+                try:
+                    await db.update_clone(bot_id, {"shorten_link": data["shorten_link"], "shorten_api": new_text})
+                    await orig_msg.edit_text("✅ Successfully updated **access token**!")
+                    await asyncio.sleep(2)
+                    await show_token_menu(client, orig_msg, bot_id)
+                    ACCESS_TOKEN.pop(user_id, None)
+                except Exception as e:
+                    await client.send_message(LOG_CHANNEL, f"⚠️ Update access token error:\n<code>{e}</code>")
+                    await orig_msg.edit_text(f"❌ Failed to save: {e}")
+                    await asyncio.sleep(2)
+                    await show_token_menu(client, orig_msg, bot_id)
+                    ACCESS_TOKEN.pop(user_id, None)
+                finally:
+                    ACCESS_TOKEN.pop(user_id, None)
     except Exception as e:
         await client.send_message(LOG_CHANNEL, f"⚠️ Unexpected Error in message_capture:\n<code>{e}</code>")
         print(f"⚠️ Unexpected Error in message_capture: {e}")
