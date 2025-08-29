@@ -511,25 +511,27 @@ def unpack_new_file_id(new_file_id):
     file_ref = encode_file_ref(decoded.file_reference)
     return file_id, file_ref
 
-async def auto_post_clone(user_session: str, bot_id: int, db_channel: int, target_channel: int):
+async def auto_post_clone(bot_id: int, db_channel: int, target_channel: int):
     clone = await db.get_clone_by_id(bot_id)
     if not clone or not clone.get("auto_post", False):
         return
 
-    user_client = Client(f"user_{bot_id}", api_id=API_ID, api_hash=API_HASH, session_string=user_session)
-    await user_client.start()
+    clone_client = get_client(bot_id)
+    if not clone_client:
+        print("⚠️ Clone client not running!")
+        return
 
     while clone.get("auto_post", False):
         try:
             try:
-                await user_client.get_chat(db_channel)
-                await user_client.get_chat(target_channel)
+                await clone_client.get_chat(db_channel)
+                await clone_client.get_chat(target_channel)
             except Exception as e:
                 print(f"Access Error: {e}")
                 return
 
             messages = []
-            async for msg in user_client.get_chat_history(db_channel, limit=1000):
+            async for msg in clone_client.get_chat_history(db_channel, limit=1000):
                 if msg.media:
                     messages.append(msg)
 
@@ -554,7 +556,7 @@ async def auto_post_clone(user_session: str, bot_id: int, db_channel: int, targe
             file_id, _ = unpack_new_file_id(file.file_id)
             string = f"file_{file_id}"
             outstr = base64.urlsafe_b64encode(string.encode("ascii")).decode().strip("=")
-            bot_username = (await user_client.get_me()).username
+            bot_username = (await clone_client.get_me()).username
             share_link = f"https://t.me/{bot_username}?start={outstr}"
 
             header = clone.get("header", None)
@@ -571,7 +573,7 @@ async def auto_post_clone(user_session: str, bot_id: int, db_channel: int, targe
                 text += f"\n\n{footer}"
 
             # Send photo with link
-            await user_client.send_photo(
+            await clone_client.send_photo(
                 chat_id=target_channel,
                 photo="https://i.ibb.co/JRBF3zQt/images.jpg",
                 caption=text
@@ -584,12 +586,11 @@ async def auto_post_clone(user_session: str, bot_id: int, db_channel: int, targe
             await asyncio.sleep(5400)
 
         except Exception as e:
-            await user_client.send_message(
+            await clone_client.send_message(
                 LOG_CHANNEL,
                 f"⚠️ Clone Auto Post Error:\n\n<code>{e}</code>\n\nKindly check this message for assistance."
             )
             print(f"⚠️ Auto-post error: {e}")
-    await user_client.stop()
 
 @Client.on_message(filters.command(['genlink']) & filters.user(ADMINS) & filters.private)
 async def link(bot, message):
