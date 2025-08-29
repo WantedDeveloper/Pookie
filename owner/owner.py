@@ -2156,10 +2156,28 @@ async def cb_handler(client: Client, query: CallbackQuery):
         # Optionally notify user
         await query.answer("❌ An error occurred. The admin has been notified.", show_alert=True)
 
-@Client.on_message(filters.text | filters.photo)
+@Client.on_message((filters.text | filters.photo) & filters.private)
 async def message_capture(client: Client, message: Message):
     try:
         user_id = message.from_user.id
+
+        if not (
+            user_id in CLONE_TOKEN
+            or user_id in START_TEXT
+            or user_id in START_PHOTO
+            or user_id in CAPTION_TEXT
+            or user_id in ADD_BUTTON
+            or user_id in HEADER_TEXT
+            or user_id in FOOTER_TEXT
+            or user_id in ADD_FSUB
+            or user_id in ACCESS_TOKEN
+            or user_id in ACCESS_TOKEN_VALIDITY
+            or user_id in ACCESS_TOKEN_TUTORIAL
+            or user_id in AUTO_DELETE_TIME
+            or user_id in AUTO_DELETE_MESSAGE
+            or user_id in ADD_MODERATOR
+        ):
+            return
 
         # -------------------- CLONE CREATION --------------------
         if user_id in CLONE_TOKEN:
@@ -2469,7 +2487,7 @@ async def restart_bots():
         bot_id = bot['_id']
         try:
             xd = Client(
-                name=f"clone_{bot_id}",  # unique session name per clone
+                name=f"clone_{bot_id}",
                 api_id=API_ID,
                 api_hash=API_HASH,
                 bot_token=bot_token,
