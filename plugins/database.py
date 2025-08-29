@@ -10,6 +10,7 @@ class Database:
         self.col = self.db.users
         self.bot = self.db.clone_bots
         self.settings = self.db.bot_settings
+        self.media = self.db.media_files
 
     def new_user(self, id, name):
         return dict(
