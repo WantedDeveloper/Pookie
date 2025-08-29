@@ -257,15 +257,13 @@ ADD_MODERATOR = {}
 
 START_TIME = time.time()
 
-_clone_clients = {}
+_clone_clients = {}  # store bot_id:int -> Client
 
 def set_client(bot_id: int, client):
-    """Store clone client instance per bot_id"""
-    _clone_clients[bot_id] = client
+    _clone_clients[int(bot_id)] = client  # ensure int
 
 def get_client(bot_id: int):
-    """Get clone client instance for a bot_id"""
-    return _clone_clients.get(bot_id)
+    return _clone_clients.get(int(bot_id))
 
 async def is_subscribed(bot, query):
     if REQUEST_TO_JOIN_MODE == True and join_db().isActive():
