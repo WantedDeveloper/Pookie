@@ -9,7 +9,7 @@ from pyrogram.errors import ChatAdminRequired, InputUserDeactivated, UserNotPart
 from pyrogram.errors.exceptions.bad_request_400 import AccessTokenExpired, AccessTokenInvalid, ChannelInvalid, UsernameInvalid, UsernameNotModified
 from config import *
 from Script import script
-from plugins.start import db, CLONES
+from plugins.start import db, get_client
 
 class Database:
     
@@ -206,7 +206,7 @@ async def start(client, message):
                 target = item.get("limit", 0)
                 joined = item.get("joined", 0)
 
-                clone_client = CLONES.get(str(me.id))
+                clone_client = get_client(me.id)
                 if not clone_client:
                     await client.send_message(message.from_user.id, "⚠️ Clone bot not running. Start it first!")
                     return
