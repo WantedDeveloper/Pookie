@@ -198,7 +198,7 @@ async def start(client, message):
 
         if not await is_subscribed(client, message.from_user.id, me.id):
             fsub_data = clone.get("force_subscribe", [])
-            buttons = []
+            btn = []
             updated = False
 
             for item in fsub_data:                
@@ -229,7 +229,7 @@ async def start(client, message):
                     pass
 
                 if not target != 0 and item["joined"] >= target:
-                    buttons.append([InlineKeyboardButton(f"🔔 Join Channel", url=item["link"])])
+                    btn.append([InlineKeyboardButton(f"🔔 Join Channel", url=item["link"])])
 
             if updated:
                 await db.update_clone(me.id, {"force_subscribe": fsub_data})
@@ -238,14 +238,14 @@ async def start(client, message):
                 start_arg = message.command[1]
                 try:
                     kk, file_id = start_arg.split("_", 1)
-                    buttons.append([InlineKeyboardButton("♻️ Try Again", callback_data=f"checksub#{kk}#{file_id}")])
+                    btn.append([InlineKeyboardButton("♻️ Try Again", callback_data=f"checksub#{kk}#{file_id}")])
                 except:
-                    buttons.append([InlineKeyboardButton("♻️ Try Again", url=f"https://t.me/{me.username}?start={start_arg}")])
+                    btn.append([InlineKeyboardButton("♻️ Try Again", url=f"https://t.me/{me.username}?start={start_arg}")])
 
             return await client.send_message(
                 message.from_user.id,
                 "🚨 You must join the channel first to use this bot.",
-                reply_markup=InlineKeyboardMarkup(buttons),
+                reply_markup=InlineKeyboardMarkup(btn),
                 parse_mode=enums.ParseMode.MARKDOWN
             )
 
