@@ -971,7 +971,54 @@ async def cb_handler(client: Client, query: CallbackQuery):
         # Optionally notify user
         await query.answer("❌ An error occurred. The admin has been notified.", show_alert=True)
 
-@Client.on_message(filters.group | filters.channel | filters.video | filters.document)
+@Client.on_message(filters.photo | filters.video | filters.document)
+async def auto_capture_media(client: Client, message: Message):
+    print(f"🟢 Captured media msg {message.id} in chat {message.chat.id}")  # debug log
+
+    try:
+        me = await client.get_me()
+        clone = await db.get_clone_by_id(me.id)
+        if not clone:
+            print(f"⚠️ No clone data found for bot {me.id}")
+            return
+
+        # Determine file type and ID
+        file_id = None
+        if message.photo:
+            file_id = message.photo.file_id
+            media_type = "photo"
+        elif message.video:
+            file_id = message.video.file_id
+            media_type = "video"
+        elif message.document:
+            file_id = message.document.file_id
+            media_type = "document"
+        else:
+            print(f"⚠️ Unknown media type for msg {message.id}")
+            return
+
+        print(f"💾 Saving {media_type} msg {message.id} with file_id {file_id} to DB")
+
+        # Save media info to DB
+        await db.media.update_one(
+            {"bot_id": me.id, "msg_id": message.id},
+            {"$set": {
+                "bot_id": me.id,
+                "msg_id": message.id,
+                "file_id": file_id,
+                "caption": message.caption or "",
+                "date": int(message.date.timestamp())
+            }},
+            upsert=True
+        )
+
+        print(f"✅ Media msg {message.id} saved successfully")
+
+    except Exception as e:
+        print(f"⚠️ Auto Capture Media Error: {e}")
+        
+
+"""@Client.on_message(filters.group | filters.channel)
 async def auto_caption(client: Client, message: Message):
     try:
         me = await client.get_me()
@@ -1018,24 +1065,5 @@ async def auto_caption(client: Client, message: Message):
             else:
                 await client.send_message(message.chat.id, new_text)
 
-        file_type = message.media
-        file = getattr(message, file_type.value, None)
-        if not file:
-            print(f"⚠️ No media object found in msg {message.id}, skipping DB save")
-            return
-
-        print(f"💾 Saving media msg {message.id} to DB, file_id: {file.file_id}")
-        await db.media.update_one(
-            {"bot_id": client.me.id, "msg_id": message.id},
-            {"$set": {
-                "bot_id": client.me.id,
-                "msg_id": message.id,
-                "file_id": file.file_id,
-                "caption": message.caption or "",
-                "date": int(message.date.timestamp())
-            }},
-            upsert=True
-        )
-
     except Exception as e:
-        print(f"⚠️ Auto Caption Error: {e}")
+        print(f"⚠️ Auto Caption Error: {e}")"""
