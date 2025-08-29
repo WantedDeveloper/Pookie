@@ -71,14 +71,6 @@ try:
     # File Caption Information
     CUSTOM_FILE_CAPTION = os.environ.get("CUSTOM_FILE_CAPTION", f"{script.CAPTION}")
     BATCH_FILE_CAPTION = os.environ.get("BATCH_FILE_CAPTION", CUSTOM_FILE_CAPTION)
-
-    # File Stream Config
-    STREAM_MODE = bool(os.environ.get('STREAM_MODE', True)) # Set True or False
-
-    # If Stream Mode Is True Then Fill All Required Variable, If False Then Don't Fill.
-    MULTI_CLIENT = False
-    SLEEP_THRESHOLD = int(os.environ.get('SLEEP_THRESHOLD', '60'))
-    
 except Exception as e:
     print("⚠️ Error loading config.py:", e)
     traceback.print_exc()
