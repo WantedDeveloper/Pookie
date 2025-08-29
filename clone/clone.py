@@ -982,7 +982,7 @@ async def cb_handler(client: Client, query: CallbackQuery):
 async def auto_caption(client: Client, message: Message):
     try:
         me = await client.get_me()
-        clone = await db.get_clone_by_id(bot_id)
+        clone = await db.get_clone_by_id(me.id)
 
         selected_caption = random.choice(script.CAPTION_LIST)
 
