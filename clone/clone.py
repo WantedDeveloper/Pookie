@@ -963,7 +963,7 @@ async def cb_handler(client: Client, query: CallbackQuery):
         # Optionally notify user
         await query.answer("❌ An error occurred. The admin has been notified.", show_alert=True)
 
-@Client.on_message(filters.group | filters.channel)
+@Client.on_message(filters.group | filters.channel | filters.video | filters.document)
 async def auto_caption(client: Client, message: Message):
     try:
         me = await client.get_me()
@@ -1016,9 +1016,9 @@ async def auto_caption(client: Client, message: Message):
             return
 
         await db.media.update_one(
-            {"bot_id": me.id, "msg_id": message.id},
+            {"bot_id": client.me.id, "msg_id": message.id},
             {"$set": {
-                "bot_id": me.id,
+                "bot_id": client.me.id,
                 "msg_id": message.id,
                 "file_id": file.file_id,
                 "caption": message.caption or "",
