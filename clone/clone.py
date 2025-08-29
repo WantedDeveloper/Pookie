@@ -528,7 +528,7 @@ async def auto_post_clone(bot_id: int, db_channel: int, target_channel: int):
                 return
 
             last_posted = fresh.get("last_posted_id", 0)
-            item = await db.media_col.find_one(
+            item = await db.media.find_one(
                 {"bot_id": bot_id, "msg_id": {"$gt": last_posted}},
                 sort=[("msg_id", 1)]
             )
@@ -1015,7 +1015,7 @@ async def auto_caption(client: Client, message: Message):
         if not file:
             return
 
-        await db.media_col.update_one(
+        await db.media.update_one(
             {"bot_id": client.me.id, "msg_id": message.id},
             {"$set": {
                 "bot_id": client.me.id,
