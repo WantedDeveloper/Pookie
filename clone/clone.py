@@ -993,21 +993,21 @@ async def auto_caption(client: Client, message: Message):
         if not text:
             return
 
+        new_text = ""
+
+        if header:
+           new_text += f"{header}\n\n"
+
+        if clone.get("random_caption", False):
+           new_text += f"{selected_caption}\n\n{textx}"
+        else:
+           new_text += f"{text}"
+
+        if footer:
+          new_text += f"\n\n{footer}"
+
         if f'{me.username}' in text:
-            if not text.startswith(text.strip()):
-                new_text = ""
-
-                if header:
-                    new_text += f"{header}\n\n"
-
-                if clone.get("random_caption", False):
-                    new_text += f"{selected_caption}\n\n{textx}"
-                else:
-                    new_text += f"{textx}"
-
-                if footer:
-                    new_text += f"\n\n{footer}"
-
+            if not text.startswith(new_text.strip()):
                 if message.caption:
                     await message.edit_caption(new_text)
                 else:
