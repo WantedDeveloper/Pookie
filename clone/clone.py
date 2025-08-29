@@ -521,10 +521,13 @@ async def auto_post_clone(bot_id: int, db_channel: int, target_channel: int):
         print("⚠️ Clone client not running!")
         return
 
+    print(f"▶️ AutoPost started for bot {bot_id}")
+
     while clone.get("auto_post", False):
         try:
             fresh = await db.get_clone_by_id(bot_id)
             if not fresh or not fresh.get("auto_post", False):
+                print("⏹️ AutoPost stopped (disabled in DB)")
                 return
 
             last_posted = fresh.get("last_posted_id", 0)
@@ -534,6 +537,7 @@ async def auto_post_clone(bot_id: int, db_channel: int, target_channel: int):
             )
 
             if not item:
+                print("⌛ No new media found, sleeping 60s...")
                 await asyncio.sleep(60)
                 continue
 
@@ -563,11 +567,15 @@ async def auto_post_clone(bot_id: int, db_channel: int, target_channel: int):
                 caption=text
             )
 
+            print(f"✅ Posted msg_id {item['msg_id']} to {target_channel}")
+
             # Update last posted
             await db.update_clone(bot_id, {"last_posted_id": item["msg_id"]})
 
             # Wait 1.5 hours (5400s) before next post
-            await asyncio.sleep(int(fresh.get("interval_sec", 5400)))
+            sleep_time = int(fresh.get("interval_sec", 30))
+            print(f"⏳ Sleeping {sleep_time}s before next post...")
+            await asyncio.sleep(sleep_time)
 
         except Exception as e:
             await clone_client.send_message(
