@@ -5,7 +5,7 @@ from os import environ
 from pathlib import Path
 from datetime import date, datetime 
 from aiohttp import web
-from plugins.config import LOG_CHANNEL, PORT
+from plugins.config import *
 from plugins.script import script
 from owner.owner import restart_bots
 
