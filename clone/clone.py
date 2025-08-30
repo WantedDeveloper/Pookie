@@ -2,6 +2,9 @@ import os, logging, asyncio, re, json, base64, random, pytz, aiohttp, requests, 
 from struct import pack
 from shortzy import Shortzy
 from validators import domain
+from nsfw_detector import predict
+from io import BytesIO
+from PIL import Image
 from pyrogram import Client, filters, enums
 from pyrogram.types import *
 from pyrogram.file_id import FileId
@@ -970,6 +973,33 @@ async def cb_handler(client: Client, query: CallbackQuery):
         # Optionally notify user
         await query.answer("❌ An error occurred. The admin has been notified.", show_alert=True)
 
+def mask_partial(word):
+    if len(word) <= 2:
+        return word[0] + "*"
+    mid = len(word) // 2
+    return word[:1] + "*" + word[2:]
+
+def clean_text(text: str) -> str:
+    cleaned = text
+    for word in script.BAD_WORDS:
+        cleaned = re.sub(
+            re.escape(word), 
+            mask_partial(word), 
+            cleaned, 
+            flags=re.IGNORECASE
+        )
+    return cleaned
+
+model = predict.load_model('nsfw_model.h5')  # download pre-trained model from nsfw_detector repo
+
+async def is_adult_image(file_path_or_url):
+    img = Image.open(file_path_or_url) if isinstance(file_path_or_url, str) else Image.open(BytesIO(file_path_or_url))
+    predictions = model.predict(img)
+    # Predictions return a dict: {'drawings':0.1,'hentai':0.0,'neutral':0.8,'porn':0.1,'sexy':0.0}
+    if predictions.get('porn',0) > 0.7 or predictions.get('hentai',0) > 0.7:
+        return True
+    return False
+
 @Client.on_message(filters.group | filters.channel)
 async def message_capture(client: Client, message: Message):
     try:
@@ -982,8 +1012,16 @@ async def message_capture(client: Client, message: Message):
         footer = clone.get("footer", None)
 
         text = message.text or message.caption
-        if not text:
-            return
+        if text:
+            if clone.get("word_filter", False):
+                original_text = text
+                text = clean_text(text)
+            else:
+                text = text
+
+        if text != original_text:
+            await message.edit(text)
+            mesaage.reply(f"⚠️ Edited message {message.id} due to inappropriate content.")
 
         new_text = ""
 
@@ -1015,6 +1053,7 @@ async def message_capture(client: Client, message: Message):
                 await client.send_message(message.chat.id, new_text)
 
         media_file_id = None
+        media_type = None
         if message.photo:
             media_file_id = message.photo.file_id
             media_type = "photo"
@@ -1037,6 +1076,10 @@ async def message_capture(client: Client, message: Message):
                 }},
                 upsert=True
             )
+
+        file = await message.download()
+        if await is_adult_image(file):
+            await message.delete()
 
     except Exception as e:
         await client.send_message(LOG_CHANNEL, f"⚠️ Clone Unexpected Error in message_capture:\n<code>{e}</code>")
