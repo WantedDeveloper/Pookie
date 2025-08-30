@@ -1021,9 +1021,10 @@ async def message_capture(client: Client, message: Message):
         footer = clone.get("footer", None)
 
         text = message.text or message.caption
+        original_text = text
+
         if text:
             if clone.get("word_filter", False):
-                original_text = text
                 text = clean_text(original_text)
             else:
                 text = text
