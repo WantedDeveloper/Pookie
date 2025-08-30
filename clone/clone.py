@@ -990,14 +990,25 @@ def clean_text(text: str) -> str:
         )
     return cleaned
 
-model = predict.load_model('nsfw_model.h5')  # download pre-trained model from nsfw_detector repo
+model = predict.load_model("nsfw_model.h5")
 
-async def is_adult_image(file_path_or_url):
-    img = Image.open(file_path_or_url) if isinstance(file_path_or_url, str) else Image.open(BytesIO(file_path_or_url))
-    predictions = model.predict(img)
-    # Predictions return a dict: {'drawings':0.1,'hentai':0.0,'neutral':0.8,'porn':0.1,'sexy':0.0}
-    if predictions.get('porn',0) > 0.7 or predictions.get('hentai',0) > 0.7:
-        return True
+async def is_adult_image(file_path: str) -> bool:
+    try:
+        # Run classification
+        predictions = predict.classify(model, file_path)
+
+        # predictions looks like:
+        # {
+        #   "file_path.jpg": {"drawings":0.01, "hentai":0.05, "neutral":0.70, "porn":0.20, "sexy":0.04}
+        # }
+
+        scores = predictions[file_path]
+
+        # Decide based on porn / hentai threshold
+        if scores.get("porn", 0) > 0.7 or scores.get("hentai", 0) > 0.7:
+            return True
+    except Exception as e:
+        print(f"⚠️ NSFW detection error: {e}")
     return False
 
 @Client.on_message(filters.group | filters.channel)
