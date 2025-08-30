@@ -2,9 +2,8 @@ import os, logging, asyncio, re, json, base64, random, pytz, aiohttp, requests, 
 from struct import pack
 from shortzy import Shortzy
 from validators import domain
-from nsfw_detector import predict
-from io import BytesIO
-from PIL import Image
+import cv2
+from transformers import pipeline
 from pyrogram import Client, filters, enums
 from pyrogram.types import *
 from pyrogram.file_id import FileId
@@ -990,17 +989,33 @@ def clean_text(text: str) -> str:
         )
     return cleaned
 
-model = predict.load_model("nsfw_model.h5")
+# Load NSFW model once
+classifier = pipeline("image-classification", model="Falconsai/nsfw_image_detection")
 
 async def is_adult_image(file_path: str) -> bool:
     try:
-        predictions = predict.classify(model, file_path)
-        scores = predictions[file_path]
-
-        if scores.get("porn", 0) > 0.7 or scores.get("hentai", 0) > 0.7:
-            return True
+        results = classifier(file_path)
+        for r in results:
+            if r["label"].lower() in ["porn", "hentai", "sexy", "sexually explicit"] and r["score"] > 0.7:
+                return True
     except Exception as e:
         print(f"⚠️ NSFW detection error: {e}")
+    return False
+
+async def is_adult_video(file_path: str) -> bool:
+    try:
+        cap = cv2.VideoCapture(file_path)
+        ret, frame = cap.read()
+        cap.release()
+
+        if ret:
+            temp_img = "frame.jpg"
+            cv2.imwrite(temp_img, frame)
+            result = await is_adult_image(temp_img)
+            os.remove(temp_img)
+            return result
+    except Exception as e:
+        print(f"⚠️ Video NSFW detection error: {e}")
     return False
 
 @Client.on_message(filters.group | filters.channel)
@@ -1082,6 +1097,9 @@ async def message_capture(client: Client, message: Message):
 
         file = await message.download()
         if await is_adult_image(file):
+            await message.delete()
+            await message.reply_text("⚠️ Adult content is not allowed!")
+        if await is_adult_video(file_path):
             await message.delete()
             await message.reply_text("⚠️ Adult content is not allowed!")
 
