@@ -100,6 +100,7 @@ You can add a offensive word filter to your channel messages.
 Current Status: {status}"""
 
     BAD_WORDS = [
+    # Hindi/Indian slangs
     "madarchod", "behenchod", "chutiya", "lund", "chut", "randi", "chod", "gand", "gandi",
     "sala", "suar", "gadha", "hijra", "bhen ki lund", "maa ki chut", "chodai", "luda",
     "randi ka lund", "haramkhor", "haramzada", "chutmar", "gandmar", "chutiyapa", "lundch",
@@ -107,7 +108,8 @@ Current Status: {status}"""
     "chut ki gand", "nangi", "nangi ladki", "nanga", "bhosdiwala", "bhosdike", "gandfat", "chutfat",
     "lundgand", "gaand", "gaandfat", "chutgand", "lundmar", "chutkala", "lundkala", "bhosdk",
     "bhenchode", "madarchode", "chutwa", "lundwa", "ludka", "lodu", "bc", "mc", "bcch",
-    "bcchd", "behench", "bhosdi", "gandu", "madar",
+    "bcchd", "behench", "bhosdi", "gandu", "madar", "randiya", "chutiyapa", "harami", "chodu",
+    # English slangs / curse words
     "fuck", "fucker", "bastard", "bitch", "asshole", "dickhead", "motherfucker", "sonofabitch",
     "cunt", "slut", "whore", "cock", "pussy", "tits", "boobs", "penis", "vagina", "cum",
     "ejaculate", "masturbate", "jerkoff", "gangbang", "porn", "pornhub", "xvideo", "xxx",
@@ -116,7 +118,10 @@ Current Status: {status}"""
     "sugardaddy", "sexually", "boobies", "nipples", "jerking", "fucking", "fucked", "fucks",
     "ass", "anal", "blowjob", "handjob", "cumshot", "orgasm", "threesome", "69", "bdsm",
     "bondage", "fetish", "kinky", "spank", "pussylick", "dildos", "vibrator", "pornvideo",
-    "sexgame", "sexchat", "sexcam", "nipple", "slutshaming", "cocktail", "hornytime"
+    "sexgame", "sexchat", "sexcam", "nipple", "slutshaming", "cocktail", "hornytime",
+    # General insults
+    "idiot", "stupid", "moron", "dumb", "loser", "scumbag", "trash", "asshat", "dipshit", "jerk",
+    "fool", "twat", "prick", "imbecile", "dork", "weirdo", "slob", "nerd", "loser", "simp", "sex"
 ]
 
     MEDIA_FILTER_TXT = """<u>**✨ OFFENSIVE WORD FILTER**</u>
