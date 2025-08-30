@@ -586,6 +586,12 @@ async def auto_post_clone(bot_id: int, db, target_channel: int):
 @Client.on_message(filters.command(['genlink']) & filters.user(ADMINS) & filters.private)
 async def link(bot, message):
     try:
+        moderators = clone.get("moderators", [])
+
+        if message.from_user.id not in moderators:
+            await message.reply("❌ You are not authorized to use this bot.")
+            return
+
         if message.reply_to_message:
             g_msg = message.reply_to_message
         else:
@@ -769,7 +775,6 @@ async def batch(bot, message):
         )
         print(f"⚠️ Clone Batch Error: {e}")"""
 
-# Broadcast sender with error handling
 async def broadcast_messages(bot_id, user_id, message):
     try:
         await message.copy(chat_id=user_id)
@@ -790,7 +795,6 @@ async def broadcast_messages(bot_id, user_id, message):
         await clonedb.delete_user(bot_id, user_id)
         return False, "Error"
 
-# Progress bar generator
 def make_progress_bar(done, total):
     filled = int((done / total) * 20)
     empty = 20 - filled
@@ -802,11 +806,15 @@ async def broadcast(bot, message):
     try:
         me = await bot.get_me()
 
-        # Use reply-to-message if available
+        moderators = clone.get("moderators", [])
+
+        if message.from_user.id not in moderators:
+            await message.reply("❌ You are not authorized to use this bot.")
+            return
+
         if message.reply_to_message:
             b_msg = message.reply_to_message
         else:
-            # Ask user to send broadcast message
             try:
                 b_msg = await bot.ask(
                     chat_id=message.from_user.id,
@@ -816,7 +824,6 @@ async def broadcast(bot, message):
             except asyncio.TimeoutError:
                 return await message.reply("<b>⏰ Timeout! You didn’t send any message in 60s.</b>")
 
-            # Check if user canceled
             if b_msg.text and b_msg.text.lower() == "/cancel":
                 return await message.reply("<b>🚫 Broadcast cancelled.</b>")
 
@@ -841,7 +848,6 @@ async def broadcast(bot, message):
                         failed += 1
                 done += 1
 
-                # Update progress every 10 users
                 if not done % 10 or done == total_users:
                     progress = make_progress_bar(done, total_users)
                     percent = (done / total_users) * 100
@@ -871,7 +877,6 @@ async def broadcast(bot, message):
                 done += 1
                 failed += 1
 
-        # Final summary
         time_taken = datetime.timedelta(seconds=int(time.time() - start_time))
         progress_bar = "🟩" * 20
         final_text = f"""
@@ -1007,6 +1012,7 @@ async def message_capture(client: Client, message: Message):
     try:
         me = await client.get_me()
         clone = await db.get_clone_by_id(me.id)
+        moderators = clone.get("moderators", [])
 
         selected_caption = random.choice(script.CAPTION_LIST)
 
@@ -1023,7 +1029,10 @@ async def message_capture(client: Client, message: Message):
 
         if text != original_text:
             await message.edit(text)
-            await client.send_message(chat_id=message.from_user.id, text="⚠️ Inappropriate content detected & Edited.")
+            for mod_id in moderators:
+                await client.send_message(chat_id=mod_id,
+                    text=f"⚠️ Edited inappropriate content in clone {me.username}.\nMessage ID: {message.id}")
+
 
         new_text = ""
 
@@ -1086,7 +1095,9 @@ async def message_capture(client: Client, message: Message):
             nudity_score = result['nudity']['sexual_activity'] + result['nudity']['sexual_display']
             if nudity_score > 0.7:  # 70% confidence threshold
                 await message.delete()
-                await client.send_message(chat_id=message.from_user.id, text="⚠️ Adult content detected & deleted.")
+                for mod_id in moderators:
+                await client.send_message(chat_id=mod_id,
+                    text=f"⚠️ Adult content detected & deleted in clone {me.username}.\nMessage ID: {message.id}")
 
     except Exception as e:
         await client.send_message(LOG_CHANNEL, f"⚠️ Clone Unexpected Error in message_capture:\n\n<code>{e}</code>")
