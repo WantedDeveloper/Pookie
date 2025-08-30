@@ -302,10 +302,8 @@ async def link(bot, message):
             if g_msg.text and g_msg.text.lower() == '/cancel':
                 return await message.reply('🚫 Process has been cancelled.')
 
-        # Copy received message to log channel
         post = await g_msg.copy(LOG_CHANNEL)
 
-        # Generate file ID + encoded string
         file_id = str(post.id)
         string = f"file_{file_id}"
         outstr = base64.urlsafe_b64encode(string.encode("ascii")).decode().strip("=")
@@ -341,7 +339,6 @@ async def batch(bot, message):
 
         usage_text = f"Use correct format.\nExample:\n/batch https://t.me/{username}/10 https://t.me/{username}/20"
 
-        # Check format
         if " " not in message.text:
             return await message.reply(usage_text)
 
@@ -352,7 +349,6 @@ async def batch(bot, message):
         cmd, first, last = links
         regex = re.compile(r"(https://)?(t\.me/|telegram\.me/|telegram\.dog/)(c/)?(\d+|[a-zA-Z_0-9]+)/(\d+)$")
 
-        # First link
         match = regex.match(first)
         if not match:
             return await message.reply('Invalid first link.')
@@ -360,7 +356,6 @@ async def batch(bot, message):
         f_msg_id = int(match.group(5))
         f_chat_id = int(f"-100{f_chat_id}") if f_chat_id.isnumeric() else f_chat_id
 
-        # Last link
         match = regex.match(last)
         if not match:
             return await message.reply('Invalid last link.')
@@ -368,13 +363,11 @@ async def batch(bot, message):
         l_msg_id = int(match.group(5))
         l_chat_id = int(f"-100{l_chat_id}") if l_chat_id.isnumeric() else l_chat_id
 
-        # Check chat id match
         if f_chat_id != l_chat_id:
             return await message.reply("❌ Chat IDs do not match.")
 
         chat_id = (await bot.get_chat(f_chat_id)).id
 
-        # Always ensure correct order (min → max)
         start_id = min(f_msg_id, l_msg_id)
         end_id = max(f_msg_id, l_msg_id)
 
@@ -442,7 +435,6 @@ async def batch(bot, message):
         )
         print(f"⚠️ Batch Error: {e}")
 
-# Broadcast message sender with error handler
 async def broadcast_messages(user_id, message):
     try:
         await message.copy(chat_id=user_id)
@@ -462,13 +454,11 @@ async def broadcast_messages(user_id, message):
     except Exception as e:
         return False, f"Error: {str(e)}"
 
-# Progress bar generator
 def make_progress_bar(done, total):
     filled = int((done / total) * 20)
     empty = 20 - filled
     return "🟩" * filled + "⬛" * empty
 
-# Broadcast command
 @Client.on_message(filters.command("broadcast") & filters.user(ADMINS) & filters.private)
 async def broadcast(bot, message):
     try:
@@ -515,7 +505,6 @@ async def broadcast(bot, message):
                             failed += 1
                     done += 1
 
-                    # Update progress every 10 users
                     if not done % 10 or done == total_users:
                         progress = make_progress_bar(done, total_users)
                         percent = (done / total_users) * 100
@@ -551,7 +540,6 @@ async def broadcast(bot, message):
                 done += 1
                 continue
 
-        # Final summary
         time_taken = datetime.timedelta(seconds=int(time.time()-start_time))
         speed = round(done / (time.time()-start_time), 2) if done > 0 else 0
         progress_bar = "🟩" * 20
@@ -1042,7 +1030,7 @@ async def cb_handler(client: Client, query: CallbackQuery):
             clone = await db.get_clone_by_id(bot_id)
             buttons = [
                 [InlineKeyboardButton('📝 Start Message', callback_data=f'start_message_{bot_id}'),
-                 InlineKeyboardButton('🔗 Link Message', callback_data=f'link_message_{bot_id}')],
+                 InlineKeyboardButton('📢 Channel Message', callback_data=f'link_message_{bot_id}')],
                 [InlineKeyboardButton('🔔 Force Subscribe', callback_data=f'force_subscribe_{bot_id}'),
                  InlineKeyboardButton('🔑 Access Token', callback_data=f'access_token_{bot_id}')],
                 [InlineKeyboardButton('📤 Auto Post', callback_data=f'auto_post_{bot_id}'),
@@ -1064,7 +1052,7 @@ async def cb_handler(client: Client, query: CallbackQuery):
         # Handle per-clone actions
         elif any(query.data.startswith(prefix) for prefix in [
             "start_message_", "start_text_", "edit_text_", "cancel_edit_", "see_text_", "default_text_", "start_photo_", "add_photo_", "cancel_addphoto_", "see_photo_", "delete_photo_", "start_caption_", "add_caption_", "cancel_addcaption_", "see_caption_", "delete_caption_", "start_button_", "add_button_", "cancel_addbutton_", "remove_button_",
-            "link_message_", "random_caption_", "rc_status_", "header_", "add_header_", "cancel_addheader_", "see_header_", "delete_header_", "footer_", "add_footer_", "cancel_addfooter_", "see_footer_", "delete_footer_",
+            "link_message_", "word_filter_", "wf_status_", "media_filter_", "mf_status_", "random_caption_", "rc_status_", "header_", "add_header_", "cancel_addheader_", "see_header_", "delete_header_", "footer_", "add_footer_", "cancel_addfooter_", "see_footer_", "delete_footer_",
             "force_subscribe_", "add_fsub_", "fsub_mode_", "cancel_addfsub_", "remove_fsub_",
             "access_token_", "at_status_", "cancel_at_", "at_validty_", "edit_atvalidity_", "cancel_editatvalidity_", "see_atvalidity_", "default_atvalidity_", "at_tutorial_", "add_attutorial_", "cancel_addattutorial_", "see_attutorial_", "delete_attutorial_",
             "auto_post_", "ap_status_",
@@ -1317,18 +1305,96 @@ async def cb_handler(client: Client, query: CallbackQuery):
                 await show_button_menu(client, query.message, bot_id)
 
             # Link Message Menu
-            if action == "link_message":
+            elif action == "link_message":
                 if not clone:
                     return await query.answer("Clone not found!", show_alert=True)
 
                 buttons = [
-                    [InlineKeyboardButton('⬅️ Random Caption', callback_data=f'random_caption_{bot_id}')],
+                    [InlineKeyboardButton('🚫 Offensive Word Filter', callback_data=f'word_filter_{bot_id}'),
+                     InlineKeyboardButton('🖼️ Offensive Media Filter', callback_data=f'media_filter_{bot_id}')],
+                    [InlineKeyboardButton('🎲 Random Caption', callback_data=f'random_caption_{bot_id}')],
                     [InlineKeyboardButton('🔺 Header Text', callback_data=f'header_{bot_id}'),
                      InlineKeyboardButton('🔻 Footer Text', callback_data=f'footer_{bot_id}')],
                     [InlineKeyboardButton('⬅️ Back', callback_data=f'manage_{bot_id}')]
                 ]
                 await query.message.edit_text(
                     text=script.ST_MSG_TXT,
+                    reply_markup=InlineKeyboardMarkup(buttons)
+                )
+
+            # Offensive Word Filter
+            elif action == "word_filter":
+                if not clone:
+                    return await query.answer("Clone not found!", show_alert=True)
+
+                current = clone.get("word_filter", False)
+                if current:
+                    buttons = [[InlineKeyboardButton("❌ Disable", callback_data=f"wf_status_{bot_id}")]]
+                    status = "🟢 Enabled"
+                else:
+                    buttons = [[InlineKeyboardButton("✅ Enable", callback_data=f"wf_status_{bot_id}")]]
+                    status = "🔴 Disabled"
+
+                buttons.append([InlineKeyboardButton("⬅️ Back", callback_data=f"link_message_{bot_id}")])
+                await query.message.edit_text(
+                    text=script.WORD_FILTER_TXT.format(status=f"{status}"),
+                    reply_markup=InlineKeyboardMarkup(buttons)
+                )
+
+            # Offensive Word Filter Status
+            elif action == "wf_status":
+                if not clone:
+                    return await query.answer("Clone not found!", show_alert=True)
+
+                new_value = not clone.get("word_filter", False)
+                await db.update_clone(bot_id, {"word_filter": new_value})
+
+                if new_value:
+                    status_text = "🟢 **Offensive Word Filter** has been successfully ENABLED!"
+                else:
+                    status_text = "🔴 **Offensive Word Filter** has been successfully DISABLED!"
+
+                buttons = [[InlineKeyboardButton("⬅️ Back", callback_data=f"word_filter_{bot_id}")]]
+                await query.message.edit_text(
+                    text=status_text,
+                    reply_markup=InlineKeyboardMarkup(buttons)
+                )
+
+            # Offensive Media Filter
+            elif action == "media_filter":
+                if not clone:
+                    return await query.answer("Clone not found!", show_alert=True)
+
+                current = clone.get("media_filter", False)
+                if current:
+                    buttons = [[InlineKeyboardButton("❌ Disable", callback_data=f"mf_status_{bot_id}")]]
+                    status = "🟢 Enabled"
+                else:
+                    buttons = [[InlineKeyboardButton("✅ Enable", callback_data=f"mf_status_{bot_id}")]]
+                    status = "🔴 Disabled"
+
+                buttons.append([InlineKeyboardButton("⬅️ Back", callback_data=f"link_message_{bot_id}")])
+                await query.message.edit_text(
+                    text=script.MEDIA_FILTER_TXT.format(status=f"{status}"),
+                    reply_markup=InlineKeyboardMarkup(buttons)
+                )
+
+            # Offensive Media Filter Status
+            elif action == "mf_status":
+                if not clone:
+                    return await query.answer("Clone not found!", show_alert=True)
+
+                new_value = not clone.get("media_filter", False)
+                await db.update_clone(bot_id, {"media_filter": new_value})
+
+                if new_value:
+                    status_text = "🟢 **Offensive Media Filter** has been successfully ENABLED!"
+                else:
+                    status_text = "🔴 **Offensive Media Filter** has been successfully DISABLED!"
+
+                buttons = [[InlineKeyboardButton("⬅️ Back", callback_data=f"media_filter_{bot_id}")]]
+                await query.message.edit_text(
+                    text=status_text,
                     reply_markup=InlineKeyboardMarkup(buttons)
                 )
 
@@ -1721,8 +1787,6 @@ async def cb_handler(client: Client, query: CallbackQuery):
                 if not clone:
                     return await query.answer("Clone not found!", show_alert=True)
 
-                #await query.answer("soon...", show_alert=True)
-
                 current = clone.get("auto_post", False)
                 if current:
                     buttons = [[InlineKeyboardButton("❌ Disable", callback_data=f"ap_status_{bot_id}")]]
@@ -1733,7 +1797,7 @@ async def cb_handler(client: Client, query: CallbackQuery):
 
                 buttons.append([InlineKeyboardButton("⬅️ Back", callback_data=f"manage_{bot_id}")])
                 await query.message.edit_text(
-                    text=script.RANDOM_CAPTION_TXT.format(status=f"{status}"),
+                    text=script.AUTO_POST_TXT.format(status=f"{status}"),
                     reply_markup=InlineKeyboardMarkup(buttons)
                 )
 
@@ -1746,7 +1810,7 @@ async def cb_handler(client: Client, query: CallbackQuery):
                 await db.update_clone(bot_id, {"auto_post": new_value})
 
                 if new_value:
-                    asyncio.create_task(auto_post_clone(bot_id=8478917008, db=db, target_channel=-1002855763957))
+                    asyncio.create_task(auto_post_clone(bot_id, db, target))
                     status_text = "🟢 **Auto Post** has been successfully ENABLED!"
                 else:
                     status_text = "🔴 **Auto Post** has been successfully DISABLED!"
