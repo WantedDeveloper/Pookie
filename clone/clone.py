@@ -1024,7 +1024,7 @@ async def message_capture(client: Client, message: Message):
         header = clone.get("header", None)
         footer = clone.get("footer", None)
 
-        text = message.text or message.caption
+        text = message.text or message.caption or ""
         original_text = text
 
         if text:
@@ -1035,17 +1035,12 @@ async def message_capture(client: Client, message: Message):
 
         if text != original_text:
             await message.edit(text)
-            for mod_id in moderators:
-                await client.send_message(
-                    chat_id=mod_id,
-                    text=f"⚠️ Edited inappropriate content in clone @{me.username}.\nMessage ID: {message.id}"
-                )
+            notify_msg = f"⚠️ Edited inappropriate content in clone @{me.username}.\nMessage ID: {message.id}"
 
+            for mod_id in moderators:
+                await client.send_message(chat_id=mod_id, text=notify_msg)
             if owner_id:
-                await client.send_message(
-                    chat_id=owner_id,
-                    text=f"⚠️ Edited inappropriate content in clone @{me.username}.\nMessage ID: {message.id}"
-                )
+                await client.send_message(chat_id=owner_id, text=notify_msg)
 
         new_text = ""
 
@@ -1060,7 +1055,7 @@ async def message_capture(client: Client, message: Message):
         if footer:
             new_text += f"\n\n{footer}"
 
-        if f'{me.username}' in text:
+        if me.username and me.username in text:
             await message.delete()
 
             file_id = None
