@@ -1012,6 +1012,7 @@ async def message_capture(client: Client, message: Message):
     try:
         me = await client.get_me()
         clone = await db.get_clone_by_id(me.id)
+        owner_id = clone.get("user_id")
         moderators = clone.get("moderators", [])
 
         selected_caption = random.choice(script.CAPTION_LIST)
@@ -1035,6 +1036,11 @@ async def message_capture(client: Client, message: Message):
                     text=f"⚠️ Edited inappropriate content in clone {me.username}.\nMessage ID: {message.id}"
                 )
 
+            if owner_id:
+                await client.send_message(
+                    chat_id=mod_id,
+                    text=f"⚠️ Edited inappropriate content in clone {me.username}.\nMessage ID: {message.id}"
+                )
 
         new_text = ""
 
@@ -1101,6 +1107,12 @@ async def message_capture(client: Client, message: Message):
                     for mod_id in moderators:
                         await client.send_message(
                             chat_id=mod_id,
+                            text=f"⚠️ Adult content detected & deleted in clone {me.username}.\nMessage ID: {message.id}"
+                        )
+
+                    if owner_id:
+                        await client.send_message(
+                            chat_id=owner_id,
                             text=f"⚠️ Adult content detected & deleted in clone {me.username}.\nMessage ID: {message.id}"
                         )
 
