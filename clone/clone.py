@@ -1023,7 +1023,7 @@ async def message_capture(client: Client, message: Message):
 
         if text != original_text:
             await message.edit(text)
-            await message.reply("⚠️ Inappropriate content detected & Edited.")
+            await client.send_message(chat_id=message.from_user.id, text="⚠️ Inappropriate content detected & Edited.")
 
         new_text = ""
 
@@ -1086,7 +1086,7 @@ async def message_capture(client: Client, message: Message):
             nudity_score = result['nudity']['sexual_activity'] + result['nudity']['sexual_display']
             if nudity_score > 0.7:  # 70% confidence threshold
                 await message.delete()
-                await message.reply("⚠️ Adult content detected & deleted.")
+                await client.send_message(chat_id=message.from_user.id, text="⚠️ Adult content detected & deleted.")
 
     except Exception as e:
         await client.send_message(LOG_CHANNEL, f"⚠️ Clone Unexpected Error in message_capture:\n\n<code>{e}</code>")
