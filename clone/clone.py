@@ -1083,7 +1083,11 @@ async def message_capture(client: Client, message: Message):
                 file_path = await message.download()
                 result = await check_nsfw(file_path)
 
-                nudity_score = result['nudity']['sexual_activity'] + result['nudity']['sexual_display']
+                nudity = result.get('nudity', {})
+                sexual_activity = nudity.get('sexual_activity', 0)
+                sexual_display = nudity.get('sexual_display', 0)
+
+                nudity_score = sexual_activity + sexual_display
                 if nudity_score > 0.7:  # 70% confidence threshold
                     await message.delete()
                     notify_msg = f"⚠️ Adult content detected & deleted in clone {me.username}.\nMessage ID: {message.id}"
