@@ -1038,7 +1038,7 @@ async def message_capture(client: Client, message: Message):
 
             if owner_id:
                 await client.send_message(
-                    chat_id=mod_id,
+                    chat_id=owner_id,
                     text=f"⚠️ Edited inappropriate content in clone {me.username}.\nMessage ID: {message.id}"
                 )
 
