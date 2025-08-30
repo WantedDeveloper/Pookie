@@ -49,7 +49,9 @@ class Database:
             'pics': None,
             'caption': None,
             'button': [],
-            # Link Message
+            # Channel Message
+            'word_filter': False,
+            'media_filter': False,
             'random_captiom': False,
             'header': None,
             'footer': None,

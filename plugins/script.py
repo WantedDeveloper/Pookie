@@ -89,90 +89,47 @@ You can add a custom caption to your media messages instead of its original capt
 
     BUTTON_TXT = """<u>**✨ CUSTOM BUTTON**</u>
 
-You can add a custom button to your message."""
+You can add a custom button to your media messages.
+
+You can add up to 3 buttons."""
+
+    WORD_FILTER_TXT = """<u>**✨ OFFENSIVE WORD FILTER**</u>
+
+You can add a offensive word filter to your channel messages.
+
+Current Status: {status}"""
+
+    BAD_WORDS = [
+    "madarchod", "behenchod", "chutiya", "lund", "chut", "randi", "chod", "gand", "gandi",
+    "sala", "suar", "gadha", "hijra", "bhen ki lund", "maa ki chut", "chodai", "luda",
+    "randi ka lund", "haramkhor", "haramzada", "chutmar", "gandmar", "chutiyapa", "lundch",
+    "lundka", "randiwali", "hori", "kaminey", "kamina", "betichod", "maa chudai",
+    "chut ki gand", "nangi", "nangi ladki", "nanga", "bhosdiwala", "bhosdike", "gandfat", "chutfat",
+    "lundgand", "gaand", "gaandfat", "chutgand", "lundmar", "chutkala", "lundkala", "bhosdk",
+    "bhenchode", "madarchode", "chutwa", "lundwa", "ludka", "lodu", "bc", "mc", "bcch",
+    "bcchd", "behench", "bhosdi", "gandu", "madar",
+    "fuck", "fucker", "bastard", "bitch", "asshole", "dickhead", "motherfucker", "sonofabitch",
+    "cunt", "slut", "whore", "cock", "pussy", "tits", "boobs", "penis", "vagina", "cum",
+    "ejaculate", "masturbate", "jerkoff", "gangbang", "porn", "pornhub", "xvideo", "xxx",
+    "18+", "adult", "sexvideo", "pornstar", "fuckboy", "fuckgirl", "sexy", "horny", "naked",
+    "nude", "stripper", "prostitute", "callgirl", "hooker", "brothel", "sexworker", "sugarbaby",
+    "sugardaddy", "sexually", "boobies", "nipples", "jerking", "fucking", "fucked", "fucks",
+    "ass", "anal", "blowjob", "handjob", "cumshot", "orgasm", "threesome", "69", "bdsm",
+    "bondage", "fetish", "kinky", "spank", "pussylick", "dildos", "vibrator", "pornvideo",
+    "sexgame", "sexchat", "sexcam", "nipple", "slutshaming", "cocktail", "hornytime"
+]
+
+    MEDIA_FILTER_TXT = """<u>**✨ OFFENSIVE WORD FILTER**</u>
+
+You can add a offensive media filter to your channel messages.
+
+Current Status: {status}"""
 
     RANDOM_CAPTION_TXT = """<u>**✨ RANDOM CAPTION**</u>
 
-You can add a random caption to your gen link messages.
+You can add a random caption to your channel messages.
 
 Current Status: {status}"""
-
-    HEADER_TXT = """<u>**✨ CUSTOM HEADER**</u>
-
-You can add a custom header to your gen link message."""
-
-    FOOTER_TXT = """<u>**✨ CUSTOM FOOTER**</u>
-
-You can add a custom footer to your gen link message."""
-
-    FSUB_TXT = """<u>**✨ FORCE SUBSCRIBE**</u>
-
-Users can only use your clone bot after joining all force sub channels. clone bots now also support join request mode.
-
-You can add up to 4 channels."""
-
-    TOKEN_TXT = """<u>**✨ ACCESS TOKEN**</u>
-
-Users need to pass a shortened link to gain special access to messages from all clone shareable links. This access will be valid for the next custom validity period.
-
-Current Status: {status}"""
-
-    AT_VALIDITY_TXT = """<u>**✨ ACCESS TOKEN VALIDITY**</u>
-
-You can customize the special access validty about access-token that is remove ads to users when they access the links."""
-
-    AT_TUTORIAL_TXT = """<u>**✨ ACCESS TOKEN TUTORIAL**</u>
-
-You can customize the special access validty about access-token that is remove ads to users when they access the links."""
-
-    DELETE_TXT = """<u>**✨ AUTO DELETE**</u>
-
-Current Status: {status}"""
-
-    AD_TIME_TXT = """<u>**✨ AUTO DELETE TIME**</u>
-
-You can customize the alert time about auto-delete that is sent last to users when they access the links."""
-
-    AD_MSG_TXT = """<u>**✨ AUTO DELETE MESSAGE**</u>
-
-You can customize the alert message about auto-delete that is sent last to users when they access the links."""
-
-    AD_TXT = """<u>⚠️ IMPORTANT:</u>
-
-All Messages will be deleted after {time} hour. Please save or forward these messages to your personal saved messages to avoid losing them!"""
-
-    PREMIUM_TXT = """None
-"""
-
-    FORWARD_TXT = """<u>**✨ FORWARD PROTECTION**</u>
-
-Restrict Clone users from forwarding messages from shareable link.
-
-Current Status: {status}"""
-
-    MODERATOR_TXT = """<u>**✨ MODERATOR**</u>
-
-Moderators have access to all your clone features, include broadcasting."""
-
-    CAPTION = """<b>📂 ғɪʟᴇɴᴀᴍᴇ : {file_name}
-
-⚙️ sɪᴢᴇ : {file_size}
-
-Jᴏɪɴ [ᴜᴘᴅᴀᴛᴇ ᴄʜᴀɴɴᴇʟ](https://t.me/vj_botz)</b>""" 
-
-    LOG_TEXT = """<b>#NewUser
-    
-Id - <code>{}</code>
-
-Name - {}</b>"""
-
-    RESTART_TXT = """
-<b>Bot Restarted !
-
-📅 Date : <code>{}</code>
-⏰ Time : <code>{}</code>
-🌐 Timezone : <code>Asia/Kolkata</code>
-🛠️ Build Status : <code>v2.7.1 [ Stable ]</code></b>"""
 
     CAPTION_LIST = [
     "Jo dikha hai, woh sirf ek jhalak hai 🥵💦",
@@ -276,3 +233,88 @@ Name - {}</b>"""
     "Jo energy tumhari hai, wo sabko attract karti hai 😏🔥",
     "Bas tumhari vibe dekhkar mood full on ho jaata hai 😎💥"
 ]
+
+    HEADER_TXT = """<u>**✨ CUSTOM HEADER**</u>
+
+You can add a custom header to your channel messages."""
+
+    FOOTER_TXT = """<u>**✨ CUSTOM FOOTER**</u>
+
+You can add a custom footer to your channel messages."""
+
+    FSUB_TXT = """<u>**✨ FORCE SUBSCRIBE**</u>
+
+Users can only use your clone bot after joining all force sub channels.
+
+You can add up to 4 channels."""
+
+    TOKEN_TXT = """<u>**✨ ACCESS TOKEN**</u>
+
+Users need to pass a shortened link to gain special access to messages from all clone shareable links.
+
+This access will be valid for the next custom validity period.
+
+Current Status: {status}"""
+
+    AT_VALIDITY_TXT = """<u>**✨ ACCESS TOKEN VALIDITY**</u>
+
+You can customize the special access validty about access-token that is remove ads to users when they access the links."""
+
+    AT_TUTORIAL_TXT = """<u>**✨ ACCESS TOKEN TUTORIAL**</u>
+
+You can customize the special access tutorial about access-token that is show how to remove ads to users when they access the links."""
+
+    AUTO_POST_TXT = """<u>**✨ AUTO POST**</u>
+
+You can add a auto post to your channel.
+
+Current Status: {status}"""
+
+    PREMIUM_TXT = """<u>**✨ PREMIUM USERS**</u>
+"""
+
+    DELETE_TXT = """<u>**✨ AUTO DELETE**</u>
+
+Current Status: {status}"""
+
+    AD_TIME_TXT = """<u>**✨ AUTO DELETE TIME**</u>
+
+You can customize the alert time about auto-delete that is sent last to users when they access the links."""
+
+    AD_MSG_TXT = """<u>**✨ AUTO DELETE MESSAGE**</u>
+
+You can customize the alert message about auto-delete that is sent last to users when they access the links."""
+
+    AD_TXT = """<u>⚠️ IMPORTANT:</u>
+
+All Messages will be deleted after {time} hour. Please save or forward these messages to your personal saved messages to avoid losing them!"""
+
+    FORWARD_TXT = """<u>**✨ FORWARD PROTECTION**</u>
+
+Restrict Clone users from forwarding messages from shareable link.
+
+Current Status: {status}"""
+
+    MODERATOR_TXT = """<u>**✨ MODERATOR**</u>
+
+Moderators have access to all your clone features."""
+
+    CAPTION = """<b>📂 ғɪʟᴇɴᴀᴍᴇ : {file_name}
+
+⚙️ sɪᴢᴇ : {file_size}
+
+Jᴏɪɴ [ᴜᴘᴅᴀᴛᴇ ᴄʜᴀɴɴᴇʟ](https://t.me/vj_botz)</b>""" 
+
+    RESTART_TXT = """
+<b>Bot Restarted !
+
+📅 Date : <code>{}</code>
+⏰ Time : <code>{}</code>
+🌐 Timezone : <code>Asia/Kolkata</code>
+🛠️ Build Status : <code>v2.7.1 [ Stable ]</code></b>"""
+
+    LOG_TEXT = """<b>#NewUser
+    
+Id - <code>{}</code>
+
+Name - {}</b>"""
