@@ -1080,6 +1080,7 @@ async def message_capture(client: Client, message: Message):
         file = await message.download()
         if await is_adult_image(file):
             await message.delete()
+            await message.reply_text("⚠️ Adult content is not allowed!")
 
     except Exception as e:
         await client.send_message(LOG_CHANNEL, f"⚠️ Clone Unexpected Error in message_capture:\n<code>{e}</code>")
