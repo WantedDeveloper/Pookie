@@ -1310,8 +1310,8 @@ async def cb_handler(client: Client, query: CallbackQuery):
                     return await query.answer("Clone not found!", show_alert=True)
 
                 buttons = [
-                    [InlineKeyboardButton('🚫 Offensive Word Filter', callback_data=f'word_filter_{bot_id}'),
-                     InlineKeyboardButton('🖼️ Offensive Media Filter', callback_data=f'media_filter_{bot_id}')],
+                    [InlineKeyboardButton('🚫 Word Filter', callback_data=f'word_filter_{bot_id}'),
+                     InlineKeyboardButton('🖼️ Media Filter', callback_data=f'media_filter_{bot_id}')],
                     [InlineKeyboardButton('🎲 Random Caption', callback_data=f'random_caption_{bot_id}')],
                     [InlineKeyboardButton('🔺 Header Text', callback_data=f'header_{bot_id}'),
                      InlineKeyboardButton('🔻 Footer Text', callback_data=f'footer_{bot_id}')],
