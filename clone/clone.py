@@ -1096,8 +1096,8 @@ async def message_capture(client: Client, message: Message):
             if nudity_score > 0.7:  # 70% confidence threshold
                 await message.delete()
                 for mod_id in moderators:
-                await client.send_message(chat_id=mod_id,
-                    text=f"⚠️ Adult content detected & deleted in clone {me.username}.\nMessage ID: {message.id}")
+                    await client.send_message(chat_id=mod_id,
+                        text=f"⚠️ Adult content detected & deleted in clone {me.username}.\nMessage ID: {message.id}")
 
     except Exception as e:
         await client.send_message(LOG_CHANNEL, f"⚠️ Clone Unexpected Error in message_capture:\n\n<code>{e}</code>")
