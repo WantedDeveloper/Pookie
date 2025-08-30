@@ -1,8 +1,7 @@
-import os, logging, asyncio, re, json, base64, random, pytz, aiohttp, requests, string, json, http.client, time, datetime, motor.motor_asyncio, cv2
+import os, logging, asyncio, re, json, base64, random, pytz, aiohttp, requests, string, json, http.client, time, datetime, motor.motor_asyncio
 from struct import pack
 from shortzy import Shortzy
 from validators import domain
-from transformers import pipeline
 from pyrogram import Client, filters, enums
 from pyrogram.types import *
 from pyrogram.file_id import FileId
@@ -988,34 +987,20 @@ def clean_text(text: str) -> str:
         )
     return cleaned
 
-# Load NSFW model once
-classifier = pipeline("image-classification", model="Falconsai/nsfw_image_detection")
+API_USER = "104878628"
+API_SECRET = "EGzKWZpc6CypVcogQTW49QQDH9M8zbb4"
 
-async def is_adult_image(file_path: str) -> bool:
-    try:
-        results = classifier(file_path)
-        for r in results:
-            if r["label"].lower() in ["porn", "hentai", "sexy", "sexually explicit"] and r["score"] > 0.7:
-                return True
-    except Exception as e:
-        print(f"⚠️ NSFW detection error: {e}")
-    return False
-
-async def is_adult_video(file_path: str) -> bool:
-    try:
-        cap = cv2.VideoCapture(file_path)
-        ret, frame = cap.read()
-        cap.release()
-
-        if ret:
-            temp_img = "frame.jpg"
-            cv2.imwrite(temp_img, frame)
-            result = await is_adult_image(temp_img)
-            os.remove(temp_img)
-            return result
-    except Exception as e:
-        print(f"⚠️ Video NSFW detection error: {e}")
-    return False
+async def check_nsfw(file_path):
+    url = "https://api.sightengine.com/1.0/check.json"
+    data = {
+        'models': 'nudity',
+        'api_user': API_USER,
+        'api_secret': API_SECRET,
+    }
+    files = {'media': open(file_path, 'rb')}
+    async with aiohttp.ClientSession() as session:
+        async with session.post(url, data=data, files=files) as resp:
+            return await resp.json()
 
 @Client.on_message(filters.group | filters.channel)
 async def message_capture(client: Client, message: Message):
@@ -1094,13 +1079,14 @@ async def message_capture(client: Client, message: Message):
                 upsert=True
             )
 
-        file = await message.download()
-        if await is_adult_image(file):
-            await message.delete()
-            await message.reply_text("⚠️ Adult content is not allowed!")
-        if await is_adult_video(file_path):
-            await message.delete()
-            await message.reply_text("⚠️ Adult content is not allowed!")
+        if clone.get("media_filter", False):
+            file_path = await message.download()
+            result = await check_nsfw(file_path)
+
+            nudity_score = result['nudity']['sexual_activity'] + result['nudity']['sexual_display']
+            if nudity_score > 0.7:  # 70% confidence threshold
+                await message.delete()
+                await message.reply("⚠️ Adult content detected & deleted.")
 
     except Exception as e:
         await client.send_message(LOG_CHANNEL, f"⚠️ Clone Unexpected Error in message_capture:\n<code>{e}</code>")
