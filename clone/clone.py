@@ -1023,7 +1023,7 @@ async def message_capture(client: Client, message: Message):
 
         if text != original_text:
             await message.edit(text)
-            message.reply(f"⚠️ Edited message {message.id} due to inappropriate content.")
+            await message.reply("⚠️ Inappropriate content detected & Edited.")
 
         new_text = ""
 
