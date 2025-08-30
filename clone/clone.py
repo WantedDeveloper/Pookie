@@ -1024,7 +1024,7 @@ async def message_capture(client: Client, message: Message):
         if text:
             if clone.get("word_filter", False):
                 original_text = text
-                text = clean_text(text)
+                text = clean_text(original_text)
             else:
                 text = text
 
