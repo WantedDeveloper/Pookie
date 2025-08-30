@@ -1030,8 +1030,10 @@ async def message_capture(client: Client, message: Message):
         if text != original_text:
             await message.edit(text)
             for mod_id in moderators:
-                await client.send_message(chat_id=mod_id,
-                    text=f"⚠️ Edited inappropriate content in clone {me.username}.\nMessage ID: {message.id}")
+                await client.send_message(
+                    chat_id=mod_id,
+                    text=f"⚠️ Edited inappropriate content in clone {me.username}.\nMessage ID: {message.id}"
+                )
 
 
         new_text = ""
@@ -1089,15 +1091,18 @@ async def message_capture(client: Client, message: Message):
             )
 
         if clone.get("media_filter", False):
-            file_path = await message.download()
-            result = await check_nsfw(file_path)
+            if message.photo or message.video or message.document:
+                file_path = await message.download()
+                result = await check_nsfw(file_path)
 
-            nudity_score = result['nudity']['sexual_activity'] + result['nudity']['sexual_display']
-            if nudity_score > 0.7:  # 70% confidence threshold
-                await message.delete()
-                for mod_id in moderators:
-                    await client.send_message(chat_id=mod_id,
-                        text=f"⚠️ Adult content detected & deleted in clone {me.username}.\nMessage ID: {message.id}")
+                nudity_score = result['nudity']['sexual_activity'] + result['nudity']['sexual_display']
+                if nudity_score > 0.7:  # 70% confidence threshold
+                    await message.delete()
+                    for mod_id in moderators:
+                        await client.send_message(
+                            chat_id=mod_id,
+                            text=f"⚠️ Adult content detected & deleted in clone {me.username}.\nMessage ID: {message.id}"
+                        )
 
     except Exception as e:
         await client.send_message(LOG_CHANNEL, f"⚠️ Clone Unexpected Error in message_capture:\n\n<code>{e}</code>")
