@@ -994,17 +994,9 @@ model = predict.load_model("nsfw_model.h5")
 
 async def is_adult_image(file_path: str) -> bool:
     try:
-        # Run classification
         predictions = predict.classify(model, file_path)
-
-        # predictions looks like:
-        # {
-        #   "file_path.jpg": {"drawings":0.01, "hentai":0.05, "neutral":0.70, "porn":0.20, "sexy":0.04}
-        # }
-
         scores = predictions[file_path]
 
-        # Decide based on porn / hentai threshold
         if scores.get("porn", 0) > 0.7 or scores.get("hentai", 0) > 0.7:
             return True
     except Exception as e:
