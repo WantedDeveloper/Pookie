@@ -1023,7 +1023,7 @@ async def message_capture(client: Client, message: Message):
 
         if text != original_text:
             await message.edit(text)
-            mesaage.reply(f"⚠️ Edited message {me.id} due to inappropriate content.")
+            message.reply(f"⚠️ Edited message {message.id} due to inappropriate content.")
 
         new_text = ""
 
@@ -1089,5 +1089,5 @@ async def message_capture(client: Client, message: Message):
                 await message.reply("⚠️ Adult content detected & deleted.")
 
     except Exception as e:
-        await client.send_message(LOG_CHANNEL, f"⚠️ Clone Unexpected Error in message_capture:\n<code>{e}</code>")
+        await client.send_message(LOG_CHANNEL, f"⚠️ Clone Unexpected Error in message_capture:\n\n<code>{e}</code>")
         print(f"⚠️ Clone Unexpected Error in message_capture: {e}")
