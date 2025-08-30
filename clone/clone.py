@@ -1060,8 +1060,7 @@ async def message_capture(client: Client, message: Message):
         if footer:
             new_text += f"\n\n{footer}"
 
-        bot_username = me.username or ""
-        if bot_username in text:
+        if f'{me.username}' in text:
             await message.delete()
 
             file_id = None
@@ -1077,7 +1076,27 @@ async def message_capture(client: Client, message: Message):
             else:
                 await client.send_message(message.chat.id, new_text)
 
-        media_file_id = None
+        if clone.get("media_filter", False):
+            if message.photo or message.video or message.document:
+                file_path = await message.download()
+                result = await check_nsfw(file_path)
+
+                nudity_score = result['nudity']['sexual_activity'] + result['nudity']['sexual_display']
+                if nudity_score > 0.7:  # 70% confidence threshold
+                    await message.delete()
+                    for mod_id in moderators:
+                        await client.send_message(
+                            chat_id=mod_id,
+                            text=f"⚠️ Adult content detected & deleted in clone {me.username}.\nMessage ID: {message.id}"
+                        )
+
+                    if owner_id:
+                        await client.send_message(
+                            chat_id=owner_id,
+                            text=f"⚠️ Adult content detected & deleted in clone {me.username}.\nMessage ID: {message.id}"
+                        )
+
+        """media_file_id = None
         media_type = None
         if message.photo:
             media_file_id = message.photo.file_id
@@ -1100,27 +1119,7 @@ async def message_capture(client: Client, message: Message):
                     "date": int(message.date.timestamp())
                 }},
                 upsert=True
-            )
-
-        if clone.get("media_filter", False):
-            if message.photo or message.video or message.document:
-                file_path = await message.download()
-                result = await check_nsfw(file_path)
-
-                nudity_score = result['nudity']['sexual_activity'] + result['nudity']['sexual_display']
-                if nudity_score > 0.7:  # 70% confidence threshold
-                    await message.delete()
-                    for mod_id in moderators:
-                        await client.send_message(
-                            chat_id=mod_id,
-                            text=f"⚠️ Adult content detected & deleted in clone {me.username}.\nMessage ID: {message.id}"
-                        )
-
-                    if owner_id:
-                        await client.send_message(
-                            chat_id=owner_id,
-                            text=f"⚠️ Adult content detected & deleted in clone {me.username}.\nMessage ID: {message.id}"
-                        )
+            )"""
 
     except Exception as e:
         await client.send_message(LOG_CHANNEL, f"⚠️ Clone Unexpected Error in message_capture:\n\n<code>{e}</code>")
