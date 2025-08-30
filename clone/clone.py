@@ -2,6 +2,7 @@ import os, logging, asyncio, re, json, base64, random, pytz, aiohttp, requests, 
 from struct import pack
 from shortzy import Shortzy
 from validators import domain
+from aiohttp import FormData
 from pyrogram import Client, filters, enums
 from pyrogram.types import *
 from pyrogram.file_id import FileId
@@ -997,14 +998,20 @@ API_SECRET = "EGzKWZpc6CypVcogQTW49QQDH9M8zbb4"
 
 async def check_nsfw(file_path):
     url = "https://api.sightengine.com/1.0/check.json"
-    data = {
-        'models': 'nudity',
-        'api_user': API_USER,
-        'api_secret': API_SECRET,
-    }
-    files = {'media': open(file_path, 'rb')}
+
+    form = FormData()
+    form.add_field("models", "nudity")
+    form.add_field("api_user", API_USER)
+    form.add_field("api_secret", API_SECRET)
+    form.add_field(
+        "media",
+        open(file_path, "rb"),
+        filename=file_path.split("/")[-1],
+        content_type="application/octet-stream"
+    )
+
     async with aiohttp.ClientSession() as session:
-        async with session.post(url, data=data, files=files) as resp:
+        async with session.post(url, data=form) as resp:
             return await resp.json()
 
 @Client.on_message(filters.group | filters.channel)
@@ -1079,17 +1086,12 @@ async def message_capture(client: Client, message: Message):
                 nudity_score = result['nudity']['sexual_activity'] + result['nudity']['sexual_display']
                 if nudity_score > 0.7:  # 70% confidence threshold
                     await message.delete()
-                    for mod_id in moderators:
-                        await client.send_message(
-                            chat_id=mod_id,
-                            text=f"⚠️ Adult content detected & deleted in clone {me.username}.\nMessage ID: {message.id}"
-                        )
+                    notify_msg = f"⚠️ Adult content detected & deleted in clone {me.username}.\nMessage ID: {message.id}"
 
+                    for mod_id in moderators:
+                        await client.send_message(chat_id=mod_id, text=notify_msg)
                     if owner_id:
-                        await client.send_message(
-                            chat_id=owner_id,
-                            text=f"⚠️ Adult content detected & deleted in clone {me.username}.\nMessage ID: {message.id}"
-                        )
+                        await client.send_message(chat_id=owner_id, text=notify_msg)
 
         """media_file_id = None
         media_type = None
