@@ -1,0 +1,16 @@
+#Manuall
+sudo apt update && sudo apt upgrade -y
+
+sudo apt install python3 python3-pip python3-venv git ffmpeg -y
+
+git clone https://github.com/WantedDeveloper/Pookie && cd Pookie && pip install -r requirements.txt && python3 main.py
+
+
+#Auto
+nano run.sh (after this cmd paste your sh file code)
+
+chmod +x run.sh
+
+./run.sh
+
+./run.sh update (run this cmd when u update your repo)
