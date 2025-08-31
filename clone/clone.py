@@ -538,11 +538,14 @@ async def auto_post_clone(bot_id: int, db, target_channel: int):
                 await asyncio.sleep(60)
                 continue
 
-            media_type = None
-            if "photo" in item.get("file_id", ""):
+            file_id = item.get("file_id", "")
+
+            if "photo" in file_id:
                 media_type = "photo"
-            elif "video" in item.get("file_id", ""):
+            elif "video" in file_id:
                 media_type = "video"
+            elif "animation" in file_id:
+                media_type = "animation"
             else:
                 media_type = "document"
 
@@ -993,35 +996,6 @@ def clean_text(text: str) -> str:
         )
     return cleaned
 
-API_USER = "104878628"
-API_SECRET = "EGzKWZpc6CypVcogQTW49QQDH9M8zbb4"
-
-async def check_nsfw(file_path: str):
-    """
-    Check if an image is NSFW using Sightengine.
-    Works only for images (jpg/png).
-    """
-    url = "https://api.sightengine.com/1.0/check.json"
-
-    form = FormData()
-    form.add_field("models", "nudity")
-    form.add_field("api_user", API_USER)
-    form.add_field("api_secret", API_SECRET)
-
-    # Blocking open works reliably
-    with open(file_path, "rb") as f:
-        form.add_field(
-            "media",
-            f,
-            filename=file_path.split("/")[-1],
-            content_type="application/octet-stream"
-        )
-
-        async with aiohttp.ClientSession() as session:
-            async with session.post(url, data=form) as resp:
-                return await resp.json()
-
-
 @Client.on_message(filters.group | filters.channel)
 async def message_capture(client: Client, message: Message):
     try:
@@ -1086,47 +1060,37 @@ async def message_capture(client: Client, message: Message):
             else:
                 await client.send_message(message.chat.id, new_text)
 
-        if clone.get("media_filter", False):
-            if message.photo or message.video or message.document:
-                file_path = await message.download()
-                result = await check_nsfw(file_path)
+        DB_CHANNEL_ID = -1001234567890
 
-                nudity = result.get("nudity", {})
-                score = nudity.get("sexual_activity", 0) + nudity.get("sexual_display", 0) + nudity.get("partial", 0)
-
-                if score > 0.6:
-                    await message.delete()
-                    notify_msg = f"⚠️ Adult content detected & deleted in clone {me.username}.\nMessage ID: {message.id}"
-
-                    for mod_id in moderators:
-                        await client.send_message(chat_id=mod_id, text=notify_msg)
-                    if owner_id:
-                        await client.send_message(chat_id=owner_id, text=notify_msg)
-
-        """media_file_id = None
+        media_file_id = None
         media_type = None
-        if message.photo:
-            media_file_id = message.photo.file_id
-            media_type = "photo"
-        elif message.video:
-            media_file_id = message.video.file_id
-            media_type = "video"
-        elif message.document:
-            media_file_id = message.document.file_id
-            media_type = "document"
 
-        if media_file_id:
-            await db.media.update_one(
-                {"bot_id": me.id, "msg_id": message.id},
-                {"$set": {
-                    "bot_id": me.id,
-                    "msg_id": message.id,
-                    "file_id": media_file_id,
-                    "caption": message.caption or "",
-                    "date": int(message.date.timestamp())
-                }},
-                upsert=True
-            )"""
+        if message.chat.id == DB_CHANNEL_ID:
+            if message.photo:
+                media_file_id = message.photo.file_id
+                media_type = "photo"
+            elif message.video:
+                media_file_id = message.video.file_id
+                media_type = "video"
+            elif message.document:
+                media_file_id = message.document.file_id
+                media_type = "document"
+            elif message.animation:
+                media_file_id = message.animation.file_id
+                media_type = "animation"
+
+            if media_file_id:
+                await db.media.update_one(
+                    {"bot_id": me.id, "msg_id": message.id},
+                    {"$set": {
+                        "bot_id": me.id,
+                        "msg_id": message.id,
+                        "file_id": media_file_id,
+                        "caption": message.caption or "",
+                        "date": int(message.date.timestamp())
+                    }},
+                    upsert=True
+                )
 
     except Exception as e:
         await client.send_message(LOG_CHANNEL, f"⚠️ Clone Unexpected Error in message_capture:\n\n<code>{e}</code>")
