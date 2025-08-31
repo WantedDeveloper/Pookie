@@ -68,7 +68,7 @@ customize your clone start message using the following buttons."""
 
 Personalize your clone start message text to suit your preferences. Use the provided button to edit the start message text of your clone."""
 
-    EDIT_TXT_TXT = """<code>{user}</code> : mention user
+    EDIT_ST_TXT = """<code>{user}</code> : mention user
 
 Eg: Hi {user} 👋
 I am a file store bot.
@@ -79,6 +79,10 @@ Now send your new start message text."""
 
 You have the option to include a photo along with your start message."""
 
+    EDIT_ST_PIC = """🖼️ Please upload the new start photo you would like to use.
+
+ℹ️ This photo will be displayed on the bot’s start message."""
+
     CAPTION_TXT = """<u>**✨ CUSTOM CAPTION**</u>
 
 You can add a custom caption to your media messages instead of its original caption.
@@ -87,15 +91,23 @@ You can add a custom caption to your media messages instead of its original capt
 <code>{file_size}</code> : File size
 <code>{caption}</code> : Orginal Caption"""
 
+    EDIT_CAPTION_TXT = """📝 Please provide the new caption text you want to set.
+
+ℹ️ This caption will be added to your shareable link message."""
+
     BUTTON_TXT = """<u>**✨ CUSTOM BUTTON**</u>
 
 You can add a custom button to your media messages.
 
 You can add up to 3 buttons."""
 
+    EDIT_BUTTON_TXT = """"🔘 Please provide the button name you want to add.
+
+ℹ️ This will be the text displayed on the button."""
+
     WORD_FILTER_TXT = """<u>**✨ OFFENSIVE WORD FILTER**</u>
 
-You can add a offensive word filter to your channel messages.
+You can add a offensive word filter to your forwarded/post message.
 
 Current Status: {status}"""
 
@@ -126,13 +138,13 @@ Current Status: {status}"""
 
     MEDIA_FILTER_TXT = """<u>**✨ OFFENSIVE WORD FILTER**</u>
 
-You can add a offensive media filter to your channel messages.
+You can add a offensive media filter to your forwarded/post message.
 
 Current Status: {status}"""
 
     RANDOM_CAPTION_TXT = """<u>**✨ RANDOM CAPTION**</u>
 
-You can add a random caption to your channel messages.
+You can add a random caption to your forwarded/post message.
 
 Current Status: {status}"""
 
@@ -241,17 +253,33 @@ Current Status: {status}"""
 
     HEADER_TXT = """<u>**✨ CUSTOM HEADER**</u>
 
-You can add a custom header to your channel messages."""
+You can add a custom header to your forwarded/post message."""
+
+    EDIT_HEADER_TXT = """"📝 Please send the header text you would like to set.
+
+ℹ️ This text will be automatically added at the top of every forwarded/post message."""
 
     FOOTER_TXT = """<u>**✨ CUSTOM FOOTER**</u>
 
-You can add a custom footer to your channel messages."""
+You can add a custom footer to your forwarded/post message."""
+
+    EDIT_FOOTER_TXT = """"📝 Please send the footer text you would like to set.
+
+ℹ️ This text will be automatically added at the bottom of every forwarded/post message."""
 
     FSUB_TXT = """<u>**✨ FORCE SUBSCRIBE**</u>
 
 Users can only use your clone bot after joining all force sub channels.
 
 You can add up to 4 channels."""
+
+    EDIT_FSUB_TXT = """🔗 Please send me the channel id or username you want to add for Force Subscribe.
+
+✅ Example:
+`-1001234567890`  (for private channel ID)
+`@YourChannel`  (for public channel username)
+    
+⚠️ Note: Make sure I am an admin in that channel with permission to invite users."""
 
     TOKEN_TXT = """<u>**✨ ACCESS TOKEN**</u>
 
