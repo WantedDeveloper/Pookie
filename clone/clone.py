@@ -513,106 +513,98 @@ def unpack_new_file_id(new_file_id):
     return file_id, file_ref
 
 async def auto_post_clone(bot_id: int, db, target_channel: int):
-    print(f"🚀 [DEBUG] AutoPost started for bot {bot_id} -> target_channel={target_channel}")
+    try:
+        clone = await db.get_bot(bot_id)
+        if not clone or not clone.get("auto_post", False):
+            print(f"❌ [DEBUG] AutoPost disabled for bot {bot_id}")
+            return
 
-    clone = await db.get_bot(bot_id)
-    if not clone or not clone.get("auto_post", False):
-        print(f"❌ [DEBUG] AutoPost not enabled for bot {bot_id}")
-        return
+        clone_client = get_client(bot_id)
+        if not clone_client:
+            print(f"⚠️ [DEBUG] Clone client not running for bot {bot_id}")
+            return
 
-    clone_client = get_client(bot_id)
-    if not clone_client:
-        print(f"❌ [DEBUG] Clone client not running for bot {bot_id}")
-        return
+        print(f"🚀 [DEBUG] AutoPost started for bot {bot_id} -> target_channel={target_channel}")
 
-    while True:
-        try:
-            fresh = await db.get_bot(bot_id)
-            if not fresh or not fresh.get("auto_post", False):
-                print(f"⏹️ [DEBUG] AutoPost disabled for bot {bot_id}, exiting loop")
-                return
+        FIX_IMAGE = "https://i.ibb.co/JRBF3zQt/images.jpg"   # 👈 yaha apni fixed image daalo
 
-            # Fetch one unposted media
-            item = await db.media.find_one({"bot_id": bot_id, "posted": {"$ne": True}})
-            print(f"🔎 [DEBUG] Query result for bot {bot_id}: {item}")
-
-            if not item:
-                print("⏳ [DEBUG] No new media found, sleeping 60s...")
-                await asyncio.sleep(60)
-                continue
-
-            file_id = item.get("file_id", "")
-            print(f"📂 [DEBUG] Picked media for posting: {file_id}")
-
-            # Media type detect
-            if "photo" in file_id:
-                media_type = "photo"
-            elif "video" in file_id:
-                media_type = "video"
-            elif "animation" in file_id:
-                media_type = "animation"
-            else:
-                media_type = "document"
-
-            print(f"🖼️ [DEBUG] Media type detected: {media_type}")
-
-            # Generate share link
-            file_id_raw, _ = unpack_new_file_id(item["file_id"])
-            string = f"file_{file_id_raw}"
-            outstr = base64.urlsafe_b64encode(string.encode("ascii")).decode().strip("=")
-            bot_username = (await clone_client.get_me()).username
-            share_link = f"https://t.me/{bot_username}?start={outstr}"
-
-            header = clone.get("header", None)
-            footer = clone.get("footer", None)
-            selected_caption = random.choice(script.CAPTION_LIST)
-
-            text = ""
-            if header:
-                text += f"{header}\n\n"
-            text += f"{selected_caption}\n\nHere is your link:\n{share_link}"
-            if footer:
-                text += f"\n\n{footer}"
-
-            print(f"📝 [DEBUG] Final caption:\n{text}")
-
-            # Send to target channel (for now using fixed image)
+        while True:
             try:
-                if media_type == "photo":
-                    await clone_client.send_photo(chat_id=target_channel, photo="https://i.ibb.co/JRBF3zQt/images.jpg", caption=text)
-                elif media_type == "video":
-                    await clone_client.send_video(chat_id=target_channel, video="https://i.ibb.co/JRBF3zQt/images.jpg", caption=text)
-                elif media_type == "animation":
-                    await clone_client.send_animation(chat_id=target_channel, animation="https://i.ibb.co/JRBF3zQt/images.jpg", caption=text)
-                else:
-                    await clone_client.send_document(chat_id=target_channel, document="https://i.ibb.co/JRBF3zQt/images.jpg", caption=text)
+                fresh = await db.get_bot(bot_id)
+                if not fresh or not fresh.get("auto_post", False):
+                    print(f"⏹️ [DEBUG] AutoPost stopped for bot {bot_id}")
+                    return
 
-                print(f"📤 [DEBUG] Posted media for bot {bot_id} to {target_channel}")
+                # ek random unposted file uthao
+                item = await db.media.aggregate([
+                    {"$match": {"bot_id": bot_id, "posted": {"$ne": True}}},
+                    {"$sample": {"size": 1}}
+                ]).to_list(length=1)
 
-            except FloodWait as e:
-                print(f"⏳ [DEBUG] FloodWait {e.value}s, sleeping...")
-                await asyncio.sleep(e.value)
-                continue
+                if not item:
+                    await asyncio.sleep(60)
+                    continue
 
-            # Mark posted
-            await db.media.update_one(
-                {"_id": item["_id"]},
-                {"$set": {"posted": True}}
-            )
-            print(f"✅ [DEBUG] Media marked as posted in DB (id={item['_id']})")
+                item = item[0]
+                file_id = item.get("file_id")
 
-            sleep_time = int(fresh.get("interval_sec", 60))
-            print(f"⏰ [DEBUG] Sleeping {sleep_time}s before next post...")
-            await asyncio.sleep(sleep_time)
+                if not file_id:
+                    await db.media.update_one({"_id": item["_id"]}, {"$set": {"posted": True}})
+                    continue
 
-        except Exception as e:
-            await clone_client.send_message(
-                LOG_CHANNEL,
-                f"⚠️ Clone Auto Post Error:\n\n<code>{e}</code>\n\nKindly check this message for assistance."
-            )
-            print(f"⚠️ [DEBUG] Clone Auto-post error: {e}")
-            
+                # link generate
+                unpacked, _ = unpack_new_file_id(file_id)
+                string = f"file_{unpacked}"
+                outstr = base64.urlsafe_b64encode(string.encode("ascii")).decode().strip("=")
+                bot_username = (await clone_client.get_me()).username
+                share_link = f"https://t.me/{bot_username}?start={outstr}"
 
+                # caption banao
+                header = fresh.get("header")
+                footer = fresh.get("footer")
+                selected_caption = random.choice(script.CAPTION_LIST) if script.CAPTION_LIST else "Here is your file"
+
+                text = ""
+                if header:
+                    text += f"{header}\n\n"
+                text += f"{selected_caption}\n\n🔗 Link:\n{share_link}"
+                if footer:
+                    text += f"\n\n{footer}"
+
+                # 👇 fix image ke sath post karo (sirf link caption ke sath)
+                try:
+                    await clone_client.send_photo(
+                        chat_id=target_channel,
+                        photo=FIX_IMAGE,
+                        caption=text
+                    )
+                except FloodWait as e:
+                    print(f"⚠️ [DEBUG] FloodWait {e.value}s for bot {bot_id}")
+                    await asyncio.sleep(e.value)
+                    continue
+
+                # mark posted
+                await db.media.update_one(
+                    {"_id": item["_id"]},
+                    {"$set": {"posted": True}}
+                )
+
+                sleep_time = int(fresh.get("interval_sec", 60))
+                await asyncio.sleep(sleep_time)
+
+            except Exception as e:
+                print(f"⚠️ [DEBUG] Clone Auto-post error for {bot_id}: {e}")
+                try:
+                    await clone_client.send_message(
+                        LOG_CHANNEL,
+                        f"⚠️ Clone Auto Post Error:\n\n<code>{e}</code>"
+                    )
+                except:
+                    pass
+                await asyncio.sleep(30)
+
+    except Exception as e:
+        print(f"❌ [DEBUG] AutoPost crashed for {bot_id}: {e}")
 
 @Client.on_message(filters.command(['genlink']) & filters.user(ADMINS) & filters.private)
 async def link(bot, message):
