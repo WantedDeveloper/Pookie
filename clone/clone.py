@@ -1,4 +1,4 @@
-import os, logging, asyncio, re, json, base64, random, pytz, aiohttp, requests, string, json, http.client, time, datetime, motor.motor_asyncio, aiofiles
+import os, logging, asyncio, re, json, base64, random, pytz, aiohttp, requests, string, json, http.client, time, datetime, motor.motor_asyncio
 from struct import pack
 from shortzy import Shortzy
 from validators import domain
@@ -998,16 +998,21 @@ API_SECRET = "EGzKWZpc6CypVcogQTW49QQDH9M8zbb4"
 
 async def check_nsfw(file_path):
     url = "https://api.sightengine.com/1.0/check.json"
-    
+
     form = FormData()
     form.add_field("models", "nudity")
     form.add_field("api_user", API_USER)
     form.add_field("api_secret", API_SECRET)
-    
-    async with aiofiles.open(file_path, "rb") as f:
-        file_bytes = await f.read()
-    form.add_field("media", file_bytes, filename=file_path.split("/")[-1], content_type="image/jpeg")
-    
+
+    # Open file synchronously (aiohttp can handle it)
+    with open(file_path, "rb") as f:
+        form.add_field(
+            "media",
+            f,
+            filename=file_path.split("/")[-1],
+            content_type="application/octet-stream"
+        )
+
     async with aiohttp.ClientSession() as session:
         async with session.post(url, data=form) as resp:
             result = await resp.json()
