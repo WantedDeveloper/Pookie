@@ -66,7 +66,7 @@ class Database:
             'access_token_tutorial': None,
             # Auto Post
             'auto_post': False,
-            'last_posted_id': 0,
+            'target_channel': None,
             # Premium User
             'premium': [],
             # Auto Delete
