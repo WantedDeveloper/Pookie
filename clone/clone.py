@@ -1004,19 +1004,18 @@ async def check_nsfw(file_path):
     form.add_field("api_user", API_USER)
     form.add_field("api_secret", API_SECRET)
 
-    # Open file synchronously (aiohttp can handle it)
-    with open(file_path, "rb") as f:
-        form.add_field(
-            "media",
-            f,
-            filename=file_path.split("/")[-1],
-            content_type="application/octet-stream"
-        )
-
     async with aiohttp.ClientSession() as session:
-        async with session.post(url, data=form) as resp:
-            result = await resp.json()
-            return result
+        # Open file **inside the request block** to keep it open while sending
+        with open(file_path, "rb") as f:
+            form.add_field(
+                "media",
+                f,
+                filename=file_path.split("/")[-1],
+                content_type="application/octet-stream"
+            )
+            async with session.post(url, data=form) as resp:
+                result = await resp.json()
+                return result
 
 @Client.on_message(filters.group | filters.channel)
 async def message_capture(client: Client, message: Message):
