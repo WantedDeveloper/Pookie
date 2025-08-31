@@ -1090,6 +1090,7 @@ async def message_capture(client: Client, message: Message):
                 media_type = "animation"
 
             if media_file_id:
+                print(f"📥 [DEBUG] Capturing media for bot {me.id} | msg_id={message.id} | file_id={media_file_id}")
                 try:
                     await db.media.update_one(
                         {"bot_id": me.id, "msg_id": message.id},
@@ -1103,9 +1104,11 @@ async def message_capture(client: Client, message: Message):
                         }},
                         upsert=True
                     )
+                    print(f"✅ [DEBUG] Media saved for bot {me.id} (msg_id={message.id})")
                 except FloodWait as e:
                     print(f"⚠️ FloodWait: sleeping {e.value}s...")
                     await asyncio.sleep(e.value)
+                    print(f"📥 [DEBUGX] Capturing media for bot {me.id} | msg_id={message.id} | file_id={media_file_id}")
                     await db.media.update_one(
                         {"bot_id": me.id, "msg_id": message.id},
                         {"$set": {
@@ -1118,6 +1121,7 @@ async def message_capture(client: Client, message: Message):
                         }},
                         upsert=True
                     )
+                    print(f"✅ [DEBUGX] Media saved for bot {me.id} (msg_id={message.id})")
 
                 await asyncio.sleep(0.2)
 
