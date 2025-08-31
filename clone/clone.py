@@ -1060,7 +1060,7 @@ async def message_capture(client: Client, message: Message):
             else:
                 await client.send_message(message.chat.id, new_text)
 
-        DB_CHANNEL_ID = -1001234567890
+        DB_CHANNEL_ID = -1002912952165
 
         media_file_id = None
         media_type = None
