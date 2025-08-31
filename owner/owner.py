@@ -1708,6 +1708,7 @@ async def cb_handler(client: Client, query: CallbackQuery):
                     return await query.answer("Clone not found!", show_alert=True)
 
                 ACCESS_TOKEN.pop(user_id, None)
+                await db.update_clone(bot_id, {"access_token": False})
                 await show_token_menu(client, query.message, bot_id)
 
             # Access Token Validity Menu
@@ -1842,6 +1843,7 @@ async def cb_handler(client: Client, query: CallbackQuery):
                     return await query.answer("Clone not found!", show_alert=True)
 
                 AUTO_POST.pop(user_id, None)
+                await db.update_clone(bot_id, {"auto_post": False})
                 await show_post_menu(client, query.message, bot_id)
 
             # Premium User
@@ -2258,6 +2260,7 @@ async def message_capture(client: Client, message: Message):
             or user_id in ACCESS_TOKEN
             or user_id in ACCESS_TOKEN_VALIDITY
             or user_id in ACCESS_TOKEN_TUTORIAL
+            or user_id in AUTO_POST
             or user_id in AUTO_DELETE_TIME
             or user_id in AUTO_DELETE_MESSAGE
             or user_id in ADD_MODERATOR
@@ -2565,7 +2568,6 @@ async def message_capture(client: Client, message: Message):
         # -------------------- AUTO POST --------------------
         if user_id in AUTO_POST:
             orig_msg, bot_id = AUTO_POST[user_id]
-
             try:
                 await message.delete()
             except:
@@ -2579,9 +2581,49 @@ async def message_capture(client: Client, message: Message):
                 AUTO_POST.pop(user_id, None)
                 return
 
+            try:
+                channel_id_int = int(new_text)
+            except ValueError:
+                channel_id_int = new_text
+
+            clone_client = get_client(bot_id)
+            if not clone_client:
+                await orig_msg.edit_text("❌ Clone bot not running, please restart it.")
+                await asyncio.sleep(2)
+                await show_post_menu(client, orig_msg, bot_id)
+                AUTO_POST.pop(user_id, None)
+                return
+
+            try:
+                chat = await clone_client.get_chat(channel_id_int)
+                ch_name = chat.title or "Unknown"
+                ch_link = f"https://t.me/{chat.username}" if chat.username else None
+            except Exception as e:
+                await orig_msg.edit_text(f"❌ Failed to get channel info: {e}")
+                await asyncio.sleep(2)
+                await show_post_menu(client, orig_msg, bot_id)
+                AUTO_POST.pop(user_id, None)
+                return
+
+            try:
+                me = await clone_client.get_me()
+                member = await clone_client.get_chat_member(chat.id, me.id)
+                if member.status not in [enums.ChatMemberStatus.ADMINISTRATOR, enums.ChatMemberStatus.OWNER]:
+                    await orig_msg.edit_text("❌ The clone bot is NOT an admin in this channel. Add it as admin first.")
+                    await asyncio.sleep(2)
+                    await show_post_menu(client, orig_msg, bot_id)
+                    AUTO_POST.pop(user_id, None)
+                    return
+            except Exception as e:
+                await orig_msg.edit_text(f"❌ Failed to check clone bot in channel: {e}")
+                await asyncio.sleep(2)
+                await show_post_menu(client, orig_msg, bot_id)
+                AUTO_POST.pop(user_id, None)
+                return
+
             await orig_msg.edit_text("✏️ Updating **auto post**, please wait...")
             try:
-                asyncio.create_task(auto_post_clone(bot_id, db, new_text))
+                asyncio.create_task(auto_post_clone(bot_id, db, int(chat.id)))
                 await orig_msg.edit_text("✅ Successfully updated **auto post**!")
                 await asyncio.sleep(2)
                 await show_post_menu(orig_msg, bot_id)
