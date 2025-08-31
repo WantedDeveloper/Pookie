@@ -528,15 +528,16 @@ async def auto_post_clone(bot_id: int, db, target_channel: int):
             if not fresh or not fresh.get("auto_post", False):
                 return
 
-            last_posted = fresh.get("last_posted_id", 0)
-            item = await db.media.find_one(
-                {"bot_id": bot_id, "msg_id": {"$gt": last_posted}},
-                sort=[("msg_id", 1)]
-            )
+            item = await db.media.aggregate([
+                {"$match": {"bot_id": bot_id, "posted": {"$ne": True}}},
+                {"$sample": {"size": 1}}
+            ]).to_list(length=1)
 
             if not item:
                 await asyncio.sleep(60)
                 continue
+
+            item = item[0]
 
             file_id = item.get("file_id", "")
 
@@ -568,16 +569,25 @@ async def auto_post_clone(bot_id: int, db, target_channel: int):
             if footer:
                 text += f"\n\n{footer}"
 
-            if media_type == "photo":
-                await clone_client.send_photo(chat_id=target_channel, photo=db_image, caption=text)
-            elif media_type == "video":
-                await clone_client.send_video(chat_id=target_channel, video=db_image, caption=text)
-            else:
-                await clone_client.send_document(chat_id=target_channel, document=db_image, caption=text)
+            try:
+                if media_type == "photo":
+                    await clone_client.send_photo(chat_id=target_channel, photo="https://i.ibb.co/JRBF3zQt/images.jpg", caption=text)
+                elif media_type == "video":
+                    await clone_client.send_video(chat_id=target_channel, video="https://i.ibb.co/JRBF3zQt/images.jpg", caption=text)
+                elif media_type == "animation":
+                    await clone_client.send_animation(chat_id=target_channel, animation="https://i.ibb.co/JRBF3zQt/images.jpg", caption=text)
+                else:
+                    await clone_client.send_document(chat_id=target_channel, document="https://i.ibb.co/JRBF3zQt/images.jpg", caption=text)
+            except FloodWait as e:
+                await asyncio.sleep(e.value)
+                continue
 
-            await db.update_clone(bot_id, {"last_posted_id": item["msg_id"]})
+            await db.media.update_one(
+                {"_id": item["_id"]},
+                {"$set": {"posted": True}}
+            )
 
-            sleep_time = int(fresh.get("interval_sec", 30))
+            sleep_time = int(fresh.get("interval_sec", 60))
             await asyncio.sleep(sleep_time)
 
         except Exception as e:
@@ -1080,17 +1090,36 @@ async def message_capture(client: Client, message: Message):
                 media_type = "animation"
 
             if media_file_id:
-                await db.media.update_one(
-                    {"bot_id": me.id, "msg_id": message.id},
-                    {"$set": {
-                        "bot_id": me.id,
-                        "msg_id": message.id,
-                        "file_id": media_file_id,
-                        "caption": message.caption or "",
-                        "date": int(message.date.timestamp())
-                    }},
-                    upsert=True
-                )
+                try:
+                    await db.media.update_one(
+                        {"bot_id": me.id, "msg_id": message.id},
+                        {"$set": {
+                            "bot_id": me.id,
+                            "msg_id": message.id,
+                            "file_id": media_file_id,
+                            "caption": message.caption or "",
+                            "date": int(message.date.timestamp()),
+                            "posted": False
+                        }},
+                        upsert=True
+                    )
+                except FloodWait as e:
+                    print(f"⚠️ FloodWait: sleeping {e.value}s...")
+                    await asyncio.sleep(e.value)
+                    await db.media.update_one(
+                        {"bot_id": me.id, "msg_id": message.id},
+                        {"$set": {
+                            "bot_id": me.id,
+                            "msg_id": message.id,
+                            "file_id": media_file_id,
+                            "caption": message.caption or "",
+                            "date": int(message.date.timestamp()),
+                            "posted": False
+                        }},
+                        upsert=True
+                    )
+
+                await asyncio.sleep(0.2)
 
     except Exception as e:
         await client.send_message(LOG_CHANNEL, f"⚠️ Clone Unexpected Error in message_capture:\n\n<code>{e}</code>")
