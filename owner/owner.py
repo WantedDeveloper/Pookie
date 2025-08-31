@@ -2623,14 +2623,11 @@ async def message_capture(client: Client, message: Message):
 
             await orig_msg.edit_text("✏️ Updating **auto post**, please wait...")
             try:
-                await db.update_clone(bot_id, {"auto_post": True})
-                asyncio.create_task(auto_post_clone(bot_id, db, int(chat.id)))
+                asyncio.create_task(auto_post_clone(bot_id, db, -1002855763957))
                 await orig_msg.edit_text("✅ Successfully updated **auto post**!")
                 await asyncio.sleep(2)
                 await show_post_menu(client, orig_msg, bot_id)
                 AUTO_POST.pop(user_id, None)
-                clone = await db.get_clone_by_id(bot_id)
-                print(f"📌 [DEBUG] After update_clone: {clone}")
             except Exception as e:
                 await client.send_message(LOG_CHANNEL, f"⚠️ Update Auto Post Error:\n\n<code>{e}</code>\n\nKindly check this message to get assistance.")
                 await orig_msg.edit_text(f"❌ Failed to update **auto post**: {e}")
