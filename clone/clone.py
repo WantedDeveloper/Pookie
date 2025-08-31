@@ -1091,7 +1091,7 @@ async def message_capture(client: Client, message: Message):
                 nudity = result.get("nudity", {})
                 score = nudity.get("sexual_activity", 0) + nudity.get("sexual_display", 0) + nudity.get("partial", 0)
 
-                if nudity_score > 0.6:
+                if score > 0.6:
                     await message.delete()
                     notify_msg = f"⚠️ Adult content detected & deleted in clone {me.username}.\nMessage ID: {message.id}"
 
