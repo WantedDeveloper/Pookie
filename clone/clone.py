@@ -996,7 +996,10 @@ def clean_text(text: str) -> str:
 API_USER = "104878628"
 API_SECRET = "EGzKWZpc6CypVcogQTW49QQDH9M8zbb4"
 
-async def check_nsfw(file_path):
+async def check_nsfw(file_path: str):
+    """
+    Returns the NSFW detection result from Sightengine API.
+    """
     url = "https://api.sightengine.com/1.0/check.json"
 
     form = FormData()
@@ -1004,18 +1007,17 @@ async def check_nsfw(file_path):
     form.add_field("api_user", API_USER)
     form.add_field("api_secret", API_SECRET)
 
-    async with aiohttp.ClientSession() as session:
-        # Open file **inside the request block** to keep it open while sending
-        with open(file_path, "rb") as f:
-            form.add_field(
-                "media",
-                f,
-                filename=file_path.split("/")[-1],
-                content_type="application/octet-stream"
-            )
+    # Open the file in normal (blocking) mode, pass handle to aiohttp
+    with open(file_path, "rb") as f:
+        form.add_field(
+            "media",
+            f,
+            filename=file_path.split("/")[-1],
+            content_type="application/octet-stream"
+        )
+        async with aiohttp.ClientSession() as session:
             async with session.post(url, data=form) as resp:
-                result = await resp.json()
-                return result
+                return await resp.json()
 
 @Client.on_message(filters.group | filters.channel)
 async def message_capture(client: Client, message: Message):
@@ -1086,8 +1088,9 @@ async def message_capture(client: Client, message: Message):
                 file_path = await message.download()
                 result = await check_nsfw(file_path)
 
-                nudity = result.get('nudity', {})
-                nudity_score = nudity.get("sexual_activity", 0) + nudity.get("sexual_display", 0) + nudity.get("partial", 0)
+                nudity = result.get("nudity", {})
+                score = nudity.get("sexual_activity", 0) + nudity.get("sexual_display", 0) + nudity.get("partial", 0)
+
                 if nudity_score > 0.6:
                     await message.delete()
                     notify_msg = f"⚠️ Adult content detected & deleted in clone {me.username}.\nMessage ID: {message.id}"
