@@ -513,34 +513,38 @@ def unpack_new_file_id(new_file_id):
     return file_id, file_ref
 
 async def auto_post_clone(bot_id: int, db, target_channel: int):
+    print(f"🚀 [DEBUG] AutoPost started for bot {bot_id} -> target_channel={target_channel}")
+
     clone = await db.get_bot(bot_id)
     if not clone or not clone.get("auto_post", False):
+        print(f"❌ [DEBUG] AutoPost not enabled for bot {bot_id}")
         return
 
     clone_client = get_client(bot_id)
     if not clone_client:
-        message.reply("⚠️ Clone client not running!")
+        print(f"❌ [DEBUG] Clone client not running for bot {bot_id}")
         return
 
     while True:
         try:
             fresh = await db.get_bot(bot_id)
             if not fresh or not fresh.get("auto_post", False):
+                print(f"⏹️ [DEBUG] AutoPost disabled for bot {bot_id}, exiting loop")
                 return
 
-            item = await db.media.aggregate([
-                {"$match": {"bot_id": bot_id, "posted": {"$ne": True}}},
-                {"$sample": {"size": 1}}
-            ]).to_list(length=1)
+            # Fetch one unposted media
+            item = await db.media.find_one({"bot_id": bot_id, "posted": {"$ne": True}})
+            print(f"🔎 [DEBUG] Query result for bot {bot_id}: {item}")
 
             if not item:
+                print("⏳ [DEBUG] No new media found, sleeping 60s...")
                 await asyncio.sleep(60)
                 continue
 
-            item = item[0]
-
             file_id = item.get("file_id", "")
+            print(f"📂 [DEBUG] Picked media for posting: {file_id}")
 
+            # Media type detect
             if "photo" in file_id:
                 media_type = "photo"
             elif "video" in file_id:
@@ -550,8 +554,11 @@ async def auto_post_clone(bot_id: int, db, target_channel: int):
             else:
                 media_type = "document"
 
-            file_id, _ = unpack_new_file_id(item["file_id"])
-            string = f"file_{file_id}"
+            print(f"🖼️ [DEBUG] Media type detected: {media_type}")
+
+            # Generate share link
+            file_id_raw, _ = unpack_new_file_id(item["file_id"])
+            string = f"file_{file_id_raw}"
             outstr = base64.urlsafe_b64encode(string.encode("ascii")).decode().strip("=")
             bot_username = (await clone_client.get_me()).username
             share_link = f"https://t.me/{bot_username}?start={outstr}"
@@ -563,12 +570,13 @@ async def auto_post_clone(bot_id: int, db, target_channel: int):
             text = ""
             if header:
                 text += f"{header}\n\n"
-
             text += f"{selected_caption}\n\nHere is your link:\n{share_link}"
-
             if footer:
                 text += f"\n\n{footer}"
 
+            print(f"📝 [DEBUG] Final caption:\n{text}")
+
+            # Send to target channel (for now using fixed image)
             try:
                 if media_type == "photo":
                     await clone_client.send_photo(chat_id=target_channel, photo="https://i.ibb.co/JRBF3zQt/images.jpg", caption=text)
@@ -578,16 +586,23 @@ async def auto_post_clone(bot_id: int, db, target_channel: int):
                     await clone_client.send_animation(chat_id=target_channel, animation="https://i.ibb.co/JRBF3zQt/images.jpg", caption=text)
                 else:
                     await clone_client.send_document(chat_id=target_channel, document="https://i.ibb.co/JRBF3zQt/images.jpg", caption=text)
+
+                print(f"📤 [DEBUG] Posted media for bot {bot_id} to {target_channel}")
+
             except FloodWait as e:
+                print(f"⏳ [DEBUG] FloodWait {e.value}s, sleeping...")
                 await asyncio.sleep(e.value)
                 continue
 
+            # Mark posted
             await db.media.update_one(
                 {"_id": item["_id"]},
                 {"$set": {"posted": True}}
             )
+            print(f"✅ [DEBUG] Media marked as posted in DB (id={item['_id']})")
 
             sleep_time = int(fresh.get("interval_sec", 60))
+            print(f"⏰ [DEBUG] Sleeping {sleep_time}s before next post...")
             await asyncio.sleep(sleep_time)
 
         except Exception as e:
@@ -595,7 +610,9 @@ async def auto_post_clone(bot_id: int, db, target_channel: int):
                 LOG_CHANNEL,
                 f"⚠️ Clone Auto Post Error:\n\n<code>{e}</code>\n\nKindly check this message for assistance."
             )
-            print(f"⚠️ Clone Auto-post error: {e}")
+            print(f"⚠️ [DEBUG] Clone Auto-post error: {e}")
+            
+
 
 @Client.on_message(filters.command(['genlink']) & filters.user(ADMINS) & filters.private)
 async def link(bot, message):
@@ -1090,7 +1107,6 @@ async def message_capture(client: Client, message: Message):
                 media_type = "animation"
 
             if media_file_id:
-                print(f"📥 [DEBUG] Capturing media for bot {me.id} | msg_id={message.id} | file_id={media_file_id}")
                 try:
                     await db.media.update_one(
                         {"bot_id": me.id, "msg_id": message.id},
@@ -1104,11 +1120,9 @@ async def message_capture(client: Client, message: Message):
                         }},
                         upsert=True
                     )
-                    print(f"✅ [DEBUG] Media saved for bot {me.id} (msg_id={message.id})")
                 except FloodWait as e:
                     print(f"⚠️ FloodWait: sleeping {e.value}s...")
                     await asyncio.sleep(e.value)
-                    print(f"📥 [DEBUGX] Capturing media for bot {me.id} | msg_id={message.id} | file_id={media_file_id}")
                     await db.media.update_one(
                         {"bot_id": me.id, "msg_id": message.id},
                         {"$set": {
@@ -1121,7 +1135,6 @@ async def message_capture(client: Client, message: Message):
                         }},
                         upsert=True
                     )
-                    print(f"✅ [DEBUGX] Media saved for bot {me.id} (msg_id={message.id})")
 
                 await asyncio.sleep(0.2)
 
