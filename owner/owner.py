@@ -2577,7 +2577,7 @@ async def message_capture(client: Client, message: Message):
             if not new_text:
                 await orig_msg.edit_text("❌ You sent an empty message. Please send a valid text.")
                 await asyncio.sleep(2)
-                await show_post_menu(orig_msg, bot_id)
+                await show_post_menu(client, orig_msg, bot_id)
                 AUTO_POST.pop(user_id, None)
                 return
 
@@ -2626,13 +2626,13 @@ async def message_capture(client: Client, message: Message):
                 asyncio.create_task(auto_post_clone(bot_id, db, int(chat.id)))
                 await orig_msg.edit_text("✅ Successfully updated **auto post**!")
                 await asyncio.sleep(2)
-                await show_post_menu(orig_msg, bot_id)
+                await show_post_menu(client, orig_msg, bot_id)
                 AUTO_POST.pop(user_id, None)
             except Exception as e:
                 await client.send_message(LOG_CHANNEL, f"⚠️ Update Auto Post Error:\n\n<code>{e}</code>\n\nKindly check this message to get assistance.")
                 await orig_msg.edit_text(f"❌ Failed to update **auto post**: {e}")
                 await asyncio.sleep(2)
-                await show_post_menu(orig_msg, bot_id)
+                await show_post_menu(client, orig_msg, bot_id)
                 AUTO_POST.pop(user_id, None)
             finally:
                 AUTO_POST.pop(user_id, None)
