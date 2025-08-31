@@ -893,7 +893,7 @@ async def show_post_menu(client, message, bot_id):
             status = "🔴 Disabled"
 
         buttons.append([InlineKeyboardButton("⬅️ Back", callback_data=f"manage_{bot_id}")])
-        await query.message.edit_text(
+        await message.edit_text(
             text=script.AUTO_POST_TXT.format(status=f"{status}"),
             reply_markup=InlineKeyboardMarkup(buttons)
         )
