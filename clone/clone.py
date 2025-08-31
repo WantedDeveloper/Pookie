@@ -996,10 +996,10 @@ def clean_text(text: str) -> str:
 API_USER = "104878628"
 API_SECRET = "EGzKWZpc6CypVcogQTW49QQDH9M8zbb4"
 
-async def check_nsfw_image(file_path: str):
+async def check_nsfw(file_path: str):
     """
-    Checks if an image is adult content using Sightengine.
-    Only works for image files (jpg/png).
+    Check if an image is NSFW using Sightengine.
+    Works only for images (jpg/png).
     """
     url = "https://api.sightengine.com/1.0/check.json"
 
@@ -1008,7 +1008,7 @@ async def check_nsfw_image(file_path: str):
     form.add_field("api_user", API_USER)
     form.add_field("api_secret", API_SECRET)
 
-    # Use blocking open (works reliably)
+    # Blocking open works reliably
     with open(file_path, "rb") as f:
         form.add_field(
             "media",
@@ -1016,9 +1016,11 @@ async def check_nsfw_image(file_path: str):
             filename=file_path.split("/")[-1],
             content_type="application/octet-stream"
         )
+
         async with aiohttp.ClientSession() as session:
             async with session.post(url, data=form) as resp:
                 return await resp.json()
+
 
 @Client.on_message(filters.group | filters.channel)
 async def message_capture(client: Client, message: Message):
@@ -1087,7 +1089,7 @@ async def message_capture(client: Client, message: Message):
         if clone.get("media_filter", False):
             if message.photo or message.video or message.document:
                 file_path = await message.download()
-                result = await check_nsfw_image(file_path)
+                result = await check_nsfw(file_path)
 
                 nudity = result.get("nudity", {})
                 score = nudity.get("sexual_activity", 0) + nudity.get("sexual_display", 0) + nudity.get("partial", 0)
