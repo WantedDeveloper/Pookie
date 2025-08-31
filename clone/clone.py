@@ -1,4 +1,4 @@
-import os, logging, asyncio, re, json, base64, random, pytz, aiohttp, requests, string, json, http.client, time, datetime, motor.motor_asyncio
+import os, logging, asyncio, re, json, base64, random, pytz, aiohttp, requests, string, json, http.client, time, datetime, motor.motor_asyncio, aiofiles
 from struct import pack
 from shortzy import Shortzy
 from validators import domain
@@ -95,8 +95,8 @@ async def is_subscribed(bot, user_id: int, bot_id: int):
     return True
 
 async def get_verify_shorted_link(client, link):
-    bot_id = (await client.get_me()).id
-    clone = await db.get_clone_by_id(bot_id)
+    me = await client.get_me()
+    clone = await db.get_bot(me.id)
     if SHORTLINK_URL == clone.get("shorten_link", None):
         url = f'https://{SHORTLINK_URL}/easy_api'
         params = {
@@ -513,7 +513,7 @@ def unpack_new_file_id(new_file_id):
     return file_id, file_ref
 
 async def auto_post_clone(bot_id: int, db, target_channel: int):
-    clone = await db.get_clone_by_id(bot_id)
+    clone = await db.get_bot(bot_id)
     if not clone or not clone.get("auto_post", False):
         return
 
@@ -524,7 +524,7 @@ async def auto_post_clone(bot_id: int, db, target_channel: int):
 
     while True:
         try:
-            fresh = await db.get_clone_by_id(bot_id)
+            fresh = await db.get_bot(bot_id)
             if not fresh or not fresh.get("auto_post", False):
                 return
 
@@ -644,6 +644,9 @@ async def link(bot, message):
 """@Client.on_message(filters.command(['batch']) & filters.user(ADMINS) & filters.private)
 async def batch(bot, message):
     try:
+        me = await bot.get_me()
+        clone = await db.get_bot(me.id)
+
         username = (await bot.get_me()).username
         usage_text = f"Use correct format.\nExample:\n/batch https://t.me/{username}/10 https://t.me/{username}/20"
 
@@ -744,9 +747,6 @@ async def batch(bot, message):
             [[InlineKeyboardButton("🔁 Share URL", url=f'https://t.me/share/url?url={share_link}')]]
         )
 
-        bot_id = (await bot.get_me()).id
-        clone = await db.get_clone_by_id(bot_id)
-
         header = clone.get("header", None)
         footer = clone.get("footer", None)
 
@@ -806,7 +806,7 @@ def make_progress_bar(done, total):
 async def broadcast(bot, message):
     try:
         me = await bot.get_me()
-
+        clone = await db.get_bot(me.id)
         moderators = clone.get("moderators", [])
 
         if message.from_user.id not in moderators:
@@ -998,27 +998,26 @@ API_SECRET = "EGzKWZpc6CypVcogQTW49QQDH9M8zbb4"
 
 async def check_nsfw(file_path):
     url = "https://api.sightengine.com/1.0/check.json"
-
+    
     form = FormData()
     form.add_field("models", "nudity")
     form.add_field("api_user", API_USER)
     form.add_field("api_secret", API_SECRET)
-    form.add_field(
-        "media",
-        open(file_path, "rb"),
-        filename=file_path.split("/")[-1],
-        content_type="application/octet-stream"
-    )
-
+    
+    async with aiofiles.open(file_path, "rb") as f:
+        file_bytes = await f.read()
+    form.add_field("media", file_bytes, filename=file_path.split("/")[-1], content_type="image/jpeg")
+    
     async with aiohttp.ClientSession() as session:
         async with session.post(url, data=form) as resp:
-            return await resp.json()
+            result = await resp.json()
+            return result
 
 @Client.on_message(filters.group | filters.channel)
 async def message_capture(client: Client, message: Message):
     try:
         me = await client.get_me()
-        clone = await db.get_clone_by_id(me.id)
+        clone = await db.get_bot(me.id)
 
         if not clone:
             return
@@ -1084,11 +1083,8 @@ async def message_capture(client: Client, message: Message):
                 result = await check_nsfw(file_path)
 
                 nudity = result.get('nudity', {})
-                sexual_activity = nudity.get('sexual_activity', 0)
-                sexual_display = nudity.get('sexual_display', 0)
-
-                nudity_score = sexual_activity + sexual_display
-                if nudity_score > 0.7:  # 70% confidence threshold
+                nudity_score = nudity.get("sexual_activity", 0) + nudity.get("sexual_display", 0) + nudity.get("partial", 0)
+                if nudity_score > 0.6:
                     await message.delete()
                     notify_msg = f"⚠️ Adult content detected & deleted in clone {me.username}.\nMessage ID: {message.id}"
 
