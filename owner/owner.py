@@ -2623,7 +2623,11 @@ async def message_capture(client: Client, message: Message):
 
             await orig_msg.edit_text("✏️ Updating **auto post**, please wait...")
             try:
-                asyncio.create_task(auto_post_clone(bot_id, db, -1002855763957))
+                await db.update_clone(bot_id, {
+                    "auto_post": True,
+                    "target_channel": int(chat.id)
+                })
+                asyncio.create_task(auto_post_clone(bot_id, db, int(chat.id)))
                 await orig_msg.edit_text("✅ Successfully updated **auto post**!")
                 await asyncio.sleep(2)
                 await show_post_menu(client, orig_msg, bot_id)
