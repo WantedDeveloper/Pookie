@@ -2715,7 +2715,7 @@ async def restart_bots():
             set_client(bot.id, xd)
             print(f"✅ Restarted clone bot @{bot.username} ({bot.id})")
 
-            fresh = await db.get_clone_by_id(bot_info.id)
+            fresh = await db.get_clone_by_id(bot.id)
             if fresh and fresh.get("auto_post", False):
                 target_channel = fresh.get("target_channel")
                 if target_channel:
