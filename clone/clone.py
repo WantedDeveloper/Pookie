@@ -541,6 +541,7 @@ async def auto_post_clone(bot_id: int, db, target_channel: int):
                     {"$match": {"bot_id": bot_id, "posted": {"$ne": True}}},
                     {"$sample": {"size": 1}}
                 ]).to_list(length=1)
+                print(f"[DEBUG] AutoPost media query result: {item}")
 
                 if not item:
                     await asyncio.sleep(60)
