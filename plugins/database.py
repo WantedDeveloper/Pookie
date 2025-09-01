@@ -12,6 +12,7 @@ class Database:
         self.settings = self.db.bot_settings
         self.media = self.db.media_files
 
+    # ---------------- USERS ----------------
     def new_user(self, id, name):
         return dict(
             id = id,
@@ -36,6 +37,7 @@ class Database:
     async def delete_user(self, user_id):
         await self.col.delete_many({'id': int(user_id)})
 
+    # ---------------- CLONE BOT ----------------
     async def add_clone_bot(self, bot_id, user_id, first_name, username, bot_token):
         settings = {
             'is_bot': True,
@@ -89,10 +91,6 @@ class Database:
         clone = await self.bot.find_one({'user_id': int(user_id)})
         return bool(clone)
 
-    async def get_clone_by_id(self, bot_id):
-        clone = await self.bot.find_one({'bot_id': int(bot_id)})
-        return clone
-
     async def get_clones_by_user(self, user_id):
         clones = []
         user_id_str = str(user_id)  # moderator match as string
@@ -113,8 +111,9 @@ class Database:
 
         return clones
 
-    async def update_clone(self, bot_id, user_data):
-        await self.bot.update_one({'bot_id': int(bot_id)}, {'$set': user_data}, upsert=True)
+    async def get_clone_by_id(self, bot_id):
+        clone = await self.bot.find_one({'bot_id': int(bot_id)})
+        return clone
 
     async def update_clone(self, bot_id, user_data: dict, raw=False):
         if raw:
@@ -124,6 +123,16 @@ class Database:
 
     async def delete_clone(self, bot_id):
         await self.bot.delete_one({'bot_id': int(bot_id)})
+
+    async def get_bot(self, bot_id):
+        bot_data = await self.bot.find_one({"bot_id": bot_id})
+        return bot_data
+
+    async def update_bot(self, bot_id, bot_data):
+        await self.bot.update_one({"bot_id": bot_id}, {"$set": bot_data}, upsert=True)
+
+    async def get_all_bots(self):
+        return self.bot.find({})
 
     async def increment_users_count(self, bot_id):
         await self.bot.update_one({'bot_id': int(bot_id)}, {'$inc': {'users_count': 1}})
@@ -141,22 +150,12 @@ class Database:
         clone = await self.bot.find_one({'bot_id': int(bot_id)})
         return clone.get("banned_users", []) if clone else []
 
-    async def get_bot(self, bot_id):
-        bot_data = await self.bot.find_one({"bot_id": bot_id})
-        return bot_data
-
-    async def update_bot(self, bot_id, bot_data):
-        await self.bot.update_one({"bot_id": bot_id}, {"$set": bot_data}, upsert=True)
-
-    async def get_all_bots(self):
-        return self.bot.find({})
-
+    # ---------------- PREMIUM ----------------
     async def has_premium_access(self, user_id):
         user_data = await self.get_user(user_id)
         if user_data:
             expiry_time = user_data.get("expiry_time")
             if expiry_time is None:
-                # User previously used the free trial, but it has ended.
                 return False
             elif isinstance(expiry_time, datetime.datetime) and datetime.datetime.now() <= expiry_time:
                 return True
@@ -168,7 +167,6 @@ class Database:
         user_id = userid
         user_data = await self.get_user(user_id)        
         expiry_time = user_data.get("expiry_time")
-        # Calculate remaining time
         remaining_time = expiry_time - datetime.datetime.now()
         return remaining_time
 
@@ -190,5 +188,41 @@ class Database:
         "expiry_time": {"$gt": datetime.datetime.now()}
         })
         return count
+
+    # ---------------- MEDIA ----------------
+    async def add_media(self, bot_id, msg_id, file_id, caption, media_type, date, posted=False):
+        await self.media.update_one(
+            {"bot_id": bot_id, "file_id": file_id},
+            {"$setOnInsert": {
+                "bot_id": bot_id,
+                "msg_id": msg_id,
+                "file_id": file_id,
+                "caption": caption or "",
+                "media_type": media_type,
+                "date": date,
+                "posted": posted
+            }},
+            upsert=True
+        )
+
+    async def is_media_exist(self, bot_id, file_id):
+        media = await self.media.find_one({"bot_id": bot_id, "file_id": file_id})
+        return bool(media)
+
+    async def get_media_by_id(self, bot_id, msg_id):
+        return await self.media.find_one({"bot_id": bot_id, "msg_id": msg_id})
+
+    async def get_all_media(self, bot_id):
+        return self.media.find({"bot_id": bot_id})
+
+    async def delete_media(self, bot_id, msg_id):
+        await self.media.delete_one({"bot_id": bot_id, "msg_id": msg_id})
+
+    async def get_random_unposted_media(self, bot_id):
+        item = await self.media.aggregate([
+            {"$match": {"bot_id": bot_id, "posted": {"$ne": True}}},
+            {"$sample": {"size": 1}}
+        ]).to_list(length=1)
+        return item[0] if item else None
 
 db = Database(DB_URI, DB_NAME)
