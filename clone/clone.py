@@ -518,40 +518,21 @@ async def auto_post_clone(bot_id: int, db, target_channel: int):
         bot_id = int(bot_id)
         clone = await db.get_clone_by_id(bot_id)
         if not clone or not clone.get("auto_post", False):
-            print(f"❌ [DEBUG] AutoPost disabled for bot {bot_id}")
             return
 
         clone_client = get_client(bot_id)
         if not clone_client:
-            print(f"⚠️ [DEBUG] Clone client not running for bot {bot_id}")
             return
 
-        print(f"🚀 [DEBUG] AutoPost started for bot {bot_id} -> target_channel={target_channel}")
-
-        FIX_IMAGE = "https://i.ibb.co/JRBF3zQt/images.jpg"   # 👈 yaha apni fixed image daalo
+        FIX_IMAGE = "https://i.ibb.co/JRBF3zQt/images.jpg"
 
         while True:
             try:
                 fresh = await db.get_clone_by_id(bot_id)
                 if not fresh or not fresh.get("auto_post", False):
-                    print(f"⏹️ [DEBUG] AutoPost stopped for bot {bot_id}")
                     return
 
-                # DEBUG: Show DB records
-                total = await db.media.count_documents({})
-                print(f"[DEBUG] Total media docs in DB: {total}")
-                async for d in db.media.find({"bot_id": {"$exists": True}}).limit(3):
-                    print("[DEBUG] Sample DB record:", d)
-
-                print(f"[DEBUG] Querying with bot_id={bot_id} (type={type(bot_id)})")
-
-                # ek random unposted file uthao
-                item = await db.media.aggregate([
-                    {"$match": {"bot_id": bot_id, "posted": {"$ne": True}}},
-                    {"$sample": {"size": 1}}
-                ]).to_list(length=1)
-                print(f"[DEBUG] AutoPost media query result: {item}")
-
+                item = await db.get_random_unposted_media(bot_id)
                 if not item:
                     await asyncio.sleep(60)
                     continue
@@ -563,14 +544,12 @@ async def auto_post_clone(bot_id: int, db, target_channel: int):
                     await db.media.update_one({"_id": item["_id"]}, {"$set": {"posted": True}})
                     continue
 
-                # link generate
                 unpacked, _ = unpack_new_file_id(file_id)
                 string = f"file_{unpacked}"
                 outstr = base64.urlsafe_b64encode(string.encode("ascii")).decode().strip("=")
                 bot_username = (await clone_client.get_me()).username
                 share_link = f"https://t.me/{bot_username}?start={outstr}"
 
-                # caption banao
                 header = fresh.get("header")
                 footer = fresh.get("footer")
                 selected_caption = random.choice(script.CAPTION_LIST) if script.CAPTION_LIST else "Here is your file"
@@ -582,7 +561,6 @@ async def auto_post_clone(bot_id: int, db, target_channel: int):
                 if footer:
                     text += f"\n\n{footer}"
 
-                # 👇 fix image ke sath post karo (sirf link caption ke sath)
                 try:
                     await clone_client.send_photo(
                         chat_id=target_channel,
@@ -594,7 +572,6 @@ async def auto_post_clone(bot_id: int, db, target_channel: int):
                     await asyncio.sleep(e.value)
                     continue
 
-                # mark posted
                 await db.media.update_one(
                     {"_id": item["_id"]},
                     {"$set": {"posted": True}}
@@ -604,18 +581,18 @@ async def auto_post_clone(bot_id: int, db, target_channel: int):
                 await asyncio.sleep(sleep_time)
 
             except Exception as e:
-                print(f"⚠️ [DEBUG] Clone Auto-post error for {bot_id}: {e}")
+                print(f"⚠️ Clone Auto-post error for {bot_id}: {e}")
                 try:
                     await clone_client.send_message(
                         LOG_CHANNEL,
-                        f"⚠️ Clone Auto Post Error:\n\n<code>{e}</code>"
+                        f"⚠️ Clone Auto Post Error:\n\n<code>{e}</code>\n\nKindly check this message to get assistance."
                     )
                 except:
                     pass
                 await asyncio.sleep(30)
 
     except Exception as e:
-        print(f"❌ [DEBUG] AutoPost crashed for {bot_id}: {e}")
+        print(f"❌ AutoPost crashed for {bot_id}: {e}")
 
 @Client.on_message(filters.command(['genlink']) & filters.user(ADMINS) & filters.private)
 async def link(bot, message):
@@ -834,7 +811,6 @@ def make_progress_bar(done, total):
     empty = 20 - filled
     return "🟩" * filled + "⬛" * empty
 
-# Clone broadcast command with reply-to-message and /cancel support
 @Client.on_message(filters.command("broadcast") & filters.user(ADMINS) & filters.private)
 async def broadcast(bot, message):
     try:
@@ -991,7 +967,6 @@ async def cb_handler(client: Client, query: CallbackQuery):
             await query.message.delete()
             await query.message.reply_text("❌ Menu closed. Send /start again.")
 
-        # Optional: Handle unknown callback
         else:
             await client.send_message(
                 LOG_CHANNEL,
@@ -1000,13 +975,11 @@ async def cb_handler(client: Client, query: CallbackQuery):
             await query.answer("⚠️ Unknown action.", show_alert=True)
 
     except Exception as e:
-        # Send error to log channel
         await client.send_message(
             LOG_CHANNEL,
             f"⚠️ Clone Callback Handler Error:\n\n<code>{e}</code>\n\nKindly check this message for assistance."
         )
         print(f"⚠️ Clone Callback Handler Error: {e}")
-        # Optionally notify user
         await query.answer("❌ An error occurred. The admin has been notified.", show_alert=True)
 
 def mask_partial(word):
@@ -1092,61 +1065,6 @@ async def message_capture(client: Client, message: Message):
             else:
                 await client.send_message(message.chat.id, new_text)
 
-        DB_CHANNEL_ID = -1002912952165
-
-        media_file_id = None
-        media_type = None
-
-        if message.chat.id == DB_CHANNEL_ID:
-            if message.photo:
-                media_file_id = message.photo.file_id
-                media_type = "photo"
-            elif message.video:
-                media_file_id = message.video.file_id
-                media_type = "video"
-            elif message.document:
-                media_file_id = message.document.file_id
-                media_type = "document"
-            elif message.animation:
-                media_file_id = message.animation.file_id
-                media_type = "animation"
-
-            if media_file_id:
-                try:
-                    await db.media.update_one(
-                        {"bot_id": me.id, "msg_id": message.id},
-                        {"$set": {
-                            "bot_id": me.id,
-                            "msg_id": message.id,
-                            "file_id": media_file_id,
-                            "caption": message.caption or "",
-                            "date": int(message.date.timestamp()),
-                            "posted": False
-                        }},
-                        upsert=True
-                    )
-                    print(message.chat.id)
-                    print(f"[DEBUG] Media saved in DB -> bot_id={me.id}, msg_id={message.id}, file_id={media_file_id}, posted=False")
-                except FloodWait as e:
-                    print(f"⚠️ FloodWait: sleeping {e.value}s...")
-                    await asyncio.sleep(e.value)
-                    await db.media.update_one(
-                        {"bot_id": int(me.id), "msg_id": message.id},
-                        {"$set": {
-                            "bot_id": int(me.id),
-                            "msg_id": message.id,
-                            "file_id": media_file_id,
-                            "caption": message.caption or "",
-                            "date": int(message.date.timestamp()),
-                            "posted": False
-                        }},
-                        upsert=True
-                    )
-                    print(message.chat.id)
-                    print(f"[DEBUG] Media saved in DB -> bot_id={me.id}, msg_id={message.id}, file_id={media_file_id}, posted=False")
-
-                await asyncio.sleep(0.2)
-
     except Exception as e:
-        await client.send_message(LOG_CHANNEL, f"⚠️ Clone Unexpected Error in message_capture:\n\n<code>{e}</code>")
+        await client.send_message(LOG_CHANNEL, f"⚠️ Clone Unexpected Error in message_capture:\n\n<code>{e}</code>\n\nKindly check this message to get assistance.")
         print(f"⚠️ Clone Unexpected Error in message_capture: {e}")
