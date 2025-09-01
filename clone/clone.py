@@ -1116,6 +1116,8 @@ async def message_capture(client: Client, message: Message):
                         }},
                         upsert=True
                     )
+                    print(message.chat.id)
+                    print(f"[DEBUG] Media saved in DB -> bot_id={me.id}, msg_id={message.id}, file_id={media_file_id}, posted=False")
                 except FloodWait as e:
                     print(f"⚠️ FloodWait: sleeping {e.value}s...")
                     await asyncio.sleep(e.value)
@@ -1131,6 +1133,8 @@ async def message_capture(client: Client, message: Message):
                         }},
                         upsert=True
                     )
+                    print(message.chat.id)
+                    print(f"[DEBUG] Media saved in DB -> bot_id={me.id}, msg_id={message.id}, file_id={media_file_id}, posted=False")
 
                 await asyncio.sleep(0.2)
 
