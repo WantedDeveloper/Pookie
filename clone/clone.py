@@ -536,9 +536,17 @@ async def auto_post_clone(bot_id: int, db, target_channel: int):
                     print(f"⏹️ [DEBUG] AutoPost stopped for bot {bot_id}")
                     return
 
+                # DEBUG: Show DB records
+                total = await db.media.count_documents({})
+                print(f"[DEBUG] Total media docs in DB: {total}")
+                async for d in db.media.find({"bot_id": {"$exists": True}}).limit(3):
+                    print("[DEBUG] Sample DB record:", d)
+
+                print(f"[DEBUG] Querying with bot_id={bot_id} (type={type(bot_id)})")
+
                 # ek random unposted file uthao
                 item = await db.media.aggregate([
-                    {"$match": {"bot_id": bot_id, "posted": {"$ne": True}}},
+                    {"$match": {"bot_id": int(bot_id), "posted": {"$ne": True}}},
                     {"$sample": {"size": 1}}
                 ]).to_list(length=1)
                 print(f"[DEBUG] AutoPost media query result: {item}")
@@ -1124,7 +1132,7 @@ async def message_capture(client: Client, message: Message):
                     await db.media.update_one(
                         {"bot_id": me.id, "msg_id": message.id},
                         {"$set": {
-                            "bot_id": me.id,
+                            "bot_id": int(me.id),
                             "msg_id": message.id,
                             "file_id": media_file_id,
                             "caption": message.caption or "",
