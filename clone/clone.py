@@ -515,6 +515,7 @@ def unpack_new_file_id(new_file_id):
 
 async def auto_post_clone(bot_id: int, db, target_channel: int):
     try:
+        bot_id = int(bot_id)
         clone = await db.get_clone_by_id(bot_id)
         if not clone or not clone.get("auto_post", False):
             print(f"❌ [DEBUG] AutoPost disabled for bot {bot_id}")
@@ -546,7 +547,7 @@ async def auto_post_clone(bot_id: int, db, target_channel: int):
 
                 # ek random unposted file uthao
                 item = await db.media.aggregate([
-                    {"$match": {"bot_id": int(bot_id), "posted": {"$ne": True}}},
+                    {"$match": {"bot_id": bot_id, "posted": {"$ne": True}}},
                     {"$sample": {"size": 1}}
                 ]).to_list(length=1)
                 print(f"[DEBUG] AutoPost media query result: {item}")
@@ -1130,7 +1131,7 @@ async def message_capture(client: Client, message: Message):
                     print(f"⚠️ FloodWait: sleeping {e.value}s...")
                     await asyncio.sleep(e.value)
                     await db.media.update_one(
-                        {"bot_id": me.id, "msg_id": message.id},
+                        {"bot_id": int(me.id), "msg_id": message.id},
                         {"$set": {
                             "bot_id": int(me.id),
                             "msg_id": message.id,
