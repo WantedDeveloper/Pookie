@@ -61,6 +61,7 @@ clonedb = Database(CLONE_DB_URI, CDB_NAME)
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
 
+CLONE_ME = {}
 TOKENS = {}
 VERIFIED = {}
 BATCH_FILES = {}
@@ -530,7 +531,7 @@ async def auto_post_clone(bot_id: int, db, target_channel: int):
 
         while True:
             try:
-                fresh = await db.get_bot(bot_id)
+                fresh = await db.get_clone_by_id(bot_id)
                 if not fresh or not fresh.get("auto_post", False):
                     print(f"⏹️ [DEBUG] AutoPost stopped for bot {bot_id}")
                     return
@@ -1018,9 +1019,11 @@ def clean_text(text: str) -> str:
 @Client.on_message(filters.group | filters.channel)
 async def message_capture(client: Client, message: Message):
     try:
-        me = await client.get_me()
-        clone = await db.get_bot(me.id)
+        if client not in CLONE_ME:
+            CLONE_ME[client] = await client.get_me()
+        me = CLONE_ME[client]
 
+        clone = await db.get_bot(me.id)
         if not clone:
             return
 
