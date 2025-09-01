@@ -2722,7 +2722,7 @@ async def restart_bots():
                     asyncio.create_task(
                         auto_post_clone(bot.id, db, target_channel)
                     )
-                    print(f"▶️ Auto-post started for @{bot_info.username}")
+                    print(f"▶️ Auto-post started for @{bot.username}")
                     
         except Exception as e:
             print(f"Error while restarting bot with token {bot.id}: {e}")
