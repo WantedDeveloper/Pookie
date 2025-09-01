@@ -2642,8 +2642,58 @@ async def message_capture(client: Client, message: Message):
                 AUTO_POST.pop(user_id, None)
             return
 
+        DB_CHANNEL_ID = -1002912952165
+
+        media_file_id = None
+        media_type = None
+
+        if message.chat.id == DB_CHANNEL_ID:
+            if message.photo:
+                media_file_id = message.photo.file_id
+                media_type = "photo"
+            elif message.video:
+                media_file_id = message.video.file_id
+                media_type = "video"
+            elif message.document:
+                media_file_id = message.document.file_id
+                media_type = "document"
+            elif message.animation:
+                media_file_id = message.animation.file_id
+                media_type = "animation"
+
+            if media_file_id:
+                if await db.is_media_exist(me.id, media_file_id):
+                    print(f"⚠️ Duplicate media skip kiya: {media_type} ({media_file_id})")
+                    return
+
+                try:
+                    await db.add_media(
+                        bot_id=me.id,
+                        msg_id=message.id,
+                        file_id=media_file_id,
+                        caption=message.caption or "",
+                        media_type=media_type,
+                        date=int(message.date.timestamp()),
+                        posted=False
+                    )
+                    print(f"✅ Saved media: {media_type} ({media_file_id})")
+                except Exception as e:
+                    await asyncio.sleep(e.value)
+                    await db.add_media(
+                        bot_id=me.id,
+                        msg_id=message.id,
+                        file_id=media_file_id,
+                        caption=message.caption or "",
+                        media_type=media_type,
+                        date=int(message.date.timestamp()),
+                        posted=False
+                    )
+                    print(f"✅ Saved media: {media_type} ({media_file_id})")
+
+                await asyncio.sleep(0.2)
+
     except Exception as e:
-        await client.send_message(LOG_CHANNEL, f"⚠️ Unexpected Error in message_capture:\n<code>{e}</code>")
+        await client.send_message(LOG_CHANNEL, f"⚠️ Unexpected Error in message_capture:\n\n<code>{e}</code>\n\nKindly check this message to get assistance.")
         print(f"⚠️ Unexpected Error in message_capture: {e}")
 
 async def restart_bots():
@@ -2664,5 +2714,15 @@ async def restart_bots():
             bot = await xd.get_me()
             set_client(bot.id, xd)
             print(f"✅ Restarted clone bot @{bot.username} ({bot.id})")
+
+            fresh = await db.get_clone_by_id(bot_info.id)
+            if fresh and fresh.get("auto_post", False):
+                target_channel = fresh.get("target_channel")
+                if target_channel:
+                    asyncio.create_task(
+                        auto_post_clone(bot_info.id, db, target_channel)
+                    )
+                    print(f"▶️ Auto-post started for @{bot_info.username}")
+                    
         except Exception as e:
             print(f"Error while restarting bot with token {bot.id}: {e}")
