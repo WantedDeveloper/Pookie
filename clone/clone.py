@@ -515,7 +515,7 @@ def unpack_new_file_id(new_file_id):
 
 async def auto_post_clone(bot_id: int, db, target_channel: int):
     try:
-        clone = await db.get_bot(bot_id)
+        clone = await db.get_clone_by_id(bot_id)
         if not clone or not clone.get("auto_post", False):
             print(f"❌ [DEBUG] AutoPost disabled for bot {bot_id}")
             return
@@ -531,7 +531,7 @@ async def auto_post_clone(bot_id: int, db, target_channel: int):
 
         while True:
             try:
-                fresh = await db.get_clone_by_id(bot_id)
+                fresh = await db.get_bot(bot_id)
                 if not fresh or not fresh.get("auto_post", False):
                     print(f"⏹️ [DEBUG] AutoPost stopped for bot {bot_id}")
                     return
