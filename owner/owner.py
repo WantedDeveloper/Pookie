@@ -55,6 +55,7 @@ logger = logging.getLogger(__name__)
 
 BATCH_FILES = {}
 CLONE_TOKEN = {}
+CLONE_ME = {}
 START_TEXT = {}
 START_PHOTO = {}
 CAPTION_TEXT = {}
@@ -2642,12 +2643,13 @@ async def message_capture(client: Client, message: Message):
                 AUTO_POST.pop(user_id, None)
             return
 
-        DB_CHANNEL_ID = -1002912952165
+        if client not in CLONE_ME:
+            CLONE_ME[client] = await client.get_me()
+        me = CLONE_ME[client]
 
         media_file_id = None
         media_type = None
-
-        if message.chat.id == DB_CHANNEL_ID:
+        if message.chat.id == -1002912952165:
             if message.photo:
                 media_file_id = message.photo.file_id
                 media_type = "photo"
