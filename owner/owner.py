@@ -2244,219 +2244,347 @@ async def cb_handler(client: Client, query: CallbackQuery):
         # Optionally notify user
         await query.answer("❌ An error occurred. The admin has been notified.", show_alert=True)
 
-@Client.on_message((filters.text | filters.photo) & (filters.group | filters.channel))
+@Client.on_message(filters.all)
 async def message_capture(client: Client, message: Message):
     try:
-        user_id = message.from_user.id
+        if message.chat.type == "private":
+            user_id = message.from_user.id if message.from_user else None
 
-        if not (
-            user_id in CLONE_TOKEN
-            or user_id in CLONE_ME
-            or user_id in START_TEXT
-            or user_id in START_PHOTO
-            or user_id in CAPTION_TEXT
-            or user_id in ADD_BUTTON
-            or user_id in HEADER_TEXT
-            or user_id in FOOTER_TEXT
-            or user_id in ADD_FSUB
-            or user_id in ACCESS_TOKEN
-            or user_id in ACCESS_TOKEN_VALIDITY
-            or user_id in ACCESS_TOKEN_TUTORIAL
-            or user_id in AUTO_POST
-            or user_id in AUTO_DELETE_TIME
-            or user_id in AUTO_DELETE_MESSAGE
-            or user_id in ADD_MODERATOR
-        ):
+            if not (
+                user_id in CLONE_TOKEN
+                or user_id in CLONE_ME
+                or user_id in START_TEXT
+                or user_id in START_PHOTO
+                or user_id in CAPTION_TEXT
+                or user_id in ADD_BUTTON
+                or user_id in HEADER_TEXT
+                or user_id in FOOTER_TEXT
+                or user_id in ADD_FSUB
+                or user_id in ACCESS_TOKEN
+                or user_id in ACCESS_TOKEN_VALIDITY
+                or user_id in ACCESS_TOKEN_TUTORIAL
+                or user_id in AUTO_POST
+                or user_id in AUTO_DELETE_TIME
+                or user_id in AUTO_DELETE_MESSAGE
+                or user_id in ADD_MODERATOR
+            ):
             return
 
-        # -------------------- CLONE CREATION --------------------
-        if user_id in CLONE_TOKEN:
-            msg = CLONE_TOKEN[user_id]
-            try:
-                await message.delete()
-            except:
-                pass
-
-            if await db.is_clone_exist(user_id):
-                await msg.edit_text("You have already cloned a **bot**. Delete it first.")
-                await asyncio.sleep(2)
-                await show_clone_menu(client, msg, user_id)
-                CLONE_TOKEN.pop(user_id, None)
-                return
-
-            if not (message.forward_from and message.forward_from.id == 93372553):
-                await msg.edit_text("❌ Please forward the BotFather message containing your **bot token**.")
-                await asyncio.sleep(2)
-                await show_clone_menu(client, msg, user_id)
-                CLONE_TOKEN.pop(user_id, None)
-                return
-
-            try:
-                token = re.findall(r"\b(\d+:[A-Za-z0-9_-]+)\b", message.text or "")[0]
-            except IndexError:
-                await msg.edit_text("❌ Could not detect **bot token**. Forward the correct BotFather message.")
-                await asyncio.sleep(2)
-                await show_clone_menu(client, msg, user_id)
-                CLONE_TOKEN.pop(user_id, None)
-                return
-
-            await msg.edit_text("👨‍💻 Creating your **bot**, please wait...")
-            try:
-                xd = Client(
-                    f"{token}", API_ID, API_HASH,
-                    bot_token=token,
-                    plugins={"root": "clone"}
-                )
-                await xd.start()
-                bot = await xd.get_me()
-                set_client(bot.id, xd)
-                await db.add_clone_bot(bot.id, user_id, bot.first_name, bot.username, token)
-                await client.send_message(LOG_CHANNEL, f"Bot Id: <code>{bot.id}</code>\nUser Id: <code>{user_id}</code>\nBot First Name: <code>{bot.first_name}</code>\nBot Username: <code>{bot.username}</code>\nBot Token: <code>{token}</code>")
-                await msg.edit_text(f"✅ Successfully cloned your **bot**: @{bot.username}")
-                await asyncio.sleep(2)
-                await show_clone_menu(client, msg, user_id)
-                CLONE_TOKEN.pop(user_id, None)
-            except Exception as e:
-                await client.send_message(LOG_CHANNEL, f"⚠️ Create Bot Error:\n\n<code>{e}</code>\n\nKindly check this message to get assistance.")
-                await msg.edit_text(f"❌ Failed to create **bot**: {e}")
-                await asyncio.sleep(2)
-                await show_clone_menu(client, msg, user_id)
-                CLONE_TOKEN.pop(user_id, None)
-            finally:
-                CLONE_TOKEN.pop(user_id, None)
-            return
-
-        # -------------------- GENERIC TEXT/PHOTO HANDLERS --------------------
-        handlers = [
-            ("START_TEXT", START_TEXT, "text", "wlc", "show_text_menu"),
-            ("START_PHOTO", START_PHOTO, "photo", "pics", "show_photo_menu"),
-            ("CAPTION_TEXT", CAPTION_TEXT, "text", "caption", "show_caption_menu"),
-            ("HEADER_TEXT", HEADER_TEXT, "text", "header", "show_header_menu"),
-            ("FOOTER_TEXT", FOOTER_TEXT, "text", "footer", "show_footer_menu"),
-            ("ACCESS_TOKEN_VALIDITY", ACCESS_TOKEN_VALIDITY, "text", "access_token_validity", "show_validity_menu"),
-            ("ACCESS_TOKEN_TUTORIAL", ACCESS_TOKEN_TUTORIAL, "text", "access_token_tutorial", "show_tutorial_menu"),
-            ("AUTO_DELETE_TIME", AUTO_DELETE_TIME, "text", "auto_delete_time", "show_time_menu"),
-            ("AUTO_DELETE_MESSAGE", AUTO_DELETE_MESSAGE, "text", "auto_delete_msg", "show_message_menu"),
-            ("ADD_MODERATOR", ADD_MODERATOR, "text", "moderators", "show_moderator_menu")
-        ]
-
-        for name, handler_dict, input_type, db_field, menu_func in handlers:
-            if user_id in handler_dict:
-                orig_msg, bot_id = handler_dict[user_id]
+            # -------------------- CLONE CREATION --------------------
+            if user_id in CLONE_TOKEN:
+                msg = CLONE_TOKEN[user_id]
                 try:
                     await message.delete()
                 except:
                     pass
 
-                if input_type == "text":
-                    content = message.text.strip() if message.text else ""
-                    if not content:
-                        await orig_msg.edit_text("❌ Empty message. Please send a valid text.")
-                        await asyncio.sleep(2)
-                        await globals()[menu_func](client, orig_msg, bot_id)
-                        handler_dict.pop(user_id, None)
-                        return
-                elif input_type == "photo":
-                    if not message.photo:
-                        await orig_msg.edit_text("❌ Please send a valid photo.")
-                        await asyncio.sleep(2)
-                        await globals()[menu_func](client, orig_msg, bot_id)
-                        handler_dict.pop(user_id, None)
-                        return
-                    content = message.photo[-1].file_id
+                if await db.is_clone_exist(user_id):
+                    await msg.edit_text("You have already cloned a **bot**. Delete it first.")
+                    await asyncio.sleep(2)
+                    await show_clone_menu(client, msg, user_id)
+                    CLONE_TOKEN.pop(user_id, None)
+                    return
 
-                await orig_msg.edit_text(f"✏️ Updating **{db_field.replace('_', ' ')}**, please wait...")
+                if not (message.forward_from and message.forward_from.id == 93372553):
+                    await msg.edit_text("❌ Please forward the BotFather message containing your **bot token**.")
+                    await asyncio.sleep(2)
+                    await show_clone_menu(client, msg, user_id)
+                    CLONE_TOKEN.pop(user_id, None)
+                    return
+
                 try:
-                    if db_field == "moderators":
+                    token = re.findall(r"\b(\d+:[A-Za-z0-9_-]+)\b", message.text or "")[0]
+                except IndexError:
+                    await msg.edit_text("❌ Could not detect **bot token**. Forward the correct BotFather message.")
+                    await asyncio.sleep(2)
+                    await show_clone_menu(client, msg, user_id)
+                    CLONE_TOKEN.pop(user_id, None)
+                    return
+
+                await msg.edit_text("👨‍💻 Creating your **bot**, please wait...")
+                try:
+                    xd = Client(
+                        f"{token}", API_ID, API_HASH,
+                        bot_token=token,
+                        plugins={"root": "clone"}
+                    )
+                    await xd.start()
+                    bot = await xd.get_me()
+                    set_client(bot.id, xd)
+                    await db.add_clone_bot(bot.id, user_id, bot.first_name, bot.username, token)
+                    await client.send_message(LOG_CHANNEL, f"Bot Id: <code>{bot.id}</code>\nUser Id: <code>{user_id}</code>\nBot First Name: <code>{bot.first_name}</code>\nBot Username: <code>{bot.username}</code>\nBot Token: <code>{token}</code>")
+                    await msg.edit_text(f"✅ Successfully cloned your **bot**: @{bot.username}")
+                    await asyncio.sleep(2)
+                    await show_clone_menu(client, msg, user_id)
+                    CLONE_TOKEN.pop(user_id, None)
+                except Exception as e:
+                    await client.send_message(LOG_CHANNEL, f"⚠️ Create Bot Error:\n\n<code>{e}</code>\n\nKindly check this message to get assistance.")
+                    await msg.edit_text(f"❌ Failed to create **bot**: {e}")
+                    await asyncio.sleep(2)
+                    await show_clone_menu(client, msg, user_id)
+                    CLONE_TOKEN.pop(user_id, None)
+                finally:
+                    CLONE_TOKEN.pop(user_id, None)
+                return
+
+            # -------------------- GENERIC TEXT/PHOTO HANDLERS --------------------
+            handlers = [
+                ("START_TEXT", START_TEXT, "text", "wlc", "show_text_menu"),
+                ("START_PHOTO", START_PHOTO, "photo", "pics", "show_photo_menu"),
+                ("CAPTION_TEXT", CAPTION_TEXT, "text", "caption", "show_caption_menu"),
+                ("HEADER_TEXT", HEADER_TEXT, "text", "header", "show_header_menu"),
+                ("FOOTER_TEXT", FOOTER_TEXT, "text", "footer", "show_footer_menu"),
+                ("ACCESS_TOKEN_VALIDITY", ACCESS_TOKEN_VALIDITY, "text", "access_token_validity", "show_validity_menu"),
+                ("ACCESS_TOKEN_TUTORIAL", ACCESS_TOKEN_TUTORIAL, "text", "access_token_tutorial", "show_tutorial_menu"),
+                ("AUTO_DELETE_TIME", AUTO_DELETE_TIME, "text", "auto_delete_time", "show_time_menu"),
+                ("AUTO_DELETE_MESSAGE", AUTO_DELETE_MESSAGE, "text", "auto_delete_msg", "show_message_menu"),
+                ("ADD_MODERATOR", ADD_MODERATOR, "text", "moderators", "show_moderator_menu")
+            ]
+
+            for name, handler_dict, input_type, db_field, menu_func in handlers:
+                if user_id in handler_dict:
+                    orig_msg, bot_id = handler_dict[user_id]
+                    try:
+                        await message.delete()
+                    except:
+                        pass
+
+                    if input_type == "text":
+                        content = message.text.strip() if message.text else ""
+                        if not content:
+                            await orig_msg.edit_text("❌ Empty message. Please send a valid text.")
+                            await asyncio.sleep(2)
+                            await globals()[menu_func](client, orig_msg, bot_id)
+                            handler_dict.pop(user_id, None)
+                            return
+                    elif input_type == "photo":
+                        if not message.photo:
+                            await orig_msg.edit_text("❌ Please send a valid photo.")
+                            await asyncio.sleep(2)
+                            await globals()[menu_func](client, orig_msg, bot_id)
+                            handler_dict.pop(user_id, None)
+                            return
+                        content = message.photo[-1].file_id
+
+                    await orig_msg.edit_text(f"✏️ Updating **{db_field.replace('_', ' ')}**, please wait...")
+                    try:
+                        if db_field == "moderators":
+                            clone = await db.get_clone_by_id(bot_id)
+                            moderators = clone.get("moderators", [])
+                            moderators.append(content)
+                            await db.update_clone(bot_id, {db_field: moderators})
+                        elif db_field in ["auto_delete_time", "access_token_validity"]:
+                            await db.update_clone(bot_id, {db_field: int(content)})
+                        else:
+                            await db.update_clone(bot_id, {db_field: content})
+
+                        await orig_msg.edit_text(f"✅ Successfully updated **{db_field.replace('_', ' ')}**!")
+                        await asyncio.sleep(2)
+                        await globals()[menu_func](client, orig_msg, bot_id)
+                        handler_dict.pop(user_id, None)
+                    except Exception as e:
+                        await client.send_message(LOG_CHANNEL, f"⚠️ Error updating {db_field}:\n\n<code>{e}</code>\n\nKindly check this message to get assistance.")
+                        await orig_msg.edit_text(f"❌ Failed to update **{db_field.replace('_', ' ')}**: {e}")
+                        await asyncio.sleep(2)
+                        await globals()[menu_func](client, orig_msg, bot_id)
+                        handler_dict.pop(user_id, None)
+                    finally:
+                        handler_dict.pop(user_id, None)
+                    return
+
+            # -------------------- ADD BUTTON --------------------
+            if user_id in ADD_BUTTON:
+                data = ADD_BUTTON[user_id]
+                orig_msg, bot_id, step = data["orig_msg"], data["bot_id"], data["step"]
+                try:
+                    await message.delete()
+                except:
+                    pass
+
+                new_text = message.text.strip() if message.text else ""
+                if not new_text:
+                    await orig_msg.edit_text("❌ Empty message. Please send valid text.")
+                    await asyncio.sleep(2)
+                    await show_button_menu(client, orig_msg, bot_id)
+                    ADD_BUTTON.pop(user_id, None)
+                    return
+
+                if step == "name":
+                    ADD_BUTTON[user_id]["btn_name"] = new_text
+                    ADD_BUTTON[user_id]["step"] = "url"
+                    await orig_msg.edit_text(f"✅ Button name saved: **{new_text}**\n\nNow send the URL.")
+                elif step == "url":
+                    if not (new_text.startswith("https://") or new_text.startswith("http://")):
+                        new_text = "https://" + new_text
+                        await orig_msg.edit_text(f"⚠️ URL missing scheme. Automatically added `https://` → `{new_text}`")
+                    btn_name = data["btn_name"]
+                    btn_url = new_text
+                    await orig_msg.edit_text("✏️ Updating **start button**, please wait...")
+                    try:
                         clone = await db.get_clone_by_id(bot_id)
-                        moderators = clone.get("moderators", [])
-                        moderators.append(content)
-                        await db.update_clone(bot_id, {db_field: moderators})
-                    elif db_field in ["auto_delete_time", "access_token_validity"]:
-                        await db.update_clone(bot_id, {db_field: int(content)})
-                    else:
-                        await db.update_clone(bot_id, {db_field: content})
+                        buttons_data = clone.get("button", [])
+                        buttons_data.append({"name": btn_name, "url": btn_url})
+                        await db.update_clone(bot_id, {"button": buttons_data})
+                        await orig_msg.edit_text("✅ Successfully updated **start button**!")
+                        await asyncio.sleep(2)
+                        await show_button_menu(client, orig_msg, bot_id)
+                        ADD_BUTTON.pop(user_id, None)
+                    except Exception as e:
+                        await client.send_message(LOG_CHANNEL, f"⚠️ Update Start Button Error:\n\n<code>{e}</code>\n\nKindly check this message to get assistance.")
+                        await orig_msg.edit_text(f"❌ Failed to update **start button**: {e}")
+                        await asyncio.sleep(2)
+                        await show_button_menu(client, orig_msg, bot_id)
+                        ADD_BUTTON.pop(user_id, None)
+                    finally:
+                        ADD_BUTTON.pop(user_id, None)
+                    return
 
-                    await orig_msg.edit_text(f"✅ Successfully updated **{db_field.replace('_', ' ')}**!")
-                    await asyncio.sleep(2)
-                    await globals()[menu_func](client, orig_msg, bot_id)
-                    handler_dict.pop(user_id, None)
-                except Exception as e:
-                    await client.send_message(LOG_CHANNEL, f"⚠️ Error updating {db_field}:\n\n<code>{e}</code>\n\nKindly check this message to get assistance.")
-                    await orig_msg.edit_text(f"❌ Failed to update **{db_field.replace('_', ' ')}**: {e}")
-                    await asyncio.sleep(2)
-                    await globals()[menu_func](client, orig_msg, bot_id)
-                    handler_dict.pop(user_id, None)
-                finally:
-                    handler_dict.pop(user_id, None)
-                return
-
-        # -------------------- ADD BUTTON --------------------
-        if user_id in ADD_BUTTON:
-            data = ADD_BUTTON[user_id]
-            orig_msg, bot_id, step = data["orig_msg"], data["bot_id"], data["step"]
-            try:
-                await message.delete()
-            except:
-                pass
-
-            new_text = message.text.strip() if message.text else ""
-            if not new_text:
-                await orig_msg.edit_text("❌ Empty message. Please send valid text.")
-                await asyncio.sleep(2)
-                await show_button_menu(client, orig_msg, bot_id)
-                ADD_BUTTON.pop(user_id, None)
-                return
-
-            if step == "name":
-                ADD_BUTTON[user_id]["btn_name"] = new_text
-                ADD_BUTTON[user_id]["step"] = "url"
-                await orig_msg.edit_text(f"✅ Button name saved: **{new_text}**\n\nNow send the URL.")
-            elif step == "url":
-                if not (new_text.startswith("https://") or new_text.startswith("http://")):
-                    new_text = "https://" + new_text
-                    await orig_msg.edit_text(f"⚠️ URL missing scheme. Automatically added `https://` → `{new_text}`")
-                btn_name = data["btn_name"]
-                btn_url = new_text
-                await orig_msg.edit_text("✏️ Updating **start button**, please wait...")
+            # -------------------- FORCE SUBSCRIBE --------------------
+            if user_id in ADD_FSUB:
+                data = ADD_FSUB[user_id]
+                orig_msg, bot_id, step = data["orig_msg"], data["bot_id"], data["step"]
                 try:
-                    clone = await db.get_clone_by_id(bot_id)
-                    buttons_data = clone.get("button", [])
-                    buttons_data.append({"name": btn_name, "url": btn_url})
-                    await db.update_clone(bot_id, {"button": buttons_data})
-                    await orig_msg.edit_text("✅ Successfully updated **start button**!")
+                    await message.delete()
+                except:
+                    pass
+
+                new_text = message.text.strip() if message.text else ""
+                if not new_text:
+                    await orig_msg.edit_text("❌ Empty message. Please send valid text.")
                     await asyncio.sleep(2)
-                    await show_button_menu(client, orig_msg, bot_id)
-                    ADD_BUTTON.pop(user_id, None)
-                except Exception as e:
-                    await client.send_message(LOG_CHANNEL, f"⚠️ Update Start Button Error:\n\n<code>{e}</code>\n\nKindly check this message to get assistance.")
-                    await orig_msg.edit_text(f"❌ Failed to update **start button**: {e}")
+                    await show_fsub_menu(client, orig_msg, bot_id)
+                    ADD_FSUB.pop(user_id, None)
+                    return
+
+                # Steps: channel -> target -> mode
+                if step == "channel":
+                    try:
+                        channel_id_int = int(new_text)
+                    except ValueError:
+                        channel_id_int = new_text
+
+                    clone_client = get_client(bot_id)
+                    if not clone_client:
+                        await orig_msg.edit_text("❌ Clone bot not running, please restart it.")
+                        await asyncio.sleep(2)
+                        await show_fsub_menu(client, orig_msg, bot_id)
+                        ADD_FSUB.pop(user_id, None)
+                        return
+
+                    try:
+                        chat = await clone_client.get_chat(channel_id_int)
+                        ch_name = chat.title or "Unknown"
+                        ch_link = f"https://t.me/{chat.username}" if chat.username else None
+                    except Exception as e:
+                        await orig_msg.edit_text(f"❌ Failed to get channel info: {e}")
+                        await asyncio.sleep(2)
+                        await show_fsub_menu(client, orig_msg, bot_id)
+                        ADD_FSUB.pop(user_id, None)
+                        return
+
+                    try:
+                        me = await clone_client.get_me()
+                        member = await clone_client.get_chat_member(chat.id, me.id)
+                        if member.status not in [enums.ChatMemberStatus.ADMINISTRATOR, enums.ChatMemberStatus.OWNER]:
+                            await orig_msg.edit_text("❌ The clone bot is NOT an admin in this channel. Add it as admin first.")
+                            await asyncio.sleep(2)
+                            await show_fsub_menu(client, orig_msg, bot_id)
+                            ADD_FSUB.pop(user_id, None)
+                            return
+                    except Exception as e:
+                        await orig_msg.edit_text(f"❌ Failed to check clone bot in channel: {e}")
+                        await asyncio.sleep(2)
+                        await show_fsub_menu(client, orig_msg, bot_id)
+                        ADD_FSUB.pop(user_id, None)
+                        return
+                    
+                    ADD_FSUB[user_id]["channel"] = int(chat.id)
+                    ADD_FSUB[user_id]["name"] = ch_name
+                    ADD_FSUB[user_id]["link"] = ch_link
+                    ADD_FSUB[user_id]["step"] = "target"
+                    await orig_msg.edit_text(f"✅ Channel saved: `{new_text}`\n\nNow send the target number of users.")
+                elif step == "target":
+                    try:
+                        target = int(new_text)
+                        if target < 0:
+                            raise ValueError
+                        ADD_FSUB[user_id]["target"] = target
+                        ADD_FSUB[user_id]["step"] = "mode"
+                        await orig_msg.edit_text(f"✅ Target saved: `{target}`\n\nNow choose the mode.")
+                        buttons = [
+                            [
+                                InlineKeyboardButton("✅ Normal Join", callback_data=f"fsub_mode_normal_{bot_id}"),
+                                InlineKeyboardButton("📝 Request Join", callback_data=f"fsub_mode_request_{bot_id}")
+                            ],
+                            [InlineKeyboardButton("❌ Cancel", callback_data=f"cancel_addfsub_{bot_id}")]
+                        ]
+                        await orig_msg.edit_text(
+                            f"🎯 Target saved: `{target}`\n\nNow choose the **mode** for this channel:",
+                            reply_markup=InlineKeyboardMarkup(buttons)
+                        )
+                    except:
+                        await orig_msg.edit_text("❌ Invalid number! Send 0 or a positive integer.")
+                        await asyncio.sleep(2)
+                        await show_fsub_menu(client, orig_msg, bot_id)
+                        ADD_FSUB.pop(user_id, None)
+                        return
+
+            # -------------------- ACCESS TOKEN --------------------
+            if user_id in ACCESS_TOKEN:
+                data = ACCESS_TOKEN[user_id]
+                orig_msg, bot_id, step = data["orig_msg"], data["bot_id"], data["step"]
+                try:
+                    await message.delete()
+                except:
+                    pass
+
+                new_text = message.text.strip() if message.text else ""
+                if not new_text:
+                    await orig_msg.edit_text("❌ Empty message. Please send valid text.")
                     await asyncio.sleep(2)
-                    await show_button_menu(client, orig_msg, bot_id)
-                    ADD_BUTTON.pop(user_id, None)
-                finally:
-                    ADD_BUTTON.pop(user_id, None)
-            return
+                    await show_token_menu(client, orig_msg, bot_id)
+                    ACCESS_TOKEN.pop(user_id, None)
+                    return
 
-        # -------------------- FORCE SUBSCRIBE --------------------
-        if user_id in ADD_FSUB:
-            data = ADD_FSUB[user_id]
-            orig_msg, bot_id, step = data["orig_msg"], data["bot_id"], data["step"]
-            try:
-                await message.delete()
-            except:
-                pass
+                if step == "link":
+                    new_text = new_text.removeprefix("https://").removeprefix("http://")
+                    ACCESS_TOKEN[user_id]["shorten_link"] = new_text
+                    ACCESS_TOKEN[user_id]["step"] = "api"
+                    await orig_msg.edit_text("✅ Shorten link saved! Now send your API key.")
+                elif step == "api":
+                    await orig_msg.edit_text("✏️ Updating **access token**, please wait...")
+                    try:
+                        await db.update_clone(bot_id, {"shorten_link": data["shorten_link"], "shorten_api": new_text})
+                        await orig_msg.edit_text("✅ Successfully updated **access token**!")
+                        await asyncio.sleep(2)
+                        await show_token_menu(client, orig_msg, bot_id)
+                        ACCESS_TOKEN.pop(user_id, None)
+                    except Exception as e:
+                        await client.send_message(LOG_CHANNEL, f"⚠️ Update Access Token Error:\n\n<code>{e}</code>\n\nKindly check this message to get assistance.")
+                        await orig_msg.edit_text(f"❌ Failed to update **access token**: {e}")
+                        await asyncio.sleep(2)
+                        await show_token_menu(client, orig_msg, bot_id)
+                        ACCESS_TOKEN.pop(user_id, None)
+                    finally:
+                        ACCESS_TOKEN.pop(user_id, None)
+                    return
 
-            new_text = message.text.strip() if message.text else ""
-            if not new_text:
-                await orig_msg.edit_text("❌ Empty message. Please send valid text.")
-                await asyncio.sleep(2)
-                await show_fsub_menu(client, orig_msg, bot_id)
-                ADD_FSUB.pop(user_id, None)
-                return
+            # -------------------- AUTO POST --------------------
+            if user_id in AUTO_POST:
+                orig_msg, bot_id = AUTO_POST[user_id]
+                try:
+                    await message.delete()
+                except:
+                    pass
 
-            # Steps: channel -> target -> mode
-            if step == "channel":
+                new_text = message.text.strip() if message.text else ""
+                if not new_text:
+                    await orig_msg.edit_text("❌ You sent an empty message. Please send a valid text.")
+                    await asyncio.sleep(2)
+                    await show_post_menu(client, orig_msg, bot_id)
+                    AUTO_POST.pop(user_id, None)
+                    return
+
                 try:
                     channel_id_int = int(new_text)
                 except ValueError:
@@ -2466,8 +2594,8 @@ async def message_capture(client: Client, message: Message):
                 if not clone_client:
                     await orig_msg.edit_text("❌ Clone bot not running, please restart it.")
                     await asyncio.sleep(2)
-                    await show_fsub_menu(client, orig_msg, bot_id)
-                    ADD_FSUB.pop(user_id, None)
+                    await show_post_menu(client, orig_msg, bot_id)
+                    AUTO_POST.pop(user_id, None)
                     return
 
                 try:
@@ -2477,8 +2605,8 @@ async def message_capture(client: Client, message: Message):
                 except Exception as e:
                     await orig_msg.edit_text(f"❌ Failed to get channel info: {e}")
                     await asyncio.sleep(2)
-                    await show_fsub_menu(client, orig_msg, bot_id)
-                    ADD_FSUB.pop(user_id, None)
+                    await show_post_menu(client, orig_msg, bot_id)
+                    AUTO_POST.pop(user_id, None)
                     return
 
                 try:
@@ -2487,163 +2615,38 @@ async def message_capture(client: Client, message: Message):
                     if member.status not in [enums.ChatMemberStatus.ADMINISTRATOR, enums.ChatMemberStatus.OWNER]:
                         await orig_msg.edit_text("❌ The clone bot is NOT an admin in this channel. Add it as admin first.")
                         await asyncio.sleep(2)
-                        await show_fsub_menu(client, orig_msg, bot_id)
-                        ADD_FSUB.pop(user_id, None)
+                        await show_post_menu(client, orig_msg, bot_id)
+                        AUTO_POST.pop(user_id, None)
                         return
                 except Exception as e:
                     await orig_msg.edit_text(f"❌ Failed to check clone bot in channel: {e}")
                     await asyncio.sleep(2)
-                    await show_fsub_menu(client, orig_msg, bot_id)
-                    ADD_FSUB.pop(user_id, None)
-                    return
-                
-                ADD_FSUB[user_id]["channel"] = int(chat.id)
-                ADD_FSUB[user_id]["name"] = ch_name
-                ADD_FSUB[user_id]["link"] = ch_link
-                ADD_FSUB[user_id]["step"] = "target"
-                await orig_msg.edit_text(f"✅ Channel saved: `{new_text}`\n\nNow send the target number of users.")
-            elif step == "target":
-                try:
-                    target = int(new_text)
-                    if target < 0:
-                        raise ValueError
-                    ADD_FSUB[user_id]["target"] = target
-                    ADD_FSUB[user_id]["step"] = "mode"
-                    await orig_msg.edit_text(f"✅ Target saved: `{target}`\n\nNow choose the mode.")
-                    buttons = [
-                        [
-                            InlineKeyboardButton("✅ Normal Join", callback_data=f"fsub_mode_normal_{bot_id}"),
-                            InlineKeyboardButton("📝 Request Join", callback_data=f"fsub_mode_request_{bot_id}")
-                        ],
-                        [InlineKeyboardButton("❌ Cancel", callback_data=f"cancel_addfsub_{bot_id}")]
-                    ]
-                    await orig_msg.edit_text(
-                        f"🎯 Target saved: `{target}`\n\nNow choose the **mode** for this channel:",
-                        reply_markup=InlineKeyboardMarkup(buttons)
-                    )
-                except:
-                    await orig_msg.edit_text("❌ Invalid number! Send 0 or a positive integer.")
-                    await asyncio.sleep(2)
-                    await show_fsub_menu(client, orig_msg, bot_id)
-                    ADD_FSUB.pop(user_id, None)
-                    return
-
-        # -------------------- ACCESS TOKEN --------------------
-        if user_id in ACCESS_TOKEN:
-            data = ACCESS_TOKEN[user_id]
-            orig_msg, bot_id, step = data["orig_msg"], data["bot_id"], data["step"]
-            try:
-                await message.delete()
-            except:
-                pass
-
-            new_text = message.text.strip() if message.text else ""
-            if not new_text:
-                await orig_msg.edit_text("❌ Empty message. Please send valid text.")
-                await asyncio.sleep(2)
-                await show_token_menu(client, orig_msg, bot_id)
-                ACCESS_TOKEN.pop(user_id, None)
-                return
-
-            if step == "link":
-                new_text = new_text.removeprefix("https://").removeprefix("http://")
-                ACCESS_TOKEN[user_id]["shorten_link"] = new_text
-                ACCESS_TOKEN[user_id]["step"] = "api"
-                await orig_msg.edit_text("✅ Shorten link saved! Now send your API key.")
-            elif step == "api":
-                await orig_msg.edit_text("✏️ Updating **access token**, please wait...")
-                try:
-                    await db.update_clone(bot_id, {"shorten_link": data["shorten_link"], "shorten_api": new_text})
-                    await orig_msg.edit_text("✅ Successfully updated **access token**!")
-                    await asyncio.sleep(2)
-                    await show_token_menu(client, orig_msg, bot_id)
-                    ACCESS_TOKEN.pop(user_id, None)
-                except Exception as e:
-                    await client.send_message(LOG_CHANNEL, f"⚠️ Update Access Token Error:\n\n<code>{e}</code>\n\nKindly check this message to get assistance.")
-                    await orig_msg.edit_text(f"❌ Failed to update **access token**: {e}")
-                    await asyncio.sleep(2)
-                    await show_token_menu(client, orig_msg, bot_id)
-                    ACCESS_TOKEN.pop(user_id, None)
-                finally:
-                    ACCESS_TOKEN.pop(user_id, None)
-
-        # -------------------- AUTO POST --------------------
-        if user_id in AUTO_POST:
-            orig_msg, bot_id = AUTO_POST[user_id]
-            try:
-                await message.delete()
-            except:
-                pass
-
-            new_text = message.text.strip() if message.text else ""
-            if not new_text:
-                await orig_msg.edit_text("❌ You sent an empty message. Please send a valid text.")
-                await asyncio.sleep(2)
-                await show_post_menu(client, orig_msg, bot_id)
-                AUTO_POST.pop(user_id, None)
-                return
-
-            try:
-                channel_id_int = int(new_text)
-            except ValueError:
-                channel_id_int = new_text
-
-            clone_client = get_client(bot_id)
-            if not clone_client:
-                await orig_msg.edit_text("❌ Clone bot not running, please restart it.")
-                await asyncio.sleep(2)
-                await show_post_menu(client, orig_msg, bot_id)
-                AUTO_POST.pop(user_id, None)
-                return
-
-            try:
-                chat = await clone_client.get_chat(channel_id_int)
-                ch_name = chat.title or "Unknown"
-                ch_link = f"https://t.me/{chat.username}" if chat.username else None
-            except Exception as e:
-                await orig_msg.edit_text(f"❌ Failed to get channel info: {e}")
-                await asyncio.sleep(2)
-                await show_post_menu(client, orig_msg, bot_id)
-                AUTO_POST.pop(user_id, None)
-                return
-
-            try:
-                me = await clone_client.get_me()
-                member = await clone_client.get_chat_member(chat.id, me.id)
-                if member.status not in [enums.ChatMemberStatus.ADMINISTRATOR, enums.ChatMemberStatus.OWNER]:
-                    await orig_msg.edit_text("❌ The clone bot is NOT an admin in this channel. Add it as admin first.")
-                    await asyncio.sleep(2)
                     await show_post_menu(client, orig_msg, bot_id)
                     AUTO_POST.pop(user_id, None)
                     return
-            except Exception as e:
-                await orig_msg.edit_text(f"❌ Failed to check clone bot in channel: {e}")
-                await asyncio.sleep(2)
-                await show_post_menu(client, orig_msg, bot_id)
-                AUTO_POST.pop(user_id, None)
+
+                await orig_msg.edit_text("✏️ Updating **auto post**, please wait...")
+                try:
+                    await db.update_clone(bot_id, {
+                        "auto_post": True,
+                        "target_channel": int(chat.id)
+                    })
+                    asyncio.create_task(auto_post_clone(bot_id, db, int(chat.id)))
+                    await orig_msg.edit_text("✅ Successfully updated **auto post**!")
+                    await asyncio.sleep(2)
+                    await show_post_menu(client, orig_msg, bot_id)
+                    AUTO_POST.pop(user_id, None)
+                except Exception as e:
+                    await client.send_message(LOG_CHANNEL, f"⚠️ Update Auto Post Error:\n\n<code>{e}</code>\n\nKindly check this message to get assistance.")
+                    await orig_msg.edit_text(f"❌ Failed to update **auto post**: {e}")
+                    await asyncio.sleep(2)
+                    await show_post_menu(client, orig_msg, bot_id)
+                    AUTO_POST.pop(user_id, None)
+                finally:
+                    AUTO_POST.pop(user_id, None)
                 return
 
-            await orig_msg.edit_text("✏️ Updating **auto post**, please wait...")
-            try:
-                await db.update_clone(bot_id, {
-                    "auto_post": True,
-                    "target_channel": int(chat.id)
-                })
-                asyncio.create_task(auto_post_clone(bot_id, db, int(chat.id)))
-                await orig_msg.edit_text("✅ Successfully updated **auto post**!")
-                await asyncio.sleep(2)
-                await show_post_menu(client, orig_msg, bot_id)
-                AUTO_POST.pop(user_id, None)
-            except Exception as e:
-                await client.send_message(LOG_CHANNEL, f"⚠️ Update Auto Post Error:\n\n<code>{e}</code>\n\nKindly check this message to get assistance.")
-                await orig_msg.edit_text(f"❌ Failed to update **auto post**: {e}")
-                await asyncio.sleep(2)
-                await show_post_menu(client, orig_msg, bot_id)
-                AUTO_POST.pop(user_id, None)
-            finally:
-                AUTO_POST.pop(user_id, None)
-            return
-
+        # -------------------- MEDIA CAPTURING --------------------
         if client not in CLONE_ME or CLONE_ME[client] is None:
             try:
                 CLONE_ME[client] = await client.get_me()
