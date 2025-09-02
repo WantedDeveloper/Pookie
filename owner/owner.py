@@ -2268,7 +2268,7 @@ async def message_capture(client: Client, message: Message):
                 or user_id in AUTO_DELETE_MESSAGE
                 or user_id in ADD_MODERATOR
             ):
-            return
+                return
 
             # -------------------- CLONE CREATION --------------------
             if user_id in CLONE_TOKEN:
