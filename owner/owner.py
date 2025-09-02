@@ -2643,9 +2643,17 @@ async def message_capture(client: Client, message: Message):
                 AUTO_POST.pop(user_id, None)
             return
 
-        if client not in CLONE_ME:
+        if client not in CLONE_ME or CLONE_ME[client] is None:
+        try:
             CLONE_ME[client] = await client.get_me()
-        me = CLONE_ME[client]
+        except Exception as e:
+            print(f"⚠️ get_me() failed: {e}")
+            return
+
+        me = CLONE_ME.get(client)
+        if not me:
+            print("❌ Failed to get bot info (me is None)")
+            return
 
         media_file_id = None
         media_type = None
