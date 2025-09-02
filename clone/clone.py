@@ -61,7 +61,6 @@ clonedb = Database(CLONE_DB_URI, CDB_NAME)
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
 
-CLONE_ME = {}
 TOKENS = {}
 VERIFIED = {}
 BATCH_FILES = {}
@@ -499,7 +498,6 @@ def encode_file_ref(file_ref: bytes) -> str:
     return base64.urlsafe_b64encode(file_ref).decode().rstrip("=")
 
 def unpack_new_file_id(new_file_id):
-    """Return file_id, file_ref"""
     decoded = FileId.decode(new_file_id)
     file_id = encode_file_id(
         pack(
@@ -534,12 +532,11 @@ async def auto_post_clone(bot_id: int, db, target_channel: int):
 
                 item = await db.get_random_unposted_media(bot_id)
                 if not item:
+                    print(f"⌛ No new media for {bot_id}, sleeping 60s...")
                     await asyncio.sleep(60)
                     continue
 
-                item = item[0]
                 file_id = item.get("file_id")
-
                 if not file_id:
                     await db.media.update_one({"_id": item["_id"]}, {"$set": {"posted": True}})
                     continue
@@ -1002,10 +999,7 @@ def clean_text(text: str) -> str:
 @Client.on_message(filters.group | filters.channel)
 async def message_capture(client: Client, message: Message):
     try:
-        if client not in CLONE_ME:
-            CLONE_ME[client] = await client.get_me()
-        me = CLONE_ME[client]
-
+        me = await client.get_me()
         clone = await db.get_bot(me.id)
         if not clone:
             return
