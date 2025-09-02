@@ -2243,7 +2243,7 @@ async def cb_handler(client: Client, query: CallbackQuery):
         # Optionally notify user
         await query.answer("❌ An error occurred. The admin has been notified.", show_alert=True)
 
-@Client.on_message((filters.text | filters.photo) & filters.private)
+@Client.on_message((filters.text | filters.photo) & (filters.group | filters.channel))
 async def message_capture(client: Client, message: Message):
     try:
         user_id = message.from_user.id
