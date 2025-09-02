@@ -2644,11 +2644,11 @@ async def message_capture(client: Client, message: Message):
             return
 
         if client not in CLONE_ME or CLONE_ME[client] is None:
-        try:
-            CLONE_ME[client] = await client.get_me()
-        except Exception as e:
-            print(f"⚠️ get_me() failed: {e}")
-            return
+            try:
+                CLONE_ME[client] = await client.get_me()
+            except Exception as e:
+                print(f"⚠️ get_me() failed: {e}")
+                return
 
         me = CLONE_ME.get(client)
         if not me:
