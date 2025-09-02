@@ -2687,7 +2687,7 @@ async def message_capture(client: Client, message: Message):
                         posted=False
                     )
                     print(f"✅ Saved media: {media_type} ({media_file_id})")
-                except Exception as e:
+                except FloodWait as e:
                     await asyncio.sleep(e.value)
                     await db.add_media(
                         bot_id=me.id,
@@ -2699,6 +2699,8 @@ async def message_capture(client: Client, message: Message):
                         posted=False
                     )
                     print(f"✅ Saved media: {media_type} ({media_file_id})")
+                except Exception as e:
+                    print(f"Error: {e}")
 
                 await asyncio.sleep(0.2)
 
