@@ -210,10 +210,10 @@ async def start():
     now = datetime.now(tz)
     time = now.strftime("%H:%M:%S %p")
 
-    app = web.AppRunner(await web_server())
-    await app.setup()
-    bind_address = "0.0.0.0"
-    await web.TCPSite(app, bind_address, PORT).start()
+    #app = web.AppRunner(await web_server())
+    #await app.setup()
+    #bind_address = "0.0.0.0"
+    #await web.TCPSite(app, bind_address, PORT).start()
 
     await StreamBot.send_message(chat_id=LOG_CHANNEL, text=script.RESTART_TXT.format(today, time))
     await restart_bots()
