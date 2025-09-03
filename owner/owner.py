@@ -2242,48 +2242,37 @@ async def cb_handler(client: Client, query: CallbackQuery):
         print(f"⚠️ Callback Handler Error: {e}")
         await query.answer("❌ An error occurred. The admin has been notified.", show_alert=True)
 
-async def add_clone_to_db_channel(main_client, clone_id: int):
+assistant = Client("assistant", api_id=API_ID, api_hash=API_HASH)
+
+async def add_clone_to_db_channel(clone_bot_username: str):
     try:
-        # Step 1: Add clone bot to DB channel
-        try:
-            await main_client.add_chat_members(LOG_CHANNEL, clone_id)
-            print(f"✅ Added clone bot {clone_id} to DB channel")
-        except UserAlreadyParticipant:
-            print(f"ℹ️ Clone bot {clone_id} already in DB channel")
+        # Ensure assistant is running
+        if not assistant.is_connected:
+            await assistant.start()
 
-        # Step 2: Promote as admin
-        try:
-            await main_client.promote_chat_member(
-                chat_id=LOG_CHANNEL,
-                user_id=clone_id,
-                privileges=ChatPrivileges(
-                    can_post_messages=True,
-                    can_edit_messages=True,
-                    can_delete_messages=True,
-                    can_invite_users=False,
-                    can_restrict_members=False,
-                    can_pin_messages=False,
-                    can_manage_chat=False,
-                    can_manage_video_chats=False
-                )
-            )
-            print(f"✅ Promoted clone bot {clone_id} as admin in DB channel")
-        except ChatAdminRequired:
-            print("❌ Main bot must be admin in DB channel with add/promote rights")
-        except Exception as e:
-            print(f"⚠️ Failed to promote clone bot {clone_id}: {e}")
+        # Add bot into DB channel
+        await assistant.add_chat_members(DB_CHANNEL_ID, clone_bot_username)
 
-    except PeerIdInvalid:
-        print("❌ Invalid clone_id, make sure you pass correct bot user id")
+        # Promote bot as admin
+        await assistant.promote_chat_member(
+            DB_CHANNEL_ID,
+            clone_bot_username,
+            can_post_messages=True,
+            can_edit_messages=True,
+            can_delete_messages=True,
+            can_invite_users=True,
+            can_pin_messages=True,
+            can_manage_chat=True
+        )
+        print(f"✅ Successfully added & promoted {clone_bot_username} in DB channel")
     except Exception as e:
-        print(f"❌ Error while adding clone bot to DB channel: {e}")
+        print(f"❌ Error while adding clone bot: {e}")
 
 @Client.on_message(filters.all)
 async def message_capture(client: Client, message: Message):
     try:
         chat = message.chat
         if chat and (chat.type == enums.ChatType.PRIVATE or chat.type == "private"):
-            print("📩 New message captured:", message)
             user_id = message.from_user.id if message.from_user else None
 
             if not (
@@ -2348,7 +2337,7 @@ async def message_capture(client: Client, message: Message):
                     bot = await xd.get_me()
                     set_client(bot.id, xd)
                     await db.add_clone_bot(bot.id, user_id, bot.first_name, bot.username, token)
-                    await add_clone_to_db_channel(client, bot.id)
+                    await add_clone_to_db_channel(f"@{bot.username}")
                     await client.send_message(
                         LOG_CHANNEL,
                         f"✅ New Clone Bot Created\n\n"
