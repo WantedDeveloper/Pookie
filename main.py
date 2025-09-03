@@ -183,6 +183,14 @@ async def start():
     await StreamBot.start()
     bot_info = await StreamBot.get_me()
     StreamBot.username = bot_info.username
+
+    try:
+        await assistant.start()
+        me = await assistant.get_me()
+        print(f"✅ Assistant started: {me.first_name} (@{me.username or me.id})")
+    except Exception as e:
+        print(f"❌ Failed to start assistant: {e}")
+
     await initialize_clients()
 
     for name in files:
@@ -208,7 +216,6 @@ async def start():
     await web.TCPSite(app, bind_address, PORT).start()
 
     await StreamBot.send_message(chat_id=LOG_CHANNEL, text=script.RESTART_TXT.format(today, time))
-    await assistant.start()
     await restart_bots()
     print("Bot Started.")
     await idle()
@@ -218,3 +225,7 @@ if __name__ == '__main__':
         loop.run_until_complete(start())
     except KeyboardInterrupt:
         logging.info('Service Stopped Bye 👋')
+        try:
+            loop.run_until_complete(assistant.stop())
+        except:
+            pass
