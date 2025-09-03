@@ -2368,7 +2368,7 @@ async def message_capture(client: Client, message: Message):
                     CLONE_TOKEN.pop(user_id, None)
                 finally:
                     CLONE_TOKEN.pop(user_id, None)
-                return<
+                return
 
             # -------------------- GENERIC TEXT/PHOTO HANDLERS --------------------
             handlers = [
