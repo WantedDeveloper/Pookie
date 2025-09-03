@@ -7,7 +7,7 @@ from datetime import date, datetime
 from aiohttp import web
 from plugins.config import *
 from plugins.script import script
-from owner.owner import restart_bots, assistant
+from owner.owner import restart_bots
 
 # Get logging configurations
 logging.config.fileConfig('logging.conf')
@@ -183,13 +183,6 @@ async def start():
     await StreamBot.start()
     bot_info = await StreamBot.get_me()
     StreamBot.username = bot_info.username
-
-    try:
-        await assistant.start()
-        me = await assistant.get_me()
-        print(f"✅ Assistant started: {me.first_name} (@{me.username or me.id})")
-    except Exception as e:
-        print(f"❌ Failed to start assistant: {e}")
 
     await initialize_clients()
 
