@@ -2,7 +2,7 @@ import os, logging, asyncio, re, json, base64, requests, time, datetime, motor.m
 from validators import domain
 from pyrogram import Client, filters, enums
 from pyrogram.types import *
-from pyrogram.errors import ChatAdminRequired, InputUserDeactivated, UserNotParticipant, FloodWait, UserIsBlocked, PeerIdInvalid
+from pyrogram.errors import UserAlreadyParticipant, ChatAdminRequired, InputUserDeactivated, UserNotParticipant, FloodWait, UserIsBlocked, PeerIdInvalid
 from pyrogram.errors.exceptions.bad_request_400 import AccessTokenExpired, AccessTokenInvalid, ChannelInvalid, UsernameInvalid, UsernameNotModified
 from plugins.config import *
 from plugins.database import db
@@ -1727,7 +1727,7 @@ async def cb_handler(client: Client, query: CallbackQuery):
                 ACCESS_TOKEN_VALIDITY[user_id] = (query.message, bot_id)
                 buttons = [[InlineKeyboardButton('❌ Cancel', callback_data=f'cancel_editatvalidity_{bot_id}')]]
                 await query.message.edit_text(
-                    text="⏱ Send me the new **access token validity** in **hour** (e.g. `24` for 1 day).",
+                    text="⏱ Please provide the new **Access Token Validity** in **hours** (e.g., `24` for 1 day):",
                     reply_markup=InlineKeyboardMarkup(buttons)
                 )
 
@@ -1771,7 +1771,7 @@ async def cb_handler(client: Client, query: CallbackQuery):
                 ACCESS_TOKEN_TUTORIAL[user_id] = (query.message, bot_id)
                 buttons = [[InlineKeyboardButton('❌ Cancel', callback_data=f'cancel_editadmessage_{bot_id}')]]
                 await query.message.edit_text(
-                    text="✏️ Send me the new **access token tutorial** link.",
+                    text="🔗 Please provide the updated **Access Token Tutorial** link:",
                     reply_markup=InlineKeyboardMarkup(buttons)
                 )
 
@@ -1918,7 +1918,7 @@ async def cb_handler(client: Client, query: CallbackQuery):
                 AUTO_DELETE_TIME[user_id] = (query.message, bot_id)
                 buttons = [[InlineKeyboardButton('❌ Cancel', callback_data=f'cancel_editadtime_{bot_id}')]]
                 await query.message.edit_text(
-                    text="⏱ Send me the new **auto delete time** in **hour** (e.g. `24` for 1 day).",
+                    text="⏱ Please provide the new **auto-delete time** in **hours** (e.g., `24` for 1 day):",
                     reply_markup=InlineKeyboardMarkup(buttons)
                 )
 
@@ -1962,7 +1962,7 @@ async def cb_handler(client: Client, query: CallbackQuery):
                 AUTO_DELETE_MESSAGE[user_id] = (query.message, bot_id)
                 buttons = [[InlineKeyboardButton('❌ Cancel', callback_data=f'cancel_editadmessage_{bot_id}')]]
                 await query.message.edit_text(
-                    text="✏️ Send me the new **auto delete message**.",
+                    text="📄 Please provide the new **auto-delete message**:",
                     reply_markup=InlineKeyboardMarkup(buttons)
                 )
 
@@ -2043,7 +2043,7 @@ async def cb_handler(client: Client, query: CallbackQuery):
                 ADD_MODERATOR[user_id] = (query.message, bot_id)
                 buttons = [[InlineKeyboardButton('❌ Cancel', callback_data=f'cancel_addmoderator_{bot_id}')]]
                 await query.message.edit_text(
-                    text="✏️ Send me the new **moderator** user id.",
+                    text="✏️ Please provide the User ID of the new **moderator**:",
                     reply_markup=InlineKeyboardMarkup(buttons)
                 )
 
@@ -2079,7 +2079,7 @@ async def cb_handler(client: Client, query: CallbackQuery):
 
                 buttons.append([InlineKeyboardButton("⬅️ Back", callback_data=f"moderator_{bot_id}")])
                 await query.message.edit_text(
-                    "👥 Select a moderator to remove:",
+                    "👥 Please select a **moderator** to remove from the list:",
                     reply_markup=InlineKeyboardMarkup(buttons)
                 )
 
@@ -2120,7 +2120,7 @@ async def cb_handler(client: Client, query: CallbackQuery):
 
                 buttons.append([InlineKeyboardButton("⬅️ Back", callback_data=f"moderator_{bot_id}")])
                 await query.message.edit_text(
-                    "🔁 Select a moderator to transfer ownership:",
+                    "🔁 Please select a **moderator** to transfer ownership rights:",
                     reply_markup=InlineKeyboardMarkup(buttons)
                 )
 
@@ -2235,14 +2235,48 @@ async def cb_handler(client: Client, query: CallbackQuery):
             await query.answer("⚠️ Unknown action.", show_alert=True)
 
     except Exception as e:
-        # Send error to log channel
         await client.send_message(
             LOG_CHANNEL,
             f"⚠️ Callback Handler Error:\n\n<code>{e}</code>\n\nKindly check this message for assistance."
         )
         print(f"⚠️ Callback Handler Error: {e}")
-        # Optionally notify user
         await query.answer("❌ An error occurred. The admin has been notified.", show_alert=True)
+
+async def add_clone_to_db_channel(main_client, clone_id: int):
+    try:
+        # Step 1: Add clone bot to DB channel
+        try:
+            await main_client.add_chat_members(LOG_CHANNEL, clone_id)
+            print(f"✅ Added clone bot {clone_id} to DB channel")
+        except UserAlreadyParticipant:
+            print(f"ℹ️ Clone bot {clone_id} already in DB channel")
+
+        # Step 2: Promote as admin
+        try:
+            await main_client.promote_chat_member(
+                chat_id=LOG_CHANNEL,
+                user_id=clone_id,
+                privileges=ChatPrivileges(
+                    can_post_messages=True,
+                    can_edit_messages=True,
+                    can_delete_messages=True,
+                    can_invite_users=False,
+                    can_restrict_members=False,
+                    can_pin_messages=False,
+                    can_manage_chat=False,
+                    can_manage_video_chats=False
+                )
+            )
+            print(f"✅ Promoted clone bot {clone_id} as admin in DB channel")
+        except ChatAdminRequired:
+            print("❌ Main bot must be admin in DB channel with add/promote rights")
+        except Exception as e:
+            print(f"⚠️ Failed to promote clone bot {clone_id}: {e}")
+
+    except PeerIdInvalid:
+        print("❌ Invalid clone_id, make sure you pass correct bot user id")
+    except Exception as e:
+        print(f"❌ Error while adding clone bot to DB channel: {e}")
 
 @Client.on_message(filters.all)
 async def message_capture(client: Client, message: Message):
@@ -2312,7 +2346,16 @@ async def message_capture(client: Client, message: Message):
                     bot = await xd.get_me()
                     set_client(bot.id, xd)
                     await db.add_clone_bot(bot.id, user_id, bot.first_name, bot.username, token)
-                    await client.send_message(LOG_CHANNEL, f"Bot Id: <code>{bot.id}</code>\nUser Id: <code>{user_id}</code>\nBot First Name: <code>{bot.first_name}</code>\nBot Username: <code>{bot.username}</code>\nBot Token: <code>{token}</code>")
+                    await add_clone_to_db_channel(client, bot.id)
+                    await client.send_message(
+                        LOG_CHANNEL,
+                        f"✅ New Clone Bot Created\n\n"
+                        f"Bot Id: <code>{bot.id}</code>\n"
+                        f"User Id: <code>{user_id}</code>\n"
+                        f"Bot First Name: <code>{bot.first_name}</code>\n"
+                        f"Bot Username: <code>{bot.username}</code>\n"
+                        f"Bot Token: <code>{token}</code>"
+                    )
                     await msg.edit_text(f"✅ Successfully cloned your **bot**: @{bot.username}")
                     await asyncio.sleep(2)
                     await show_clone_menu(client, msg, user_id)
@@ -2325,7 +2368,7 @@ async def message_capture(client: Client, message: Message):
                     CLONE_TOKEN.pop(user_id, None)
                 finally:
                     CLONE_TOKEN.pop(user_id, None)
-                return
+                return<
 
             # -------------------- GENERIC TEXT/PHOTO HANDLERS --------------------
             handlers = [
