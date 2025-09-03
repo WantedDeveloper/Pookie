@@ -2251,11 +2251,11 @@ async def add_clone_to_db_channel(clone_bot_username: str):
             await assistant.start()
 
         # Add bot into DB channel
-        await assistant.add_chat_members(DB_CHANNEL_ID, clone_bot_username)
+        await assistant.add_chat_members(LOG_CHANNEL, clone_bot_username)
 
         # Promote bot as admin
         await assistant.promote_chat_member(
-            DB_CHANNEL_ID,
+            LOG_CHANNEL,
             clone_bot_username,
             can_post_messages=True,
             can_edit_messages=True,
