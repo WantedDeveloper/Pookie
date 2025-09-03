@@ -2281,7 +2281,8 @@ async def add_clone_to_db_channel(main_client, clone_id: int):
 @Client.on_message(filters.all)
 async def message_capture(client: Client, message: Message):
     try:
-        if message.chat.type == "private":
+        chat = message.chat
+        if chat and (chat.type == enums.ChatType.PRIVATE or chat.type == "private"):
             print("📩 New message captured:", message)
             user_id = message.from_user.id if message.from_user else None
 
