@@ -2244,7 +2244,7 @@ async def cb_handler(client: Client, query: CallbackQuery):
 
 assistant = Client("assistant", api_id=API_ID, api_hash=API_HASH)
 
-async def add_clone_to_db_channel(clone_bot_username: str):
+async def add_clone_to_db_channel(clone_bot_id: int):
     try:
         # Ensure assistant is running
         if not assistant.is_connected:
@@ -2256,15 +2256,18 @@ async def add_clone_to_db_channel(clone_bot_username: str):
         # Promote bot as admin
         await assistant.promote_chat_member(
             LOG_CHANNEL,
-            clone_bot_username,
-            can_post_messages=True,
-            can_edit_messages=True,
-            can_delete_messages=True,
-            can_invite_users=True,
-            can_pin_messages=True,
-            can_manage_chat=True
+            clone_bot_id,
+            privileges=types.ChatPrivileges(
+                can_post_messages=True,
+                can_edit_messages=True,
+                can_delete_messages=True,
+                can_invite_users=True,
+                can_pin_messages=True,
+                can_manage_chat=True,
+                can_manage_video_chats=True
+            )
         )
-        print(f"✅ Successfully added & promoted {clone_bot_username} in DB channel")
+        print(f"✅ Successfully added & promoted {clone_bot_id} in DB channel")
     except Exception as e:
         print(f"❌ Error while adding clone bot: {e}")
 
@@ -2337,7 +2340,7 @@ async def message_capture(client: Client, message: Message):
                     bot = await xd.get_me()
                     set_client(bot.id, xd)
                     await db.add_clone_bot(bot.id, user_id, bot.first_name, bot.username, token)
-                    await add_clone_to_db_channel(f"@{bot.username}")
+                    await add_clone_to_db_channel(bot.id)
                     await client.send_message(
                         LOG_CHANNEL,
                         f"✅ New Clone Bot Created\n\n"
