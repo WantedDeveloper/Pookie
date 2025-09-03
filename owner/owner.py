@@ -2251,7 +2251,7 @@ async def add_clone_to_db_channel(clone_bot_id: int):
             await assistant.start()
 
         # Add bot into DB channel
-        await assistant.add_chat_members(LOG_CHANNEL, clone_bot_username)
+        await assistant.add_chat_members(LOG_CHANNEL, clone_bot_id)
 
         # Promote bot as admin
         await assistant.promote_chat_member(
