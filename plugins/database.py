@@ -190,19 +190,18 @@ class Database:
         return count
 
     # ---------------- MEDIA ----------------
-    async def add_media(self, msg_id, file_id, caption, media_type, date):
+    async def add_media(self, msg_id, file_id, caption, media_type, date, posted=False):
         await self.media.update_one(
             {"file_id": file_id},
-            {
-                "$setOnInsert": {
-                    "msg_id": msg_id,
-                    "file_id": file_id,
-                    "caption": caption or "",
-                    "media_type": media_type,
-                    "date": date,
-                    "posted_by": {}
-                }
-            },
+            {"$setOnInsert": {
+                "msg_id": msg_id,
+                "file_id": file_id,
+                "caption": caption or "",
+                "media_type": media_type,
+                "date": date,
+                "posted": posted,
+                "posted_by": []
+            }},
             upsert=True
         )
 
@@ -210,26 +209,31 @@ class Database:
         media = await self.media.find_one({"file_id": file_id})
         return bool(media)
 
-    async def get_media_by_id(self, msg_id):
-        return await self.media.find_one({"msg_id": msg_id})
-
-    async def delete_media(self, msg_id):
-        await self.media.delete_one({"msg_id": msg_id})
-
     async def get_random_unposted_media(self, bot_id: int):
         item = await self.media.aggregate([
-            {"$match": {f"posted_by.{bot_id}": {"$ne": True}}},
+            {"$match": {
+                "$or": [
+                    {"posted_by": {"$exists": False}},
+                    {"posted_by": {"$nin": [bot_id]}}
+                ]
+            }},
             {"$sample": {"size": 1}}
         ]).to_list(length=1)
         return item[0] if item else None
 
-    async def mark_media_posted(self, bot_id: int, file_id: str):
+    async def mark_media_posted(self, media_id, bot_id: int):
         await self.media.update_one(
-            {"file_id": file_id},
-            {"$set": {f"posted_by.{bot_id}": True}}
+            {"_id": media_id},
+            {"$addToSet": {"posted_by": bot_id}}
         )
+
+    async def get_media_by_id(self, msg_id):
+        return await self.media.find_one({"msg_id": msg_id})
 
     async def get_all_media(self):
         return self.media.find({})
+
+    async def delete_media(self, msg_id):
+        await self.media.delete_one({"msg_id": msg_id})
 
 db = Database(DB_URI, DB_NAME)
