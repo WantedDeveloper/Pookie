@@ -537,21 +537,10 @@ async def auto_post_clone(bot_id: int, db, target_channel: int):
                     continue
 
                 file_id = item.get("file_id")
-                msg_id = item.get("msg_id")
-                chat_id = item.get("chat_id")
-
                 if not file_id:
-                    print(f"⚠️ Skipping invalid media entry: {item}")
-                    await asyncio.sleep(5)
+                    await db.media.update_one({"_id": item["_id"]}, {"$set": {"posted": True}})
                     continue
 
-                """post = await clone_client.copy_message(
-                    chat_id=LOG_CHANNEL,
-                    from_chat_id=item["chat_id"],
-                    message_id=item["msg_id"]
-                )
-
-                unpacked, _ = str(post.id)"""
                 unpacked, _ = unpack_new_file_id(file_id)
                 string = f"file_{unpacked}"
                 outstr = base64.urlsafe_b64encode(string.encode("ascii")).decode().strip("=")
@@ -580,7 +569,10 @@ async def auto_post_clone(bot_id: int, db, target_channel: int):
                     await asyncio.sleep(e.value)
                     continue
 
-                await db.mark_media_posted(bot_id, file_id)
+                await db.media.update_one(
+                    {"_id": item["_id"]},
+                    {"$set": {"posted": True}}
+                )
 
                 sleep_time = int(fresh.get("interval_sec", 60))
                 await asyncio.sleep(sleep_time)
