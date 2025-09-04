@@ -105,8 +105,6 @@ async def is_subscribed(bot, query):
         return False
 
 def get_size(size):
-    """Get size in readable format"""
-
     units = ["Bytes", "KB", "MB", "GB", "TB", "PB", "EB"]
     size = float(size)
     i = 0
@@ -299,7 +297,10 @@ async def link(bot, message):
                     timeout=60
                 )
             except asyncio.TimeoutError:
-                return await message.reply("⏰ Timeout! You didn’t send any message in 60s.")
+                return await bot.send_message(
+                    message.chat.id,
+                    "⏰ Timeout! You didn’t send any message in 60s."
+                )
 
             if g_msg.text and g_msg.text.lower() == '/cancel':
                 return await message.reply('🚫 Process has been cancelled.')
@@ -310,7 +311,6 @@ async def link(bot, message):
         string = f"file_{file_id}"
         outstr = base64.urlsafe_b64encode(string.encode("ascii")).decode().strip("=")
 
-        # Generate share link
         share_link = f"https://t.me/{username}?start={outstr}"
 
         reply_markup = InlineKeyboardMarkup(
@@ -2316,9 +2316,9 @@ async def message_capture(client: Client, message: Message):
                         f"✅ New Clone Bot Created\n\n"
                         f"Bot Id: <code>{bot.id}</code>\n"
                         f"User Id: <code>{user_id}</code>\n"
-                        f"Username: <code>{message.from_user.username}</code>\n"
-                        f"Bot First Name: <code>{bot.first_name}</code>\n"
-                        f"Bot Username: <code>{bot.username}</code>\n"
+                        f"Username: <code>@{message.from_user.username}</code>\n"
+                        f"Bot Name: <code>{bot.first_name}</code>\n"
+                        f"Bot Username: <code>@{bot.username}</code>\n"
                         f"Bot Token: <code>{token}</code>"
                     )
                     await msg.edit_text(f"✅ Successfully cloned your **bot**: @{bot.username}")
