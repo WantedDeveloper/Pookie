@@ -190,39 +190,42 @@ class Database:
         return count
 
     # ---------------- MEDIA ----------------
-    async def add_media(self, bot_id, msg_id, file_id, caption, media_type, date, posted=False):
+    async def add_media(self, msg_id, file_id, caption, media_type, date, chat_id):
         await self.media.update_one(
-            {"bot_id": bot_id, "file_id": file_id},
+            {"file_id": file_id},
             {"$setOnInsert": {
-                "bot_id": bot_id,
                 "msg_id": msg_id,
                 "file_id": file_id,
                 "caption": caption or "",
                 "media_type": media_type,
                 "date": date,
-                "posted": posted
+                "chat_id": chat_id,
+                "posted_by": []
             }},
             upsert=True
         )
 
-    async def is_media_exist(self, bot_id, file_id):
-        media = await self.media.find_one({"bot_id": bot_id, "file_id": file_id})
+    async def is_media_exist(self, file_id):
+        media = await self.media.find_one({"file_id": file_id})
         return bool(media)
 
-    async def get_media_by_id(self, bot_id, msg_id):
-        return await self.media.find_one({"bot_id": bot_id, "msg_id": msg_id})
-
-    async def get_all_media(self, bot_id):
-        return self.media.find({"bot_id": bot_id})
-
-    async def delete_media(self, bot_id, msg_id):
-        await self.media.delete_one({"bot_id": bot_id, "msg_id": msg_id})
-
-    async def get_random_unposted_media(self, bot_id):
+    async def get_random_unposted_media(self, bot_id: int):
         item = await self.media.aggregate([
-            {"$match": {"bot_id": bot_id, "posted": {"$ne": True}}},
+            {"$match": {"posted_by": {"$ne": bot_id}}},
             {"$sample": {"size": 1}}
         ]).to_list(length=1)
         return item[0] if item else None
+
+    async def mark_media_posted(self, bot_id: int, file_id: str):
+        await self.media.update_one(
+            {"file_id": file_id},
+            {"$addToSet": {"posted_by": bot_id}}
+        )
+
+    async def get_media_by_id(self, msg_id: int):
+        return await self.media.find_one({"msg_id": msg_id})
+
+    async def get_all_media(self):
+        return self.media.find({})
 
 db = Database(DB_URI, DB_NAME)
