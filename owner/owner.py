@@ -297,7 +297,7 @@ async def link(bot, message):
                     timeout=60
                 )
             except asyncio.TimeoutError:
-                # ⚠️ Ye error global except block me na jaye
+                # Timeout ke case me direct return kar do, error log mat bhejo
                 return await bot.send_message(
                     message.chat.id,
                     "⏰ Timeout! You didn’t send any message in 60s."
@@ -324,19 +324,13 @@ async def link(bot, message):
             reply_markup=reply_markup
         )
 
-    except asyncio.TimeoutError:
-        # Agar kahin aur se Timeout aaya toh bhi global log me na jaye
-        return await bot.send_message(
-            message.chat.id,
-            "⏰ Timeout occurred. Please try again."
-        )
     except Exception as e:
-        # Baaki errors sirf log me jayenge
+        # Ab sirf real errors log honge, timeout ka "60" nahi
         await bot.send_message(
             LOG_CHANNEL,
-            f"⚠️ Generate Link Error:\n\n<code>{repr(e)}</code>\n\nKindly check this message for assistance."
+            f"⚠️ Generate Link Error:\n\n<code>{str(e)}</code>\n\nKindly check this message for assistance."
         )
-        print(f"⚠️ Generate Link Error: {repr(e)}")
+        print(f"⚠️ Generate Link Error: {str(e)}")
 
 @Client.on_message(filters.command(['batch']) & filters.user(ADMINS) & filters.private)
 async def batch(bot, message):
