@@ -2684,6 +2684,7 @@ async def message_capture(client: Client, message: Message):
                         caption=message.caption or "",
                         media_type=media_type,
                         date=int(message.date.timestamp()),
+                        posted=False
                     )
                     print(f"✅ Saved media: {media_type} ({media_file_id})")
                 except FloodWait as e:
@@ -2694,6 +2695,7 @@ async def message_capture(client: Client, message: Message):
                         caption=message.caption or "",
                         media_type=media_type,
                         date=int(message.date.timestamp()),
+                        posted=False
                     )
                     print(f"✅ Saved media: {media_type} ({media_file_id})")
                 except Exception as e:
