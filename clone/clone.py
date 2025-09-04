@@ -534,9 +534,16 @@ async def auto_post_clone(bot_id: int, db, target_channel: int):
                 if not item:
                     print(f"⌛ No new media for {bot_id}, sleeping 60s...")
                     await asyncio.sleep(60)
-                    #continue
-                else:
-                    print(f"✅ Got media for {bot_id}: {item}")
+                    continue
+
+                file_id = item.get("file_id")
+                msg_id = item.get("msg_id")
+                chat_id = item.get("chat_id")
+
+                if not file_id:
+                    print(f"⚠️ Skipping invalid media entry: {item}")
+                    await asyncio.sleep(5)
+                    continue
 
                 file_id = item.get("file_id")
                 if not file_id:
@@ -577,10 +584,7 @@ async def auto_post_clone(bot_id: int, db, target_channel: int):
                     await asyncio.sleep(e.value)
                     continue
 
-                await db.media.update_one(
-                    {"_id": item["_id"]},
-                    {"$set": {"posted": True}}
-                )
+                await db.mark_media_posted(bot_id, file_id)
 
                 sleep_time = int(fresh.get("interval_sec", 60))
                 await asyncio.sleep(sleep_time)
