@@ -593,7 +593,7 @@ async def link(bot, message):
         owner_id = clone.get("user_id")
         moderators = clone.get("moderators", [])
 
-        if message.from_user.id != owner_id || message.from_user.id not in moderators:
+        if message.from_user.id != owner_id or message.from_user.id not in moderators:
             await message.reply("❌ You are not authorized to use this bot.")
             return
 
@@ -809,7 +809,7 @@ async def broadcast(bot, message):
         owner_id = clone.get("user_id")
         moderators = clone.get("moderators", [])
 
-        if message.from_user.id != owner_id || message.from_user.id not in moderators:
+        if message.from_user.id != owner_id or message.from_user.id not in moderators:
             await message.reply("❌ You are not authorized to use this bot.")
             return
 
