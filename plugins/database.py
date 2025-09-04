@@ -190,7 +190,7 @@ class Database:
         return count
 
     # ---------------- MEDIA ----------------
-    async def add_media(self, msg_id, file_id, caption, media_type, date, chat_id):
+    async def add_media(self, msg_id, file_id, caption, media_type, date, posted=False):
         await self.media.update_one(
             {"file_id": file_id},
             {"$setOnInsert": {
@@ -199,33 +199,29 @@ class Database:
                 "caption": caption or "",
                 "media_type": media_type,
                 "date": date,
-                "chat_id": chat_id,
-                "posted_by": []
+                "posted": posted
             }},
             upsert=True
         )
 
-    async def is_media_exist(self, file_id):
+    async def is_media_exist(self, bot_id, file_id):
         media = await self.media.find_one({"file_id": file_id})
         return bool(media)
 
-    async def get_random_unposted_media(self, bot_id: int):
+    async def get_random_unposted_media(self, bot_id):
         item = await self.media.aggregate([
-            {"$match": {"posted_by": {"$ne": bot_id}}},
+            {"$match": {"bot_id": bot_id, "posted": {"$ne": True}}},
             {"$sample": {"size": 1}}
         ]).to_list(length=1)
         return item[0] if item else None
 
-    async def mark_media_posted(self, bot_id: int, file_id: str):
-        await self.media.update_one(
-            {"file_id": file_id},
-            {"$addToSet": {"posted_by": bot_id}}
-        )
-
-    async def get_media_by_id(self, msg_id: int):
+    async def get_media_by_id(self, bot_id, msg_id):
         return await self.media.find_one({"msg_id": msg_id})
 
-    async def get_all_media(self):
+    async def get_all_media(self, bot_id):
         return self.media.find({})
+
+    async def delete_media(self, bot_id, msg_id):
+        await self.media.delete_one({"msg_id": msg_id})
 
 db = Database(DB_URI, DB_NAME)
