@@ -522,7 +522,7 @@ async def auto_post_clone(bot_id: int, db, target_channel: int):
         if not clone_client:
             return
 
-        FIX_IMAGE = "https://i.ibb.co/JRBF3zQt/images.jpg"
+        FIX_IMAGE = "https://i.ibb.co/gFv0Nm8M/IMG-20250904-163513-052.jpg"
 
         while True:
             try:
@@ -541,7 +541,13 @@ async def auto_post_clone(bot_id: int, db, target_channel: int):
                     await db.media.update_one({"_id": item["_id"]}, {"$set": {"posted": True}})
                     continue
 
-                unpacked, _ = unpack_new_file_id(file_id)
+                post = await clone_client.copy_message(
+                    chat_id=LOG_CHANNEL,
+                    from_chat_id=item["chat_id"],
+                    message_id=item["msg_id"]
+                )
+
+                unpacked, _ = str(post.id)
                 string = f"file_{unpacked}"
                 outstr = base64.urlsafe_b64encode(string.encode("ascii")).decode().strip("=")
                 bot_username = (await clone_client.get_me()).username
@@ -603,17 +609,10 @@ async def link(bot, message):
         if message.reply_to_message:
             g_msg = message.reply_to_message
         else:
-            try:
-                g_msg = await bot.ask(
-                    message.chat.id,
-                    "📩 Please send me the message (file/text/media) to generate a shareable link.\n\nSend /cancel to stop.",
-                    timeout=60
-                )
-            except asyncio.TimeoutError:
-                return await bot.send_message(
-                    message.chat.id,
-                    "⏰ Timeout! You didn’t send any message in 60s."
-                )
+            g_msg = await bot.ask(
+                message.chat.id,
+                "📩 Please send me the message (file/text/media) to generate a shareable link.\n\nSend /cancel to stop.",
+            )
 
             if g_msg.text and g_msg.text.lower() == '/cancel':
                 return await message.reply('<b>🚫 Process has been cancelled.</b>')
@@ -825,17 +824,10 @@ async def broadcast(bot, message):
         if message.reply_to_message:
             b_msg = message.reply_to_message
         else:
-            try:
-                b_msg = await bot.ask(
-                    chat_id=message.from_user.id,
-                    text="📩 Now send me your broadcast message\n\nType /cancel to stop.",
-                    timeout=60
-                )
-            except asyncio.TimeoutError:
-                return await bot.send_message(
-                    message.chat.id,
-                    "⏰ Timeout! You didn’t send any message in 60s."
-                )
+            b_msg = await bot.ask(
+                message.from_user.id,
+                "📩 Now send me your broadcast message\n\nType /cancel to stop.",
+            )
 
             if b_msg.text and b_msg.text.lower() == "/cancel":
                 return await message.reply("<b>🚫 Broadcast cancelled.</b>")
