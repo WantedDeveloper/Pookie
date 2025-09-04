@@ -190,17 +190,19 @@ class Database:
         return count
 
     # ---------------- MEDIA ----------------
-    async def add_media(self, msg_id, file_id, caption, media_type, date, posted=False):
+    async def add_media(self, msg_id, file_id, caption, media_type, date):
         await self.media.update_one(
             {"file_id": file_id},
-            {"$setOnInsert": {
-                "msg_id": msg_id,
-                "file_id": file_id,
-                "caption": caption or "",
-                "media_type": media_type,
-                "date": date,
-                "posted": posted
-            }},
+            {
+                "$setOnInsert": {
+                    "msg_id": msg_id,
+                    "file_id": file_id,
+                    "caption": caption or "",
+                    "media_type": media_type,
+                    "date": date,
+                    "posted_by": {}
+                }
+            },
             upsert=True
         )
 
@@ -208,40 +210,26 @@ class Database:
         media = await self.media.find_one({"file_id": file_id})
         return bool(media)
 
-    async def get_random_unposted_media(self, bot_id):
+    async def get_media_by_id(self, msg_id):
+        return await self.media.find_one({"msg_id": msg_id})
+
+    async def delete_media(self, msg_id):
+        await self.media.delete_one({"msg_id": msg_id})
+
+    async def get_random_unposted_media(self, bot_id: int):
         item = await self.media.aggregate([
-            {
-                "$lookup": {
-                    "from": "clone_posts",
-                    "let": {"fid": "$file_id"},
-                    "pipeline": [
-                        {"$match": {"$expr": {"$and": [
-                            {"$eq": ["$file_id", "$$fid"]},
-                            {"$eq": ["$bot_id", bot_id]}
-                        ]}}},
-                    ],
-                    "as": "already_posted"
-                }
-            },
-            {"$match": {"already_posted": {"$size": 0}}},
+            {"$match": {f"posted_by.{bot_id}": {"$ne": True}}},
             {"$sample": {"size": 1}}
         ]).to_list(length=1)
         return item[0] if item else None
 
-    async def mark_media_posted(self, bot_id, file_id):
-        await self.clone_posts.update_one(
-            {"bot_id": bot_id, "file_id": file_id},
-            {"$set": {"bot_id": bot_id, "file_id": file_id, "posted": True}},
-            upsert=True
+    async def mark_media_posted(self, bot_id: int, file_id: str):
+        await self.media.update_one(
+            {"file_id": file_id},
+            {"$set": {f"posted_by.{bot_id}": True}}
         )
 
-    async def get_media_by_id(self, msg_id):
-        return await self.media.find_one({"msg_id": msg_id})
-
-    async def get_all_media(self, bot_id):
+    async def get_all_media(self):
         return self.media.find({})
-
-    async def delete_media(self, bot_id, msg_id):
-        await self.media.delete_one({"msg_id": msg_id})
 
 db = Database(DB_URI, DB_NAME)
