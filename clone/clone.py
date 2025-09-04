@@ -534,7 +534,9 @@ async def auto_post_clone(bot_id: int, db, target_channel: int):
                 if not item:
                     print(f"⌛ No new media for {bot_id}, sleeping 60s...")
                     await asyncio.sleep(60)
-                    continue
+                    #continue
+                else:
+                    print(f"✅ Got media for {bot_id}: {item}")
 
                 file_id = item.get("file_id")
                 if not file_id:
