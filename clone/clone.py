@@ -610,7 +610,10 @@ async def link(bot, message):
                     timeout=60
                 )
             except asyncio.TimeoutError:
-                return await message.reply("<b>⏰ Timeout! You didn’t send any message in 60s.</b>")
+                return await bot.send_message(
+                    message.chat.id,
+                    "⏰ Timeout! You didn’t send any message in 60s."
+                )
 
             if g_msg.text and g_msg.text.lower() == '/cancel':
                 return await message.reply('<b>🚫 Process has been cancelled.</b>')
@@ -829,7 +832,10 @@ async def broadcast(bot, message):
                     timeout=60
                 )
             except asyncio.TimeoutError:
-                return await message.reply("<b>⏰ Timeout! You didn’t send any message in 60s.</b>")
+                return await bot.send_message(
+                    message.chat.id,
+                    "⏰ Timeout! You didn’t send any message in 60s."
+                )
 
             if b_msg.text and b_msg.text.lower() == "/cancel":
                 return await message.reply("<b>🚫 Broadcast cancelled.</b>")
