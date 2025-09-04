@@ -290,21 +290,13 @@ async def link(bot, message):
         if message.reply_to_message:
             g_msg = message.reply_to_message
         else:
-            try:
-                g_msg = await bot.ask(
-                    message.chat.id,
-                    "📩 Please send me the message (file/text/media) to generate a shareable link.\n\nSend /cancel to stop.",
-                    timeout=60
-                )
-            except asyncio.TimeoutError:
-                # Timeout ke case me direct return kar do, error log mat bhejo
-                return await bot.send_message(
-                    message.chat.id,
-                    "⏰ Timeout! You didn’t send any message in 60s."
-                )
+            g_msg = await bot.ask(
+                message.chat.id,
+                "📩 Please send me the message (file/text/media) to generate a shareable link.\n\nSend /cancel to stop.",
+            )
 
             if g_msg.text and g_msg.text.lower() == '/cancel':
-                return await bot.send_message(message.chat.id, '🚫 Process has been cancelled.')
+                return await message.reply('🚫 Process has been cancelled.')
 
         post = await g_msg.copy(LOG_CHANNEL)
 
@@ -318,19 +310,17 @@ async def link(bot, message):
             [[InlineKeyboardButton("🔁 Share URL", url=f'https://t.me/share/url?url={share_link}')]]
         )
 
-        return await bot.send_message(
-            message.chat.id,
+        await message.reply(
             f"Here is your link:\n\n{share_link}",
             reply_markup=reply_markup
         )
 
     except Exception as e:
-        # Ab sirf real errors log honge, timeout ka "60" nahi
         await bot.send_message(
             LOG_CHANNEL,
-            f"⚠️ Generate Link Error:\n\n<code>{str(e)}</code>\n\nKindly check this message for assistance."
+            f"⚠️ Generate Link Error:\n\n<code>{e}</code>\n\nKindly check this message for assistance."
         )
-        print(f"⚠️ Generate Link Error: {str(e)}")
+        print(f"⚠️ Generate Link Error: {e}")
 
 @Client.on_message(filters.command(['batch']) & filters.user(ADMINS) & filters.private)
 async def batch(bot, message):
@@ -477,14 +467,10 @@ async def broadcast(bot, message):
         if message.reply_to_message:
             b_msg = message.reply_to_message
         else:
-            try:
-                b_msg = await bot.ask(
-                    message.chat.id,
-                    "📩 <b>Send the message to broadcast</b>\n\n/cancel to stop.",
-                    timeout=60
-                )
-            except asyncio.TimeoutError:
-                return await message.reply("<b>⏰ Timeout! You didn’t send any message in 60s.</b>")
+            b_msg = await bot.ask(
+                message.chat.id,
+                "📩 <b>Send the message to broadcast</b>\n\n/cancel to stop.",
+            )
 
             if b_msg.text and b_msg.text.lower() == '/cancel':
                 return await message.reply('<b>🚫 Broadcast cancelled.</b>')
