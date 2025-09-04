@@ -553,7 +553,7 @@ async def auto_post_clone(bot_id: int, db, target_channel: int):
                 text = ""
                 if header:
                     text += f"{header}\n\n"
-                text += f"{selected_caption}\n\n🔗 Link:\n{share_link}"
+                text += f"{selected_caption}\n\n🔗 Here is your link:\n{share_link}"
                 if footer:
                     text += f"\n\n{footer}"
 
@@ -570,7 +570,7 @@ async def auto_post_clone(bot_id: int, db, target_channel: int):
 
                 await db.mark_media_posted(bot_id, file_id)
 
-                sleep_time = int(fresh.get("interval_sec", 60))
+                sleep_time = int(fresh.get("interval_sec", 3600))
                 await asyncio.sleep(sleep_time)
 
             except Exception as e:
@@ -587,12 +587,15 @@ async def auto_post_clone(bot_id: int, db, target_channel: int):
     except Exception as e:
         print(f"❌ AutoPost crashed for {bot_id}: {e}")
 
-@Client.on_message(filters.command(['genlink']) & filters.user(ADMINS) & filters.private)
+@Client.on_message(filters.command(['genlink']) & filters.private)
 async def link(bot, message):
     try:
+        me = await bot.get_me()
+        clone = await db.get_bot(me.id)
+        owner_id = clone.get("user_id")
         moderators = clone.get("moderators", [])
 
-        if message.from_user.id not in moderators:
+        if message.from_user.id != owner_id || message.from_user.id not in moderators:
             await message.reply("❌ You are not authorized to use this bot.")
             return
 
@@ -800,14 +803,15 @@ def make_progress_bar(done, total):
     empty = 20 - filled
     return "🟩" * filled + "⬛" * empty
 
-@Client.on_message(filters.command("broadcast") & filters.user(ADMINS) & filters.private)
+@Client.on_message(filters.command("broadcast") & filters.private)
 async def broadcast(bot, message):
     try:
         me = await bot.get_me()
         clone = await db.get_bot(me.id)
+        owner_id = clone.get("user_id")
         moderators = clone.get("moderators", [])
 
-        if message.from_user.id not in moderators:
+        if message.from_user.id != owner_id || message.from_user.id not in moderators:
             await message.reply("❌ You are not authorized to use this bot.")
             return
 
