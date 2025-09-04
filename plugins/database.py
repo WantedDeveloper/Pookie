@@ -204,7 +204,7 @@ class Database:
             upsert=True
         )
 
-    async def is_media_exist(self, bot_id, file_id):
+    async def is_media_exist(self, file_id):
         media = await self.media.find_one({"file_id": file_id})
         return bool(media)
 
@@ -215,7 +215,7 @@ class Database:
         ]).to_list(length=1)
         return item[0] if item else None
 
-    async def get_media_by_id(self, bot_id, msg_id):
+    async def get_media_by_id(self, msg_id):
         return await self.media.find_one({"msg_id": msg_id})
 
     async def get_all_media(self, bot_id):
