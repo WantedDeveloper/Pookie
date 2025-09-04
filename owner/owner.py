@@ -303,7 +303,7 @@ async def link(bot, message):
                 )
 
             if g_msg.text and g_msg.text.lower() == '/cancel':
-                return await message.reply('🚫 Process has been cancelled.')
+                return await bot.send_message(message.chat.id, '🚫 Process has been cancelled.')
 
         post = await g_msg.copy(LOG_CHANNEL)
 
@@ -317,7 +317,8 @@ async def link(bot, message):
             [[InlineKeyboardButton("🔁 Share URL", url=f'https://t.me/share/url?url={share_link}')]]
         )
 
-        await message.reply(
+        return await bot.send_message(
+            message.chat.id,
             f"Here is your link:\n\n{share_link}",
             reply_markup=reply_markup
         )
@@ -325,9 +326,9 @@ async def link(bot, message):
     except Exception as e:
         await bot.send_message(
             LOG_CHANNEL,
-            f"⚠️ Generate Link Error:\n\n<code>{e}</code>\n\nKindly check this message for assistance."
+            f"⚠️ Generate Link Error:\n\n<code>{str(e)}</code>\n\nKindly check this message for assistance."
         )
-        print(f"⚠️ Generate Link Error: {e}")
+        print(f"⚠️ Generate Link Error: {str(e)}")
 
 @Client.on_message(filters.command(['batch']) & filters.user(ADMINS) & filters.private)
 async def batch(bot, message):
