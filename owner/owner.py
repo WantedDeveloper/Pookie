@@ -2673,31 +2673,29 @@ async def message_capture(client: Client, message: Message):
                 media_type = "animation"
 
             if media_file_id:
-                if await db.is_media_exist(me.id, media_file_id):
+                if await db.is_media_exist(media_file_id):
                     print(f"⚠️ Duplicate media skip kiya: {media_type} ({media_file_id})")
                     return
 
                 try:
                     await db.add_media(
-                        bot_id=me.id,
                         msg_id=message.id,
                         file_id=media_file_id,
                         caption=message.caption or "",
                         media_type=media_type,
                         date=int(message.date.timestamp()),
-                        posted=False
+                        chat_id=message.chat.id
                     )
                     print(f"✅ Saved media: {media_type} ({media_file_id})")
                 except FloodWait as e:
                     await asyncio.sleep(e.value)
                     await db.add_media(
-                        bot_id=me.id,
                         msg_id=message.id,
                         file_id=media_file_id,
                         caption=message.caption or "",
                         media_type=media_type,
                         date=int(message.date.timestamp()),
-                        posted=False
+                        chat_id=message.chat.id
                     )
                     print(f"✅ Saved media: {media_type} ({media_file_id})")
                 except Exception as e:
