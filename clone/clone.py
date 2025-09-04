@@ -537,7 +537,10 @@ async def auto_post_clone(bot_id: int, db, target_channel: int):
                     continue
 
                 file_id = item.get("file_id")
+                msg_id = item.get("msg_id")
+
                 if not file_id:
+                    await db.mark_media_posted(item["_id"], bot_id)
                     continue
 
                 unpacked, _ = unpack_new_file_id(file_id)
@@ -557,18 +560,13 @@ async def auto_post_clone(bot_id: int, db, target_channel: int):
                 if footer:
                     text += f"\n\n{footer}"
 
-                try:
-                    await clone_client.send_photo(
-                        chat_id=target_channel,
-                        photo=FIX_IMAGE,
-                        caption=text
-                    )
-                except FloodWait as e:
-                    print(f"⚠️ [DEBUG] FloodWait {e.value}s for bot {bot_id}")
-                    await asyncio.sleep(e.value)
-                    continue
+                await clone_client.send_photo(
+                    chat_id=target_channel,
+                    photo=FIX_IMAGE,
+                    caption=text
+                )
 
-                await db.mark_media_posted(bot_id, file_id)
+                await db.mark_media_posted(item["_id"], bot_id)
 
                 sleep_time = int(fresh.get("interval_sec", 3600))
                 await asyncio.sleep(sleep_time)
