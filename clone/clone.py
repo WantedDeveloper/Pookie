@@ -538,7 +538,6 @@ async def auto_post_clone(bot_id: int, db, target_channel: int):
 
                 file_id = item.get("file_id")
                 if not file_id:
-                    await db.media.update_one({"_id": item["_id"]}, {"$set": {"posted": True}})
                     continue
 
                 unpacked, _ = unpack_new_file_id(file_id)
@@ -569,10 +568,7 @@ async def auto_post_clone(bot_id: int, db, target_channel: int):
                     await asyncio.sleep(e.value)
                     continue
 
-                await db.media.update_one(
-                    {"_id": item["_id"]},
-                    {"$set": {"posted": True}}
-                )
+                await db.mark_media_posted(bot_id, file_id)
 
                 sleep_time = int(fresh.get("interval_sec", 60))
                 await asyncio.sleep(sleep_time)
