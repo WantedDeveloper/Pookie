@@ -568,7 +568,7 @@ async def auto_post_clone(bot_id: int, db, target_channel: int):
 
                 await db.mark_media_posted(item["_id"], bot_id)
 
-                sleep_time = int(fresh.get("interval_sec", 3600))
+                sleep_time = int(fresh.get("interval_sec", 30))
                 await asyncio.sleep(sleep_time)
 
             except Exception as e:
@@ -606,7 +606,7 @@ async def link(bot, message):
             )
 
             if g_msg.text and g_msg.text.lower() == '/cancel':
-                return await message.reply('<b>🚫 Process has been cancelled.</b>')
+                return await message.reply('🚫 Process has been cancelled.')
 
         if not g_msg.media:
             return await message.reply("❌ This message has no supported media.")
@@ -822,7 +822,7 @@ async def broadcast(bot, message):
             )
 
             if b_msg.text and b_msg.text.lower() == "/cancel":
-                return await message.reply("<b>🚫 Broadcast cancelled.</b>")
+                return await message.reply("🚫 Broadcast cancelled.")
 
         users = await clonedb.get_all_users(me.id)
         total_users = await clonedb.total_users_count(me.id)
@@ -855,18 +855,18 @@ async def broadcast(bot, message):
 
                     try:
                         await sts.edit(f"""
-📢 <b>Broadcast in Progress...</b>
+📢 Broadcast in Progress...
 
 {progress} {percent:.1f}%
 
-👥 <b>Total Users:</b> {total_users}
+👥 Total Users: {total_users}
 ✅ Success: {success}
 🚫 Blocked: {blocked}
 ❌ Deleted: {deleted}
 ⚠️ Failed: {failed}
 
-⏳ <b>ETA:</b> {eta}
-⚡ <b>Speed:</b> {speed:.2f} users/sec
+⏳ ETA: {eta}
+⚡ Speed: {speed:.2f} users/sec
 """)
                     except:
                         pass
@@ -877,12 +877,12 @@ async def broadcast(bot, message):
         time_taken = datetime.timedelta(seconds=int(time.time() - start_time))
         progress_bar = "🟩" * 20
         final_text = f"""
-✅ <b>Broadcast Completed</b> ✅
+✅ Broadcast Completed ✅
 
-⏱ <b>Duration:</b> {time_taken}
-👥 <b>Total Users:</b> {total_users}
+⏱ Duration: {time_taken}
+👥 Total Users: {total_users}
 
-📊 <b>Results:</b>
+📊 Results:
 ✅ Success: {success} ({(success/total_users)*100:.1f}%)
 🚫 Blocked: {blocked} ({(blocked/total_users)*100:.1f}%)
 ❌ Deleted: {deleted} ({(deleted/total_users)*100:.1f}%)
@@ -892,7 +892,7 @@ async def broadcast(bot, message):
 {progress_bar} 100%
 ━━━━━━━━━━━━━━━━━━━━━━
 
-⚡ <b>Speed:</b> {speed:.2f} users/sec
+⚡ Speed: {speed:.2f} users/sec
 """
         await sts.edit(final_text)
 
