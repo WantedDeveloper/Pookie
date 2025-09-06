@@ -469,13 +469,13 @@ async def broadcast(bot, message):
         else:
             b_msg = await bot.ask(
                 message.chat.id,
-                "📩 <b>Send the message to broadcast</b>\n\n/cancel to stop.",
+                "📩 Send the message to broadcast\n\n/cancel to stop.",
             )
 
             if b_msg.text and b_msg.text.lower() == '/cancel':
-                return await message.reply('<b>🚫 Broadcast cancelled.</b>')
+                return await message.reply('🚫 Broadcast cancelled.')
 
-        sts = await message.reply_text("⏳ <b>Broadcast starting...</b>")
+        sts = await message.reply_text("⏳ Broadcast starting...")
         start_time = time.time()
         total_users = await db.total_users_count()
 
@@ -508,18 +508,18 @@ async def broadcast(bot, message):
 
                         try:
                             await sts.edit(f"""
-📢 <b>Broadcast in Progress...</b>
+📢 Broadcast in Progress...
 
 {progress} {percent:.1f}%
 
-👥 <b>Total:</b> {total_users}
+👥 Total: {total_users}
 ✅ Success: {success}
 🚫 Blocked: {blocked}
 ❌ Deleted: {deleted}
 ⚠️ Failed: {failed}
 
-⏳ <b>ETA:</b> {eta}
-⚡ <b>Speed:</b> {speed:.2f} users/sec
+⏳ ETA: {eta}
+⚡ Speed: {speed:.2f} users/sec
 """)
                         except:
                             pass
@@ -536,22 +536,22 @@ async def broadcast(bot, message):
         progress_bar = "🟩" * 20
 
         final_text = f"""
-✅ <b>Broadcast Completed</b> ✅
+✅ Broadcast Completed ✅
 
-⏱ <b>Duration:</b> {time_taken}
-👥 <b>Total Users:</b> {total_users}
+⏱ Duration: {time_taken}
+👥 Total Users: {total_users}
 
-📊 <b>Results:</b>
-✅ <b>Success:</b> {success} ({(success/total_users)*100:.1f}%)
-🚫 <b>Blocked:</b> {blocked} ({(blocked/total_users)*100:.1f}%)
-❌ <b>Deleted:</b> {deleted} ({(deleted/total_users)*100:.1f}%)
-⚠️ <b>Failed:</b> {failed} ({(failed/total_users)*100:.1f}%)
+📊 Results:
+✅ Success: {success} ({(success/total_users)*100:.1f}%)
+🚫 Blocked: {blocked} ({(blocked/total_users)*100:.1f}%)
+❌ Deleted: {deleted} ({(deleted/total_users)*100:.1f}%)
+⚠️ Failed: {failed} ({(failed/total_users)*100:.1f}%)
 
 ━━━━━━━━━━━━━━━━━━━━━━
 {progress_bar} 100%
 ━━━━━━━━━━━━━━━━━━━━━━
 
-⚡ <b>Speed:</b> {speed} users/sec
+⚡ Speed: {speed} users/sec
 """
 
         await sts.edit(final_text)
@@ -2169,6 +2169,7 @@ async def cb_handler(client: Client, query: CallbackQuery):
                     return await query.answer("Clone not found!", show_alert=True)
 
                 await query.message.delete()
+                await db.delete_all_media()
 
             # Restart
             elif action == "restart":
