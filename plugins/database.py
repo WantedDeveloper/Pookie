@@ -223,6 +223,11 @@ class Database:
 
     async def mark_media_posted(self, media_id, bot_id: int):
         await self.media.update_one(
+            {"_id": media_id, "posted_by": {"$exists": False}},
+            {"$set": {"posted_by": []}}
+        )
+
+        await self.media.update_one(
             {"_id": media_id},
             {"$addToSet": {"posted_by": bot_id}}
         )
