@@ -236,4 +236,22 @@ class Database:
     async def delete_media(self, msg_id):
         await self.media.delete_one({"msg_id": msg_id})
 
+    async def delete_all_media(self):
+        result = await self.media.delete_many({})
+        return result.deleted_count
+
+    async def reset_clone_posts(self, bot_id: int):
+        result = await self.media.update_many(
+            {},
+            {"$pull": {"posted_by": bot_id}}
+        )
+        return result.modified_count
+
+    async def reset_all_posts(self):
+        result = await self.media.update_many(
+            {},
+            {"$set": {"posted_by": []}}
+        )
+        return result.modified_count
+
 db = Database(DB_URI, DB_NAME)
