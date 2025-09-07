@@ -191,9 +191,8 @@ async def start(client, message):
     try:
         me = await client.get_me()
         clone = await db.get_bot(me.id)
-
         if not clone:
-            return await message.reply("⚠️ Bot record not found in database. Please setup clone first.")
+            return
 
         # --- Track new users ---
         if not await clonedb.is_user_exist(me.id, message.from_user.id):
@@ -597,7 +596,7 @@ async def link(bot, message):
         owner_id = clone.get("user_id")
         moderators = clone.get("moderators", [])
 
-        if message.from_user.id != owner_id or message.from_user.id not in moderators:
+        if message.from_user.id != owner_id and message.from_user.id not in moderators:
             await message.reply("❌ You are not authorized to use this bot.")
             return
 
@@ -813,7 +812,7 @@ async def broadcast(bot, message):
         owner_id = clone.get("user_id")
         moderators = clone.get("moderators", [])
 
-        if message.from_user.id != owner_id or message.from_user.id not in moderators:
+        if message.from_user.id != owner_id and message.from_user.id not in moderators:
             await message.reply("❌ You are not authorized to use this bot.")
             return
 
@@ -1051,7 +1050,7 @@ async def message_capture(client: Client, message: Message):
             if file_id:
                 await client.send_cached_media(chat_id=message.chat.id, file_id=file_id, caption=new_text, parse_mode="html")
             else:
-                await client.send_message(chat_id=message.chat.id, caption=new_text, parse_mode="html")
+                await client.send_message(chat_id=message.chat.id, text=new_text, parse_mode="html")
 
     except Exception as e:
         await client.send_message(
