@@ -322,15 +322,11 @@ async def start(client, message):
             )
 
         try:
-            try:
-                msg = await client.send_cached_media(
-                    chat_id=message.from_user.id,
-                    file_id=file_id,
-                    protect_content=clone.get("forward_protect", False),
-                )
-            except Exception as e:
-                print(f"❌ Failed to send cached media: {e} | file_id: {file_id}")
-                return await message.reply("⚠️ Something went wrong sending this media.")
+            msg = await client.send_cached_media(
+                chat_id=message.from_user.id,
+                file_id=file_id,
+                protect_content=clone.get("forward_protect", False),
+            )
 
             filetype = msg.media
             file = getattr(msg, filetype.value)
@@ -367,10 +363,13 @@ async def start(client, message):
                 )
 
                 asyncio.create_task(auto_delete_message(client, msg, k, auto_delete_time))
-
             return
-        except:
-            pass
+        except Exception as e:
+            print(f"⚠️ Clone Start Single Handler error for {bot_id}: {e}")
+            await clone_client.send_message(
+                LOG_CHANNEL,
+                f"⚠️ Clone Auto Post Error:\n\n<code>{e}</code>\n\nKindly check this message to get assistance."
+            )
 
         if data.startswith("VERIFY-"):
             parts = data.split("-", 2)
