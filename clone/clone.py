@@ -476,7 +476,9 @@ async def start(client, message):
 
         # --- Auto Post Handler ---
         if data.startswith("AUTO-"):
-            pre, file_id = ((base64.urlsafe_b64decode(data + "=" * (-len(data) % 4))).decode("ascii")).split("_", 1)
+            encoded = data.replace("AUTO-", "", 1)
+            decoded = base64.urlsafe_b64decode(encoded + "=" * (-len(encoded) % 4)).decode("ascii")
+            pre, file_id = decoded.split("_", 1)
 
             if clone.get("access_token", False) and not await check_verification(client, message.from_user.id):
                 verify_url = await get_token(client, message.from_user.id, f"https://t.me/{me.username}?start=")
@@ -495,10 +497,10 @@ async def start(client, message):
                 )
 
             try:
-                msg = await client.send_cached_media(
+                msg = await client.copy_message(
                     chat_id=message.from_user.id,
-                    file_id=file_id,
-                    protect_content=clone.get("forward_protect", False),
+                    from_chat_id=LOG_CHANNEL,
+                    message_id=int(msg_id)
                 )
 
                 filetype = msg.media
