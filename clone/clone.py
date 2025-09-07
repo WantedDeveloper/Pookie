@@ -304,14 +304,6 @@ async def start(client, message):
 
         # --- Single File Handler ---
         pre, file_id = ((base64.urlsafe_b64decode(data + "=" * (-len(data) % 4))).decode("ascii")).split("_", 1)
-        print(f"[DEBUG] Decoded pre: {pre}")
-        print(f"[DEBUG] Decoded file_id: {file_id}")
-
-        media_item = await db.media.find_one({"file_id": file_id})
-        print(f"[DEBUG] Media fetched from DB: {media_item}")
-
-        if not media_item:
-            return await message.reply_text("⚠️ Media not found in DB!")
 
         if clone.get("access_token", False) and not await check_verification(client, message.from_user.id):
             verify_url = await get_token(client, message.from_user.id, f"https://t.me/{me.username}?start=")
@@ -862,7 +854,6 @@ async def auto_post_clone(bot_id: int, db, target_channel: int):
                     return
 
                 item = await db.get_random_unposted_media(bot_id)
-                print(f"[DEBUG] Random media selected: {item}")
                 if not item:
                     print(f"⌛ No new media for {bot_id}, sleeping 60s...")
                     await asyncio.sleep(60)
@@ -870,8 +861,7 @@ async def auto_post_clone(bot_id: int, db, target_channel: int):
 
                 file_id = item.get("file_id")
                 if not file_id:
-                    print(f"⚠️ Media missing file_id, marking as posted")
-                    await db.mark_media_posted(item["_id"], bot_id)
+                    await db.media.update_one({"_id": item["_id"]}, {"$addToSet": {"posted_by": bot_id}})
                     continue
 
                 unpacked, _ = unpack_new_file_id(file_id)
@@ -898,8 +888,10 @@ async def auto_post_clone(bot_id: int, db, target_channel: int):
                     parse_mode=enums.ParseMode.HTML
                 )
 
-                await db.mark_media_posted(item["_id"], bot_id)
-                print(f"[DEBUG] Media marked as posted: {item['_id']}")
+                await db.media.update_one(
+                    {"_id": item["_id"]},
+                    {"$addToSet": {"posted_by": bot_id}}
+                )
 
                 sleep_time = int(fresh.get("interval_sec", 30))
                 await asyncio.sleep(sleep_time)
