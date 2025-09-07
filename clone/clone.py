@@ -192,6 +192,9 @@ async def start(client, message):
         me = await client.get_me()
         clone = await db.get_bot(me.id)
 
+        if not clone:
+            return await message.reply("⚠️ Bot record not found in database. Please setup clone first.")
+
         # --- Track new users ---
         if not await clonedb.is_user_exist(me.id, message.from_user.id):
             await clonedb.add_user(me.id, message.from_user.id)
@@ -563,7 +566,8 @@ async def auto_post_clone(bot_id: int, db, target_channel: int):
                 await clone_client.send_photo(
                     chat_id=target_channel,
                     photo=FIX_IMAGE,
-                    caption=text
+                    caption=text,
+                    parse_mode="html"
                 )
 
                 await db.mark_media_posted(item["_id"], bot_id)
@@ -1045,10 +1049,13 @@ async def message_capture(client: Client, message: Message):
                 file_id = message.document.file_id
 
             if file_id:
-                await client.send_cached_media(chat_id=message.chat.id, file_id=file_id, caption=new_text)
+                await client.send_cached_media(chat_id=message.chat.id, file_id=file_id, caption=new_text, parse_mode="html")
             else:
-                await client.send_message(message.chat.id, new_text)
+                await client.send_message(chat_id=message.chat.id, caption=new_text, parse_mode="html")
 
     except Exception as e:
-        await client.send_message(LOG_CHANNEL, f"⚠️ Clone Unexpected Error in message_capture:\n\n<code>{e}</code>\n\nKindly check this message to get assistance.")
+        await client.send_message(
+            LOG_CHANNEL,
+            f"⚠️ Clone Unexpected Error in message_capture:\n\n<code>{e}</code>\n\nKindly check this message to get assistance."
+        )
         print(f"⚠️ Clone Unexpected Error in message_capture: {e}")
