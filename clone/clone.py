@@ -518,10 +518,12 @@ async def auto_post_clone(bot_id: int, db, target_channel: int):
         bot_id = int(bot_id)
         clone = await db.get_clone_by_id(bot_id)
         if not clone or not clone.get("auto_post", False):
+            print(f"❌ AutoPost disabled for {bot_id}")
             return
 
         clone_client = get_client(bot_id)
         if not clone_client:
+            print(f"❌ No clone client found for {bot_id}")
             return
 
         FIX_IMAGE = "https://i.ibb.co/gFv0Nm8M/IMG-20250904-163513-052.jpg"
@@ -530,8 +532,10 @@ async def auto_post_clone(bot_id: int, db, target_channel: int):
             try:
                 fresh = await db.get_clone_by_id(bot_id)
                 if not fresh or not fresh.get("auto_post", False):
+                    print(f"⚠️ AutoPost stopped for {bot_id}")
                     return
 
+                # pick random unposted
                 item = await db.get_random_unposted_media(bot_id)
                 if not item:
                     print(f"⌛ No new media for {bot_id}, sleeping 60s...")
@@ -540,16 +544,35 @@ async def auto_post_clone(bot_id: int, db, target_channel: int):
 
                 file_id = item.get("file_id")
                 msg_id = item.get("msg_id")
+                media_type = item.get("media_type")
+
+                print(f"📂 Picked media for {bot_id}: type={media_type}, msg_id={msg_id}, file_id={file_id}")
 
                 if not file_id:
+                    print(f"⚠️ Skipping because file_id missing")
                     await db.mark_media_posted(item["_id"], bot_id)
                     continue
 
-                unpacked, _ = unpack_new_file_id(file_id)
+                try:
+                    unpacked, _ = unpack_new_file_id(file_id)
+                    print(f"🔑 unpack_new_file_id OK → {unpacked}")
+                except Exception as e:
+                    print(f"❌ unpack_new_file_id failed: {e}")
+                    await db.mark_media_posted(item["_id"], bot_id)
+                    continue
+
                 string = f"file_{unpacked}"
                 outstr = base64.urlsafe_b64encode(string.encode("ascii")).decode().strip("=")
-                bot_username = (await clone_client.get_me()).username
+
+                try:
+                    bot_username = (await clone_client.get_me()).username
+                    print(f"🤖 Clone username = {bot_username}")
+                except Exception as e:
+                    print(f"❌ get_me() failed: {e}")
+                    continue
+
                 share_link = f"https://t.me/{bot_username}?start={outstr}"
+                print(f"🔗 Generated share_link = {share_link}")
 
                 header = fresh.get("header")
                 footer = fresh.get("footer")
@@ -562,16 +585,27 @@ async def auto_post_clone(bot_id: int, db, target_channel: int):
                 if footer:
                     text += f"\n\n<blockquote>{footer}</blockquote>"
 
-                await clone_client.send_photo(
-                    chat_id=target_channel,
-                    photo=FIX_IMAGE,
-                    caption=text,
-                    parse_mode=enums.ParseMode.HTML
-                )
+                print(f"📝 Final caption text:\n{text}")
 
-                await db.mark_media_posted(item["_id"], bot_id)
+                try:
+                    await clone_client.send_photo(
+                        chat_id=target_channel,
+                        photo=FIX_IMAGE,
+                        caption=text,
+                        parse_mode=enums.ParseMode.HTML
+                    )
+                    print(f"✅ Poster sent to {target_channel}")
+                except Exception as e:
+                    print(f"❌ Failed to send poster: {e}")
+
+                try:
+                    await db.mark_media_posted(item["_id"], bot_id)
+                    print(f"✅ Marked media as posted: {file_id}")
+                except Exception as e:
+                    print(f"❌ Failed to mark posted: {e}")
 
                 sleep_time = int(fresh.get("interval_sec", 30))
+                print(f"😴 Sleeping {sleep_time}s before next media...")
                 await asyncio.sleep(sleep_time)
 
             except Exception as e:
