@@ -316,7 +316,9 @@ async def start(client, message):
 
         # --- Single File Handler ---
         if data.startswith("SINGLE-"):
-            pre, file_id = ((base64.urlsafe_b64decode(data + "=" * (-len(data) % 4))).decode("ascii")).split("_", 1)
+            encoded = data.replace("SINGLE-", "", 1)
+            decoded = base64.urlsafe_b64decode(encoded + "=" * (-len(encoded) % 4)).decode("ascii")
+            pre, file_id = decoded.split("_", 1)
 
             if clone.get("access_token", False) and not await check_verification(client, message.from_user.id):
                 verify_url = await get_token(client, message.from_user.id, f"https://t.me/{me.username}?start=")
