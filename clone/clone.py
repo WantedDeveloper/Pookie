@@ -545,8 +545,8 @@ async def auto_post_clone(bot_id: int, db, target_channel: int):
                     await db.mark_media_posted(item["_id"], bot_id)
                     continue
 
-                unpacked, _ = unpack_new_file_id(item.get("file_id"))
-                string = f"file_{unpacked}"
+                #unpacked, _ = unpack_new_file_id(file_id)
+                string = f"file_{file_id}"
                 outstr = base64.urlsafe_b64encode(string.encode("ascii")).decode().strip("=")
                 bot_username = (await clone_client.get_me()).username
                 share_link = f"https://t.me/{bot_username}?start={outstr}"
