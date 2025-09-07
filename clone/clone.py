@@ -853,15 +853,23 @@ async def auto_post_clone(bot_id: int, db, target_channel: int):
                 if not fresh or not fresh.get("auto_post", False):
                     return
 
-                item = await db.get_random_unposted_media(bot_id)
+                item = await db.media.aggregate([
+                    {"$match": {"posted": {"$ne": True}}},
+                    {"$sample": {"size": 1}}
+                ]).to_list(length=1)
+
                 if not item:
                     print(f"⌛ No new media for {bot_id}, sleeping 60s...")
                     await asyncio.sleep(60)
                     continue
 
+                item = item[0]
                 file_id = item.get("file_id")
                 if not file_id:
-                    await db.media.update_one({"_id": item["_id"]}, {"$addToSet": {"posted_by": bot_id}})
+                    await db.media.update_one(
+                        {"_id": item["_id"]},
+                        {"$set": {"posted": True}}
+                    )
                     continue
 
                 unpacked, _ = unpack_new_file_id(file_id)
@@ -890,7 +898,7 @@ async def auto_post_clone(bot_id: int, db, target_channel: int):
 
                 await db.media.update_one(
                     {"_id": item["_id"]},
-                    {"$addToSet": {"posted_by": bot_id}}
+                    {"$set": {"posted": True}}
                 )
 
                 sleep_time = int(fresh.get("interval_sec", 30))
