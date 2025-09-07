@@ -566,7 +566,7 @@ async def auto_post_clone(bot_id: int, db, target_channel: int):
                     chat_id=target_channel,
                     photo=FIX_IMAGE,
                     caption=text,
-                    parse_mode="html"
+                    parse_mode=enums.ParseMode.HTML
                 )
 
                 await db.mark_media_posted(item["_id"], bot_id)
@@ -1048,9 +1048,9 @@ async def message_capture(client: Client, message: Message):
                 file_id = message.document.file_id
 
             if file_id:
-                await client.send_cached_media(chat_id=message.chat.id, file_id=file_id, caption=new_text, parse_mode="html")
+                await client.send_cached_media(chat_id=message.chat.id, file_id=file_id, caption=new_text, parse_mode=enums.ParseMode.HTML)
             else:
-                await client.send_message(chat_id=message.chat.id, text=new_text, parse_mode="html")
+                await client.send_message(chat_id=message.chat.id, text=new_text, parse_mode=enums.ParseMode.HTML)
 
     except Exception as e:
         await client.send_message(
