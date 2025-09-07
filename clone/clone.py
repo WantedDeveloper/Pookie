@@ -628,12 +628,12 @@ async def link(bot, message):
             return await message.reply("❌ This message has no supported media.")
 
         file_type = g_msg.media
-        #file = getattr(g_msg, file_type.value, None)
-        #if not file:
-            #return await message.reply("❌ Unsupported file type.")
+        file = getattr(g_msg, file_type.value, None)
+        if not file:
+            return await message.reply("❌ Unsupported file type.")
 
         #file_id, _ = unpack_new_file_id(file.file_id)
-        string = f"file_{file_type}"
+        string = f"file_{file.file_id}"
         outstr = await encode(string)
 
         bot_username = (await bot.get_me()).username
