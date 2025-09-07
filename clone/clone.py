@@ -555,10 +555,10 @@ async def auto_post_clone(bot_id: int, db, target_channel: int):
 
                 text = ""
                 if header:
-                    text += f"{header}\n\n"
-                text += f"{selected_caption}\n\n🔗 Here is your link:\n{share_link}"
+                    text += f"<blockquote>{header}</blockquote>\n\n"
+                text += f"{selected_caption}\n\n<blockquote>🔗 Here is your link:\n{share_link}</blockquote>"
                 if footer:
-                    text += f"\n\n{footer}"
+                    text += f"\n\n<blockquote>{footer}</blockquote>"
 
                 await clone_client.send_photo(
                     chat_id=target_channel,
@@ -1023,15 +1023,15 @@ async def message_capture(client: Client, message: Message):
         new_text = ""
 
         if header:
-            new_text += f"{header}\n\n"
+            new_text += f"<blockquote>{header}</blockquote>\n\n"
 
         if clone.get("random_caption", False):
-            new_text += f"{selected_caption}\n\n{text}"
+            new_text += f"{selected_caption}\n\n<blockquote>{text}</blockquote>"
         else:
             new_text += f"{text}"
 
         if footer:
-            new_text += f"\n\n{footer}"
+            new_text += f"\n\n<blockquote>{footer}</blockquote>"
 
         if me.username and me.username in text:
             await message.delete()
