@@ -409,7 +409,8 @@ async def start(client, message):
             await sts.edit(f"✅ Successfully sent `{sent}` files.")"""
 
         # --- Single File Handler ---
-        pre, file_id = await decode(data).split("_", 1)
+        decoded = await decode(data)
+        pre, file_id = decoded.split("_", 1)
 
         if clone.get("access_token", False) and not await check_verification(client, message.from_user.id):
             verify_url = await get_token(client, message.from_user.id, f"https://t.me/{me.username}?start=")
