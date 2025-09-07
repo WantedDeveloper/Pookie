@@ -410,7 +410,6 @@ async def start(client, message):
 
         # --- Single File Handler ---
         pre, file_id = ((base64.urlsafe_b64decode(data + "=" * (-len(data) % 4))).decode("ascii")).split("_", 1)
-        print(f"✅ Extracted pre={pre}, file_id={file_id}")
 
         if clone.get("access_token", False) and not await check_verification(client, message.from_user.id):
             verify_url = await get_token(client, message.from_user.id, f"https://t.me/{me.username}?start=")
@@ -429,24 +428,16 @@ async def start(client, message):
             )
 
         try:
-            print(f"📤 Sending cached media → {file_id}")
             msg = await client.send_cached_media(
                 chat_id=message.from_user.id,
                 file_id=file_id,
                 protect_content=clone.get("forward_protect", False),
             )
-            print("✅ File sent successfully!")
 
             filetype = msg.media
-            print(f"📂 Media type: {filetype}")
             file = getattr(msg, filetype.value)
-            if file:
-                print(f"📎 File details: name={getattr(file, 'file_name', None)}, size={getattr(file, 'file_size', 0)}")
-            else:
-                print("⚠️ No file object found inside message!")
 
             original_caption = msg.caption or ""
-            print(f"📝 Original caption: {original_caption}")
 
             if clone.get("caption", None):
                 try:
@@ -547,9 +538,8 @@ async def auto_post_clone(bot_id: int, db, target_channel: int):
                     await asyncio.sleep(60)
                     continue
 
+                item = item[0]
                 file_id = item.get("file_id")
-                msg_id = item.get("msg_id")
-
                 if not file_id:
                     await db.mark_media_posted(item["_id"], bot_id)
                     continue
