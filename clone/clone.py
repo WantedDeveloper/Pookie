@@ -729,8 +729,6 @@ async def batch(bot, message):
             if not file:
                 continue
 
-            file_id, _ = unpack_new_file_id(file.file_id)
-
             file = {
                 "file_id": file.file_id,
                 "caption": caption,
@@ -743,7 +741,8 @@ async def batch(bot, message):
 
         # Convert to file_id
         string = json.dumps(outlist)
-        file_id = base64.urlsafe_b64encode(string.encode("ascii")).decode().strip("=")
+        file_id, _ = unpack_new_file_id(string.file_id)
+        file_id = base64.urlsafe_b64encode(file_id.encode("ascii")).decode().strip("=")
 
         share_link = f"https://t.me/{username}?start=BATCH-{file_id}"
 
