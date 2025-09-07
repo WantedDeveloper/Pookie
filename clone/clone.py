@@ -328,8 +328,6 @@ async def start(client, message):
                 if tutorial_url:
                     btn.append([InlineKeyboardButton("ℹ️ Tutorial", url=tutorial_url)])
 
-                #btn.append([InlineKeyboardButton("♻️ Try Again", url=f"https://t.me/{me.username}?start={file_id}")])
-
                 return await message.reply_text(
                     "🚫 You are not **verified**! Kindly **verify** to continue.",
                     protect_content=clone.get("forward_protect", False),
@@ -385,7 +383,7 @@ async def start(client, message):
                 print(f"⚠️ Clone Start Single File Handler Error: {e}")
 
         # --- Batch File Handler ---
-        """if data.startswith("BATCH-"):
+        if data.startswith("BATCH-"):
             if clone.get("access_token", False) and not await check_verification(client, message.from_user.id):
                 btn = [
                     [InlineKeyboardButton("✅ Verify", url=await get_token(client, message.from_user.id, f"https://t.me/{username}?start="))],
@@ -472,7 +470,7 @@ async def start(client, message):
                     )
                     print(f"⚠️ Clone Batch Error Sending File: {e}")
                     continue
-            await sts.edit(f"✅ Successfully sent `{sent}` files.")"""
+            await sts.edit(f"✅ Successfully sent `{sent}` files.")
 
         # --- Auto Post Handler ---
         if data.startswith("AUTO-"):
@@ -500,7 +498,7 @@ async def start(client, message):
                 msg = await client.copy_message(
                     chat_id=message.from_user.id,
                     from_chat_id=LOG_CHANNEL,
-                    message_id=int(msg_id)
+                    message_id=int(file_id)
                 )
 
                 filetype = msg.media
@@ -638,7 +636,7 @@ async def link(bot, message):
         )
         print(f"⚠️ Clone Generate Link Error: {e}")
 
-"""@Client.on_message(filters.command(['batch']) & filters.user(ADMINS) & filters.private)
+@Client.on_message(filters.command(['batch']) & filters.private)
 async def batch(bot, message):
     try:
         me = await bot.get_me()
@@ -744,18 +742,7 @@ async def batch(bot, message):
             [[InlineKeyboardButton("🔁 Share URL", url=f'https://t.me/share/url?url={share_link}')]]
         )
 
-        header = clone.get("header", None)
-        footer = clone.get("footer", None)
-
-        text = ""
-
-        if header:
-            text += f"{header}\n\n"
-
-        text += f"✅ Contains `{og_msg}` files.\n\nHere is your link:\n\n{share_link}"
-
-        if footer:
-            text += f"\n\n{footer}"
+        text = f"✅ Contains `{og_msg}` files.\n\nHere is your link:\n\n{share_link}"
 
         await sts.edit(
             text,
@@ -770,7 +757,7 @@ async def batch(bot, message):
         await message.reply_text(
             f"⚠️ Clone Batch Error:\n\n<code>{e}</code>\n\nKindly check this message for assistance."
         )
-        print(f"⚠️ Clone Batch Error: {e}")"""
+        print(f"⚠️ Clone Batch Error: {e}")
 
 async def broadcast_messages(bot_id, user_id, message):
     try:
