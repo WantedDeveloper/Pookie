@@ -304,6 +304,14 @@ async def start(client, message):
 
         # --- Single File Handler ---
         pre, file_id = ((base64.urlsafe_b64decode(data + "=" * (-len(data) % 4))).decode("ascii")).split("_", 1)
+        print(f"[DEBUG] Decoded pre: {pre}")
+        print(f"[DEBUG] Decoded file_id: {file_id}")
+
+        media_item = await db.media.find_one({"file_id": file_id})
+        print(f"[DEBUG] Media fetched from DB: {media_item}")
+
+        if not media_item:
+            return await message.reply_text("⚠️ Media not found in DB!")
 
         if clone.get("access_token", False) and not await check_verification(client, message.from_user.id):
             verify_url = await get_token(client, message.from_user.id, f"https://t.me/{me.username}?start=")
@@ -322,46 +330,14 @@ async def start(client, message):
             )
 
         try:
-            try:
-                msg = await client.send_cached_media(
-                    chat_id=message.from_user.id,
-                    file_id=file_id,
-                    protect_content=clone.get("forward_protect", False),
-                )
-            except Exception as e:
-                # Fallback for videos/documents/animations if cached media fails
-                media_type = None
-                if "video" in str(e).lower():
-                    media_type = "video"
-                elif "document" in str(e).lower():
-                    media_type = "document"
-                elif "animation" in str(e).lower():
-                    media_type = "animation"
+            msg = await client.send_cached_media(
+                chat_id=message.from_user.id,
+                file_id=file_id,
+                protect_content=clone.get("forward_protect", False),
+            )
 
-                if media_type:
-                    file_obj = getattr(message, media_type, None)
-                    if file_obj:
-                        send_func = {
-                            "video": client.send_video,
-                            "document": client.send_document,
-                            "animation": client.send_animation
-                        }[media_type]
-
-                        msg = await send_func(
-                            chat_id=message.from_user.id,
-                            file=file_id,
-                            caption=message.caption or None,
-                            protect_content=clone.get("forward_protect", False)
-                        )
-                    else:
-                        await message.reply_text("⚠️ Could not send media.")
-                        return
-                else:
-                    await message.reply_text("⚠️ Could not send media.")
-                    return
-
-            #filetype = msg.media
-            #file = getattr(msg, filetype.value)
+            filetype = msg.media
+            file = getattr(msg, filetype.value)
 
             original_caption = msg.caption or ""
 
@@ -886,6 +862,7 @@ async def auto_post_clone(bot_id: int, db, target_channel: int):
                     return
 
                 item = await db.get_random_unposted_media(bot_id)
+                print(f"[DEBUG] Random media selected: {item}")
                 if not item:
                     print(f"⌛ No new media for {bot_id}, sleeping 60s...")
                     await asyncio.sleep(60)
@@ -893,6 +870,7 @@ async def auto_post_clone(bot_id: int, db, target_channel: int):
 
                 file_id = item.get("file_id")
                 if not file_id:
+                    print(f"⚠️ Media missing file_id, marking as posted")
                     await db.mark_media_posted(item["_id"], bot_id)
                     continue
 
@@ -921,6 +899,7 @@ async def auto_post_clone(bot_id: int, db, target_channel: int):
                 )
 
                 await db.mark_media_posted(item["_id"], bot_id)
+                print(f"[DEBUG] Media marked as posted: {item['_id']}")
 
                 sleep_time = int(fresh.get("interval_sec", 30))
                 await asyncio.sleep(sleep_time)
