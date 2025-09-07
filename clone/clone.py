@@ -641,6 +641,12 @@ async def batch(bot, message):
     try:
         me = await bot.get_me()
         clone = await db.get_bot(me.id)
+        owner_id = clone.get("user_id")
+        moderators = clone.get("moderators", [])
+
+        if message.from_user.id != owner_id and message.from_user.id not in moderators:
+            await message.reply("❌ You are not authorized to use this bot.")
+            return
 
         username = (await bot.get_me()).username
         usage_text = f"Use correct format.\nExample:\n/batch https://t.me/{username}/10 https://t.me/{username}/20"
@@ -725,8 +731,8 @@ async def batch(bot, message):
             file = {
                 "file_id": file.file_id,
                 "caption": caption,
-                "file_name": file.file_name,
-                "file_size": file.file_size,
+                #"file_name": file.file_name,
+                #"file_size": file.file_size,
                 "protect": False
             }
             og_msg += 1
