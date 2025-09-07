@@ -361,13 +361,12 @@ async def start(client, message):
                     clone.get('auto_delete_msg', script.AD_TXT).format(time=auto_delete_time),
                     quote=True
                 )
-
                 asyncio.create_task(auto_delete_message(client, msg, k, auto_delete_time))
             return
         except Exception as e:
-            await clone_client.send_message(
+            await client.send_message(
                 LOG_CHANNEL,
-                f"⚠️ Clone Auto Post Error:\n\n<code>{e}</code>\n\nKindly check this message to get assistance."
+                f"⚠️ Clone Start Single Handler Error:\n\n<code>{e}</code>\n\nKindly check this message to get assistance."
             )
             print(f"⚠️ Clone Start Single Handler Error: {e}")
 
