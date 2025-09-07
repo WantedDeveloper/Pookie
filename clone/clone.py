@@ -322,14 +322,46 @@ async def start(client, message):
             )
 
         try:
-            msg = await client.send_cached_media(
-                chat_id=message.from_user.id,
-                file_id=file_id,
-                protect_content=clone.get("forward_protect", False),
-            )
+            try:
+                msg = await client.send_cached_media(
+                    chat_id=message.from_user.id,
+                    file_id=file_id,
+                    protect_content=clone.get("forward_protect", False),
+                )
+            except Exception as e:
+                # Fallback for videos/documents/animations if cached media fails
+                media_type = None
+                if "video" in str(e).lower():
+                    media_type = "video"
+                elif "document" in str(e).lower():
+                    media_type = "document"
+                elif "animation" in str(e).lower():
+                    media_type = "animation"
 
-            filetype = msg.media
-            file = getattr(msg, filetype.value)
+                if media_type:
+                    file_obj = getattr(message, media_type, None)
+                    if file_obj:
+                        send_func = {
+                            "video": client.send_video,
+                            "document": client.send_document,
+                            "animation": client.send_animation
+                        }[media_type]
+
+                        msg = await send_func(
+                            chat_id=message.from_user.id,
+                            file=file_id,
+                            caption=message.caption or None,
+                            protect_content=clone.get("forward_protect", False)
+                        )
+                    else:
+                        await message.reply_text("⚠️ Could not send media.")
+                        return
+                else:
+                    await message.reply_text("⚠️ Could not send media.")
+                    return
+
+            #filetype = msg.media
+            #file = getattr(msg, filetype.value)
 
             original_caption = msg.caption or ""
 
