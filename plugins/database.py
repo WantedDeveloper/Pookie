@@ -209,26 +209,24 @@ class Database:
         media = await self.media.find_one({"file_id": file_id})
         return bool(media)
 
-    async def get_random_unposted_media(self, bot_id):
+    async def get_random_unposted_media(self, bot_id: int):
         item = await self.media.aggregate([
-            {
-                "$match": {
-                    "posted_by": {"$ne": bot_id}  # ✅ skip if this clone already posted
-                }
-            },
+            {"$match": {
+                "$or": [
+                    {"posted_by": {"$exists": False}},
+                    {"posted_by": {"$nin": [bot_id]}}
+                ]
+            }},
             {"$sample": {"size": 1}}
         ]).to_list(length=1)
         return item[0] if item else None
 
-    # ------------------- Mark Media Posted -------------------
     async def mark_media_posted(self, media_id, bot_id: int):
-        """Mark media as posted by this bot safely (MongoDB conflict safe)"""
-        # Step 1: ensure posted_by exists
         await self.media.update_one(
             {"_id": media_id, "posted_by": {"$exists": False}},
             {"$set": {"posted_by": []}}
         )
-        # Step 2: add bot_id safely
+
         await self.media.update_one(
             {"_id": media_id},
             {"$addToSet": {"posted_by": bot_id}}
