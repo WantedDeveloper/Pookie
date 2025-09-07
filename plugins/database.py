@@ -209,16 +209,13 @@ class Database:
         media = await self.media.find_one({"file_id": file_id})
         return bool(media)
 
-    async def get_random_unposted_media(self, bot_id: int):
-        """Get a random media that this bot hasn't posted yet"""
+    async def get_random_unposted_media(self, bot_id):
         item = await self.media.aggregate([
-            {"$match": {
-                "$or": [
-                    {"posted_by": {"$exists": False}},
-                    {"posted_by": {"$eq": []}},
-                    {"posted_by": {"$nin": [bot_id]}}
-                ]
-            }},
+            {
+                "$match": {
+                    "posted_by": {"$ne": bot_id}  # ✅ skip if this clone already posted
+                }
+            },
             {"$sample": {"size": 1}}
         ]).to_list(length=1)
         return item[0] if item else None
