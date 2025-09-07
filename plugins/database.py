@@ -210,10 +210,12 @@ class Database:
         return bool(media)
 
     async def get_random_unposted_media(self, bot_id: int):
+        """Get a random media that this bot hasn't posted yet"""
         item = await self.media.aggregate([
             {"$match": {
                 "$or": [
                     {"posted_by": {"$exists": False}},
+                    {"posted_by": {"$eq": []}},
                     {"posted_by": {"$nin": [bot_id]}}
                 ]
             }},
@@ -221,15 +223,16 @@ class Database:
         ]).to_list(length=1)
         return item[0] if item else None
 
+    # ------------------- Mark Media Posted -------------------
     async def mark_media_posted(self, media_id, bot_id: int):
-        await self.media.update_one(
-            {"_id": media_id, "posted_by": {"$exists": False}},
-            {"$set": {"posted_by": []}}
-        )
-
+        """Mark media as posted by this bot safely"""
         await self.media.update_one(
             {"_id": media_id},
-            {"$addToSet": {"posted_by": bot_id}}
+            {
+                "$setOnInsert": {"posted_by": []},
+                "$addToSet": {"posted_by": bot_id}
+            },
+            upsert=True
         )
 
     async def get_media_by_id(self, msg_id):
