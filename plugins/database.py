@@ -225,14 +225,16 @@ class Database:
 
     # ------------------- Mark Media Posted -------------------
     async def mark_media_posted(self, media_id, bot_id: int):
-        """Mark media as posted by this bot safely"""
+        """Mark media as posted by this bot safely (MongoDB conflict safe)"""
+        # Step 1: ensure posted_by exists
+        await self.media.update_one(
+            {"_id": media_id, "posted_by": {"$exists": False}},
+            {"$set": {"posted_by": []}}
+        )
+        # Step 2: add bot_id safely
         await self.media.update_one(
             {"_id": media_id},
-            {
-                "$setOnInsert": {"posted_by": []},
-                "$addToSet": {"posted_by": bot_id}
-            },
-            upsert=True
+            {"$addToSet": {"posted_by": bot_id}}
         )
 
     async def get_media_by_id(self, msg_id):
