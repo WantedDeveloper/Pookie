@@ -409,7 +409,7 @@ async def start(client, message):
             await sts.edit(f"✅ Successfully sent `{sent}` files.")"""
 
         # --- Single File Handler ---
-        pre, file_id = ((base64.urlsafe_b64decode(data + "=" * (-len(data) % 4))).decode("ascii")).split("_", 1)
+        pre, file_id = await decode(data).split("_", 1)
 
         if clone.get("access_token", False) and not await check_verification(client, message.from_user.id):
             verify_url = await get_token(client, message.from_user.id, f"https://t.me/{me.username}?start=")
@@ -513,6 +513,19 @@ def unpack_new_file_id(new_file_id):
     file_ref = encode_file_ref(decoded.file_reference)
     return file_id, file_ref
 
+async def encode(string):
+    string_bytes = string.encode("ascii")
+    base64_bytes = base64.urlsafe_b64encode(string_bytes)
+    base64_string = (base64_bytes.decode("ascii")).strip("=")
+    return base64_string
+
+async def decode(base64_string):
+    base64_string = base64_string.strip("=") 
+    base64_bytes = (base64_string + "=" * (-len(base64_string) % 4)).encode("ascii")
+    string_bytes = base64.urlsafe_b64decode(base64_bytes) 
+    string = string_bytes.decode("ascii")
+    return string
+
 async def auto_post_clone(bot_id: int, db, target_channel: int):
     try:
         bot_id = int(bot_id)
@@ -538,7 +551,7 @@ async def auto_post_clone(bot_id: int, db, target_channel: int):
                     await asyncio.sleep(60)
                     continue
 
-                item = item[0]
+                
                 file_id = item.get("file_id")
                 if not file_id:
                     await db.mark_media_posted(item["_id"], bot_id)
@@ -614,13 +627,13 @@ async def link(bot, message):
             return await message.reply("❌ This message has no supported media.")
 
         file_type = g_msg.media
-        file = getattr(g_msg, file_type.value, None)
-        if not file:
-            return await message.reply("❌ Unsupported file type.")
+        #file = getattr(g_msg, file_type.value, None)
+        #if not file:
+            #return await message.reply("❌ Unsupported file type.")
 
-        file_id, _ = unpack_new_file_id(file.file_id)
-        string = f"file_{file_id}"
-        outstr = base64.urlsafe_b64encode(string.encode("ascii")).decode().strip("=")
+        #file_id, _ = unpack_new_file_id(file.file_id)
+        string = f"file_{file_type}"
+        outstr = await encode(string)
 
         bot_username = (await bot.get_me()).username
         share_link = f"https://t.me/{bot_username}?start={outstr}"
