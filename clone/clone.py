@@ -719,12 +719,15 @@ async def batch(bot, message):
                 except:
                     pass
 
-            if not msg or msg.empty or msg.service:
+            if not msg or msg.empty or msg.service or not msg.media:
                 continue
 
             file_type = msg.media
-            file = getattr(msg, file_type.value)
-            caption = getattr(msg, 'caption')
+            file = getattr(msg, file_type.value, None)
+            caption = getattr(msg, 'caption', None)
+
+            if not file:
+                continue
 
             file_id, _ = unpack_new_file_id(file.file_id)
 
