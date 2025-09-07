@@ -85,8 +85,7 @@ async def is_subscribed(bot, user_id: int, bot_id: int):
         except UserNotParticipant:
             return False
         except Exception as e:
-            await bot.send_message(
-                LOG_CHANNEL,
+            await message.reply_text(
                 f"⚠️ Clone is_subscribed Error:\n\n<code>{channel_id}: {e}</code>"
             )
             print(f"⚠️ Clone is_subscribed Error: {channel_id}: {e}")
@@ -180,8 +179,7 @@ async def auto_delete_message(client, msg_to_delete, notice_msg, hours):
         await msg_to_delete.delete()
         await notice_msg.edit_text("Your File/Video is successfully deleted!!!")
     except Exception as e:
-        await client.send_message(
-            LOG_CHANNEL,
+        await message.reply_text(
             f"⚠️ Clone Auto Delete Error:\n\n<code>{e}</code>"
         )
         print(f"⚠️ Clone Auto Delete Error: {e}")
@@ -302,74 +300,6 @@ async def start(client, message):
             file_id = data
             pre = ""
 
-        # --- Single File Handler ---
-        pre, file_id = ((base64.urlsafe_b64decode(data + "=" * (-len(data) % 4))).decode("ascii")).split("_", 1)
-
-        if clone.get("access_token", False) and not await check_verification(client, message.from_user.id):
-            verify_url = await get_token(client, message.from_user.id, f"https://t.me/{me.username}?start=")
-            btn = [[InlineKeyboardButton("✅ Verify", url=verify_url)]]
-
-            tutorial_url = clone.get("access_token_tutorial", None)
-            if tutorial_url:
-                btn.append([InlineKeyboardButton("ℹ️ Tutorial", url=tutorial_url)])
-
-            #btn.append([InlineKeyboardButton("♻️ Try Again", url=f"https://t.me/{me.username}?start={file_id}")])
-
-            return await message.reply_text(
-                "🚫 You are not **verified**! Kindly **verify** to continue.",
-                protect_content=clone.get("forward_protect", False),
-                reply_markup=InlineKeyboardMarkup(btn)
-            )
-
-        try:
-            msg = await client.send_cached_media(
-                chat_id=message.from_user.id,
-                file_id=file_id,
-                protect_content=clone.get("forward_protect", False),
-            )
-
-            filetype = msg.media
-            file = getattr(msg, filetype.value)
-
-            original_caption = msg.caption or ""
-
-            if clone.get("caption", None):
-                try:
-                    f_caption = clone.get("caption", None).format(
-                        file_name=file.file_name,
-                        file_size=get_size(file.file_size),
-                        caption=original_caption
-                    )
-                except:
-                    f_caption = original_caption or f"<code>{file.file_name}</code>"
-            else:
-                f_caption = original_caption or f"<code>{file.file_name}</code>"
-
-            buttons_data = clone.get("button", [])
-            buttons = []
-            for btn in buttons_data:
-                buttons.append([InlineKeyboardButton(btn["name"], url=btn["url"])])
-
-            if buttons:
-                await msg.edit_caption(f_caption, reply_markup=InlineKeyboardMarkup(buttons))
-            else:
-                await msg.edit_caption(f_caption)
-
-            if clone.get("auto_delete", False):
-                auto_delete_time = clone.get("auto_delete_time", 1)
-                k = await msg.reply(
-                    clone.get('auto_delete_msg', script.AD_TXT).format(time=auto_delete_time),
-                    quote=True
-                )
-                asyncio.create_task(auto_delete_message(client, msg, k, auto_delete_time))
-            return
-        except Exception as e:
-            await client.send_message(
-                LOG_CHANNEL,
-                f"⚠️ Clone Start Single Handler Error:\n\n<code>{e}</code>\n\nKindly check this message to get assistance."
-            )
-            print(f"⚠️ Clone Start Single Handler Error: {e}")
-
         if data.startswith("VERIFY-"):
             parts = data.split("-", 2)
             if len(parts) < 3 or str(message.from_user.id) != parts[1]:
@@ -384,7 +314,75 @@ async def start(client, message):
             else:
                 return await message.reply_text("❌ Invalid or expired link!", protect_content=True)
 
-        # --- Batch Handler ---
+        # --- Single File Handler ---
+        if data.startswith("SINGLE-"):
+            pre, file_id = ((base64.urlsafe_b64decode(data + "=" * (-len(data) % 4))).decode("ascii")).split("_", 1)
+
+            if clone.get("access_token", False) and not await check_verification(client, message.from_user.id):
+                verify_url = await get_token(client, message.from_user.id, f"https://t.me/{me.username}?start=")
+                btn = [[InlineKeyboardButton("✅ Verify", url=verify_url)]]
+
+                tutorial_url = clone.get("access_token_tutorial", None)
+                if tutorial_url:
+                    btn.append([InlineKeyboardButton("ℹ️ Tutorial", url=tutorial_url)])
+
+                #btn.append([InlineKeyboardButton("♻️ Try Again", url=f"https://t.me/{me.username}?start={file_id}")])
+
+                return await message.reply_text(
+                    "🚫 You are not **verified**! Kindly **verify** to continue.",
+                    protect_content=clone.get("forward_protect", False),
+                    reply_markup=InlineKeyboardMarkup(btn)
+                )
+
+            try:
+                msg = await client.send_cached_media(
+                    chat_id=message.from_user.id,
+                    file_id=file_id,
+                    protect_content=clone.get("forward_protect", False),
+                )
+
+                filetype = msg.media
+                file = getattr(msg, filetype.value)
+
+                original_caption = msg.caption or ""
+
+                if clone.get("caption", None):
+                    try:
+                        f_caption = clone.get("caption", None).format(
+                            file_name=file.file_name,
+                            file_size=get_size(file.file_size),
+                            caption=original_caption
+                        )
+                    except:
+                        f_caption = original_caption or f"<code>{file.file_name}</code>"
+                else:
+                    f_caption = original_caption or f"<code>{file.file_name}</code>"
+
+                buttons_data = clone.get("button", [])
+                buttons = []
+                for btn in buttons_data:
+                    buttons.append([InlineKeyboardButton(btn["name"], url=btn["url"])])
+
+                if buttons:
+                    await msg.edit_caption(f_caption, reply_markup=InlineKeyboardMarkup(buttons))
+                else:
+                    await msg.edit_caption(f_caption)
+
+                if clone.get("auto_delete", False):
+                    auto_delete_time = clone.get("auto_delete_time", 1)
+                    k = await msg.reply(
+                        clone.get('auto_delete_msg', script.AD_TXT).format(time=auto_delete_time),
+                        quote=True
+                    )
+                    asyncio.create_task(auto_delete_message(client, msg, k, auto_delete_time))
+                return
+            except Exception as e:
+                await message.reply_text(
+                    f"⚠️ Clone Start Single File Handler Error:\n\n<code>{e}</code>\n\nKindly check this message to get assistance."
+                )
+                print(f"⚠️ Clone Start Single File Handler Error: {e}")
+
+        # --- Batch File Handler ---
         """if data.startswith("BATCH-"):
             if clone.get("access_token", False) and not await check_verification(client, message.from_user.id):
                 btn = [
@@ -461,24 +459,89 @@ async def start(client, message):
                             )
                             asyncio.create_task(auto_delete_message(client, m, k, auto_delete_time))
                     except Exception as e2:
-                        await client.send_message(
-                            LOG_CHANNEL,
+                        await message.reply_text(
                             f"⚠️ Clone Batch Error After FloodWait:\n\n<code>{e2}</code>"
                         )
                         print(f"⚠️ Clone Batch Error After FloodWait: {e2}")
                         continue
                 except Exception as e:
-                    await client.send_message(
-                        LOG_CHANNEL,
+                    await message.reply_text(
                         f"⚠️ Clone Batch Error Sending File:\n\n<code>{e}</code>"
                     )
                     print(f"⚠️ Clone Batch Error Sending File: {e}")
                     continue
             await sts.edit(f"✅ Successfully sent `{sent}` files.")"""
 
+        # --- Auto Post Handler ---
+        if data.startswith("AUTO-"):
+            pre, file_id = ((base64.urlsafe_b64decode(data + "=" * (-len(data) % 4))).decode("ascii")).split("_", 1)
+
+            if clone.get("access_token", False) and not await check_verification(client, message.from_user.id):
+                verify_url = await get_token(client, message.from_user.id, f"https://t.me/{me.username}?start=")
+                btn = [[InlineKeyboardButton("✅ Verify", url=verify_url)]]
+
+                tutorial_url = clone.get("access_token_tutorial", None)
+                if tutorial_url:
+                    btn.append([InlineKeyboardButton("ℹ️ Tutorial", url=tutorial_url)])
+
+                #btn.append([InlineKeyboardButton("♻️ Try Again", url=f"https://t.me/{me.username}?start={file_id}")])
+
+                return await message.reply_text(
+                    "🚫 You are not **verified**! Kindly **verify** to continue.",
+                    protect_content=clone.get("forward_protect", False),
+                    reply_markup=InlineKeyboardMarkup(btn)
+                )
+
+            try:
+                msg = await client.send_cached_media(
+                    chat_id=message.from_user.id,
+                    file_id=file_id,
+                    protect_content=clone.get("forward_protect", False),
+                )
+
+                filetype = msg.media
+                file = getattr(msg, filetype.value)
+
+                original_caption = msg.caption or ""
+
+                if clone.get("caption", None):
+                    try:
+                        f_caption = clone.get("caption", None).format(
+                            file_name=file.file_name,
+                            file_size=get_size(file.file_size),
+                            caption=original_caption
+                        )
+                    except:
+                        f_caption = original_caption or f"<code>{file.file_name}</code>"
+                else:
+                    f_caption = original_caption or f"<code>{file.file_name}</code>"
+
+                buttons_data = clone.get("button", [])
+                buttons = []
+                for btn in buttons_data:
+                    buttons.append([InlineKeyboardButton(btn["name"], url=btn["url"])])
+
+                if buttons:
+                    await msg.edit_caption(f_caption, reply_markup=InlineKeyboardMarkup(buttons))
+                else:
+                    await msg.edit_caption(f_caption)
+
+                if clone.get("auto_delete", False):
+                    auto_delete_time = clone.get("auto_delete_time", 1)
+                    k = await msg.reply(
+                        clone.get('auto_delete_msg', script.AD_TXT).format(time=auto_delete_time),
+                        quote=True
+                    )
+                    asyncio.create_task(auto_delete_message(client, msg, k, auto_delete_time))
+                return
+            except Exception as e:
+                await message.reply_text(
+                    f"⚠️ Clone Auto Post Handler Error:\n\n<code>{e}</code>\n\nKindly check this message to get assistance."
+                )
+                print(f"⚠️ Clone Auto Post Handler Error: {e}")
+
     except Exception as e:
-        await client.send_message(
-            LOG_CHANNEL,
+        await message.reply_text(
             f"⚠️ Clone Start Bot Error:\n\n<code>{e}</code>"
         )
         print(f"⚠️ Clone Start Bot Error: {e}")
@@ -552,7 +615,7 @@ async def link(bot, message):
         outstr = base64.urlsafe_b64encode(string.encode("ascii")).decode().strip("=")
 
         bot_username = (await bot.get_me()).username
-        share_link = f"https://t.me/{bot_username}?start={outstr}"
+        share_link = f"https://t.me/{bot_username}?start=SINGLE-{outstr}"
 
         reply_markup = InlineKeyboardMarkup(
             [[InlineKeyboardButton("🔁 Share URL", url=f'https://t.me/share/url?url={share_link}')]]
@@ -566,8 +629,7 @@ async def link(bot, message):
         )
 
     except Exception as e:
-        await bot.send_message(
-            LOG_CHANNEL,
+        await message.reply_text(
             f"⚠️ Clone Generate Link Error:\n\n<code>{e}</code>\n\nKindly check this message for assistance."
         )
         print(f"⚠️ Clone Generate Link Error: {e}")
@@ -701,8 +763,7 @@ async def batch(bot, message):
     except (UsernameInvalid, UsernameNotModified):
         await message.reply('⚠️ Invalid link specified.')
     except Exception as e:
-        await bot.send_message(
-            LOG_CHANNEL,
+        await message.reply_text(
             f"⚠️ Clone Batch Error:\n\n<code>{e}</code>\n\nKindly check this message for assistance."
         )
         print(f"⚠️ Clone Batch Error: {e}")"""
@@ -828,8 +889,7 @@ async def broadcast(bot, message):
         await sts.edit(final_text)
 
     except Exception as e:
-        await bot.send_message(
-            LOG_CHANNEL,
+        await message.reply_text(
             f"⚠️ Clone Broadcast Error:\n\n<code>{e}</code>\n\nKindly check this message for assistance."
         )
         print(f"⚠️ Clone Broadcast Error: {e}")
@@ -853,30 +913,27 @@ async def auto_post_clone(bot_id: int, db, target_channel: int):
                 if not fresh or not fresh.get("auto_post", False):
                     return
 
-                item = await db.media.aggregate([
-                    {"$match": {"posted": {"$ne": True}}},
-                    {"$sample": {"size": 1}}
-                ]).to_list(length=1)
-
+                item = await db.get_random_unposted_media(bot_id)
                 if not item:
                     print(f"⌛ No new media for {bot_id}, sleeping 60s...")
                     await asyncio.sleep(60)
                     continue
 
-                item = item[0]
                 file_id = item.get("file_id")
                 if not file_id:
-                    await db.media.update_one(
-                        {"_id": item["_id"]},
-                        {"$set": {"posted": True}}
-                    )
+                    await db.mark_media_posted(item["_id"], bot_id)
                     continue
 
-                unpacked, _ = unpack_new_file_id(file_id)
-                string = f"file_{unpacked}"
+                copied = await clone_client.copy_message(
+                    chat_id=LOG_CHANNEL,
+                    from_chat_id=LOG_CHANNEL,
+                    message_id=item["msg_id"]
+                )
+
+                string = f"file_{copied.id}"
                 outstr = base64.urlsafe_b64encode(string.encode("ascii")).decode().strip("=")
                 bot_username = (await clone_client.get_me()).username
-                share_link = f"https://t.me/{bot_username}?start={outstr}"
+                share_link = f"https://t.me/{bot_username}?start=AUTO-{outstr}"
 
                 header = fresh.get("header")
                 footer = fresh.get("footer")
@@ -896,10 +953,7 @@ async def auto_post_clone(bot_id: int, db, target_channel: int):
                     parse_mode=enums.ParseMode.HTML
                 )
 
-                await db.media.update_one(
-                    {"_id": item["_id"]},
-                    {"$set": {"posted": True}}
-                )
+                await db.mark_media_posted(item["_id"], bot_id)
 
                 sleep_time = int(fresh.get("interval_sec", 30))
                 await asyncio.sleep(sleep_time)
@@ -907,8 +961,7 @@ async def auto_post_clone(bot_id: int, db, target_channel: int):
             except Exception as e:
                 print(f"⚠️ Clone Auto-post error for {bot_id}: {e}")
                 try:
-                    await clone_client.send_message(
-                        LOG_CHANNEL,
+                    await message.reply_text(
                         f"⚠️ Clone Auto Post Error:\n\n<code>{e}</code>\n\nKindly check this message to get assistance."
                     )
                 except:
@@ -970,15 +1023,13 @@ async def cb_handler(client: Client, query: CallbackQuery):
             await query.message.reply_text("❌ Menu closed. Send /start again.")
 
         else:
-            await client.send_message(
-                LOG_CHANNEL,
+            await message.reply_text(
                 f"⚠️ Clone Unknown Callback Data Received:\n\n{query.data}\n\nUser: {query.from_user.id}\n\nKindly check this message for assistance."
             )
             await query.answer("⚠️ Unknown action.", show_alert=True)
 
     except Exception as e:
-        await client.send_message(
-            LOG_CHANNEL,
+        await message.reply_text(
             f"⚠️ Clone Callback Handler Error:\n\n<code>{e}</code>\n\nKindly check this message for assistance."
         )
         print(f"⚠️ Clone Callback Handler Error: {e}")
@@ -1065,8 +1116,7 @@ async def message_capture(client: Client, message: Message):
                 await client.send_message(chat_id=message.chat.id, text=new_text, parse_mode=enums.ParseMode.HTML)
 
     except Exception as e:
-        await client.send_message(
-            LOG_CHANNEL,
+        await message.reply_text(
             f"⚠️ Clone Unexpected Error in message_capture:\n\n<code>{e}</code>\n\nKindly check this message to get assistance."
         )
         print(f"⚠️ Clone Unexpected Error in message_capture: {e}")
