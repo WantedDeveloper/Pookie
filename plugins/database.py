@@ -69,6 +69,7 @@ class Database:
             # Auto Post
             'auto_post': False,
             'target_channel': None,
+            'last_posted_log_id': None,
             # Premium User
             'premium': [],
             # Auto Delete
@@ -190,21 +191,15 @@ class Database:
         return count
 
     # ---------------- MEDIA ----------------
-    async def add_media(self, msg_id, file_id, file_ref, caption, media_type, date, posted_by=None):
-        """
-        Adds a new media entry to the database.
-        Uses `file_ref` to allow clone bots to send cached media without being admin in the DB channel.
-        """
+    async def add_media(self, msg_id, file_id, caption, media_type, date, posted_by=None):
         if posted_by is None:
             posted_by = []
-        
-        # Only insert if file_id or file_ref does not exist
+
         await self.media.update_one(
-            {"$or": [{"file_id": file_id}, {"file_ref": file_ref}]},
+            {"file_id": file_id},
             {"$setOnInsert": {
                 "msg_id": msg_id,
                 "file_id": file_id,
-                "file_ref": file_ref,
                 "caption": caption or "",
                 "media_type": media_type,
                 "date": date,
@@ -213,43 +208,35 @@ class Database:
             upsert=True
         )
 
-    async def is_media_exist(self, file_id=None, file_ref=None):
-        query = {}
-        if file_id:
-            query["file_id"] = file_id
-        if file_ref:
-            query["file_ref"] = file_ref
-
-        if not query:
-            return False
-
-        media = await self.media.find_one(query)
+    async def is_media_exist(self, file_id):
+        media = await self.media.find_one({"file_id": file_id})
         return bool(media)
 
     async def get_random_unposted_media(self, bot_id: int):
-        """
-        Returns a random media document that has not been posted by this bot.
-        """
-        items = await self.media.aggregate([
-            {"$match": {"$or": [{"posted_by": {"$exists": False}}, {"posted_by": {"$nin": [bot_id]}}]}},
+        item = await self.media.aggregate([
+            {"$match": {
+                "$or": [
+                    {"posted_by": {"$exists": False}},
+                    {"posted_by": {"$nin": [bot_id]}}
+                ]
+            }},
             {"$sample": {"size": 1}}
         ]).to_list(length=1)
-        return items[0] if items else None
+        return item[0] if item else None
 
     async def mark_media_posted(self, media_id, bot_id: int):
-        """
-        Mark a media as posted by this bot.
-        """
+        await self.media.update_one(
+            {"_id": media_id, "posted_by": {"$exists": False}},
+            {"$set": {"posted_by": []}}
+        )
+
         await self.media.update_one(
             {"_id": media_id},
             {"$addToSet": {"posted_by": bot_id}}
         )
 
-    async def get_media_by_id(self, media_id):
-        """
-        Fetch media by _id.
-        """
-        return await self.media.find_one({"_id": media_id})
+    async def get_media_by_id(self, msg_id):
+        return await self.media.find_one({"msg_id": msg_id})
 
     async def get_all_media(self):
         return self.media.find({})
