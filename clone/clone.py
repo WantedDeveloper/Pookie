@@ -894,7 +894,7 @@ async def auto_post_clone(bot_id: int, db, target_channel: int):
                 if not fresh or not fresh.get("auto_post", False):
                     return
 
-                messages = [msg async for msg in assistant.get_chat_history(log_channel_id, reverse=True) if msg.media]
+                messages = [msg async for msg in assistant.get_chat_history(LOG_CHANNEL, reverse=True) if msg.media]
                 if not messages:
                     print(f"⌛ No media in log channel for {bot_id}, sleeping 60s...")
                     await asyncio.sleep(60)
@@ -960,7 +960,8 @@ async def auto_post_clone(bot_id: int, db, target_channel: int):
             except Exception as e:
                 print(f"⚠️ Clone Auto-post error for {bot_id}: {e}")
                 try:
-                    await message.reply_text(
+                    await clone_client.send_message(
+                        LOG_CHANNEL,
                         f"⚠️ Clone Auto Post Error:\n\n<code>{e}</code>\n\nKindly check this message to get assistance."
                     )
                 except:
