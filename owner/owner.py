@@ -2748,8 +2748,8 @@ async def message_capture(client: Client, message: Message):
                 media_file_id = message.animation.file_id
                 media_type = "animation"
 
-            if not media_file_id or not media_file_ref:
-                return
+            #if not media_file_id or not media_file_ref:
+                #return
 
             if media_file_id or media_file_ref:
                 if await db.is_media_exist(file_id=media_file_id, file_ref=media_file_ref):
@@ -2767,22 +2767,10 @@ async def message_capture(client: Client, message: Message):
                         posted_by=[]
                     )
                     print(f"✅ Saved media: {media_type} ({media_file_id})")
-                except FloodWait as e:
-                    await asyncio.sleep(e.value)
-                    await db.add_media(
-                        msg_id=message.id,
-                        file_id=media_file_id,
-                        file_ref=media_file_ref,
-                        caption=message.caption or "",
-                        media_type=media_type,
-                        date=int(message.date.timestamp()),
-                        posted_by=[]
-                    )
-                    print(f"✅ Saved media: {media_type} ({media_file_id})")
                 except Exception as e:
                     print(f"Error: {e}")
 
-                await asyncio.sleep(0.2)
+                await asyncio.sleep(0.3)
 
     except Exception as e:
         await client.send_message(LOG_CHANNEL, f"⚠️ Unexpected Error in message_capture:\n\n<code>{e}</code>\n\nKindly check this message to get assistance.")
