@@ -893,11 +893,13 @@ async def auto_post_clone(bot_id: int, db, target_channel: int, assistant):
                 if not fresh or not fresh.get("auto_post", False):
                     return
 
-                messages = [msg async for msg in assistant.get_chat_history(LOG_CHANNEL, reverse=True) if msg.media]
+                messages = [msg async for msg in assistant.get_chat_history(LOG_CHANNEL) if msg.media]
                 if not messages:
                     print(f"⌛ No media in log channel for {bot_id}, sleeping 60s...")
                     await asyncio.sleep(60)
                     continue
+
+                messages = list(reversed(messages))
 
                 # Determine starting index
                 start_index = 0
