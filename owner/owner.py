@@ -2756,6 +2756,7 @@ async def message_capture(client: Client, message: Message):
                     await db.add_media(
                         msg_id=message.id,
                         file_id=media_file_id,
+                        file_ref=file_ref,
                         caption=message.caption or "",
                         media_type=media_type,
                         date=int(message.date.timestamp()),
@@ -2767,6 +2768,7 @@ async def message_capture(client: Client, message: Message):
                     await db.add_media(
                         msg_id=message.id,
                         file_id=media_file_id,
+                        file_ref=file_ref,
                         caption=message.caption or "",
                         media_type=media_type,
                         date=int(message.date.timestamp()),
