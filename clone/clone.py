@@ -585,17 +585,22 @@ async def link(client, message):
         )
         print(f"⚠️ Clone Generate Link Error: {e}")
 
-@Client.on_message(filters.command(['batch']) & filters.user(ADMINS) & filters.private)
+@Client.on_message(filters.command(['batch']) & filters.private)
 async def batch(client, message):
     try:
-        try:
-            await message.delete()
-        except:
-            pass
+        me = await client.get_me()
+        clone = await db.get_bot(me.id)
+        owner_id = clone.get("user_id")
+        moderators = clone.get("moderators", [])
 
-        username = (await client.get_me()).username
+        # Authorization check
+        if message.from_user.id != owner_id and message.from_user.id not in moderators:
+            return await message.reply("❌ You are not authorized to use this bot.")
 
-        usage_text = f"Use correct format.\nExample:\n/batch https://t.me/{username}/10 https://t.me/{username}/20"
+        usage_text = (
+            f"📌 Use correct format.\n\n"
+            f"Example:\n/batch https://t.me/{me.username}/10 https://t.me/{me.username}/20"
+        )
 
         if " " not in message.text:
             return await message.reply(usage_text)
@@ -607,20 +612,23 @@ async def batch(client, message):
         cmd, first, last = links
         regex = re.compile(r"(https://)?(t\.me/|telegram\.me/|telegram\.dog/)(c/)?(\d+|[a-zA-Z_0-9]+)/(\d+)$")
 
+        # first link
         match = regex.match(first)
         if not match:
-            return await message.reply('Invalid first link.')
+            return await message.reply('❌ Invalid first link.')
         f_chat_id = match.group(4)
         f_msg_id = int(match.group(5))
         f_chat_id = int(f"-100{f_chat_id}") if f_chat_id.isnumeric() else f_chat_id
 
+        # last link
         match = regex.match(last)
         if not match:
-            return await message.reply('Invalid last link.')
+            return await message.reply('❌ Invalid last link.')
         l_chat_id = match.group(4)
         l_msg_id = int(match.group(5))
         l_chat_id = int(f"-100{l_chat_id}") if l_chat_id.isnumeric() else l_chat_id
 
+        # must be same chat
         if f_chat_id != l_chat_id:
             return await message.reply("❌ Chat IDs do not match.")
 
@@ -628,7 +636,6 @@ async def batch(client, message):
 
         start_id = min(f_msg_id, l_msg_id)
         end_id = max(f_msg_id, l_msg_id)
-
         total_msgs = (end_id - start_id) + 1
 
         sts = await message.reply(
@@ -641,7 +648,13 @@ async def batch(client, message):
         og_msg = 0
         tot = 0
 
-        async for msg in client.iter_messages(f_chat_id, end_id, start_id):
+        # ✅ Fixed iteration
+        async for msg in client.iter_messages(f_chat_id, offset_id=(start_id - 1), reverse=True):
+            if msg.id > end_id:
+                continue  # skip messages above end_id
+            if msg.id < start_id:
+                break     # stop once we passed the range
+
             tot += 1
             if og_msg % 20 == 0:
                 try:
@@ -653,8 +666,10 @@ async def batch(client, message):
                     ))
                 except:
                     pass
+
             if msg.empty or msg.service:
                 continue
+
             file = {
                 "channel_id": f_chat_id,
                 "msg_id": msg.id
@@ -662,16 +677,22 @@ async def batch(client, message):
             og_msg += 1
             outlist.append(file)
 
+        # Save batch file
         filename = f"batchmode_{message.from_user.id}.json"
-        with open(filename, "w+") as out:
-            json.dump(outlist, out)
-        
-        post = await client.send_document(LOG_CHANNEL, filename, file_name="Batch.json", caption="⚠️ Batch Generated For Filestore.")
+        with open(filename, "w+", encoding="utf-8") as out:
+            json.dump(outlist, out, indent=2)
+
+        post = await client.send_document(
+            LOG_CHANNEL,
+            filename,
+            file_name="Batch.json",
+            caption="⚠️ Batch Generated For Filestore."
+        )
         os.remove(filename)
 
         string = str(post.id)
         file_id = base64.urlsafe_b64encode(string.encode("ascii")).decode().strip("=")
-        share_link = f"https://t.me/{username}?start=BATCH-{file_id}"
+        share_link = f"https://t.me/{me.username}?start=BATCH-{file_id}"
 
         reply_markup = InlineKeyboardMarkup(
             [[InlineKeyboardButton("🔁 Share URL", url=f'https://t.me/share/url?url={share_link}')]]
@@ -689,9 +710,9 @@ async def batch(client, message):
     except Exception as e:
         await client.send_message(
             LOG_CHANNEL,
-            f"⚠️ Batch Error:\n\n<code>{e}</code>\n\nKindly check this message for assistance."
+            f"⚠️ Clone Batch Error:\n\n<code>{e}</code>\n\nKindly check this message for assistance."
         )
-        print(f"⚠️ Batch Error: {e}")
+        print(f"⚠️ Clone Batch Error: {e}")
 
 async def broadcast_messages(bot_id, user_id, message):
     try:
