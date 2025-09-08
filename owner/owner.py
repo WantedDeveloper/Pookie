@@ -73,7 +73,7 @@ ADD_MODERATOR = {}
 
 START_TIME = time.time()
 
-async def is_subscribed(bot, query):
+async def is_subscribed(client, query):
     if REQUEST_TO_JOIN_MODE == True and join_db().isActive():
         try:
             user = await join_db().get_user(query.from_user.id)
@@ -81,7 +81,7 @@ async def is_subscribed(bot, query):
                 return True
             else:
                 try:
-                    user_data = await bot.get_chat_member(AUTH_CHANNEL, query.from_user.id)
+                    user_data = await client.get_chat_member(AUTH_CHANNEL, query.from_user.id)
                 except UserNotParticipant:
                     pass
                 except Exception as e:
@@ -94,7 +94,7 @@ async def is_subscribed(bot, query):
             return False
     else:
         try:
-            user = await bot.get_chat_member(AUTH_CHANNEL, query.from_user.id)
+            user = await client.get_chat_member(AUTH_CHANNEL, query.from_user.id)
         except UserNotParticipant:
             pass
         except Exception as e:
@@ -278,19 +278,17 @@ async def start(client, message):
         print(f"⚠️ Start Handler Error: {e}")
 
 @Client.on_message(filters.command(['genlink']) & filters.user(ADMINS) & filters.private)
-async def link(bot, message):
+async def link(client, message):
     try:
         try:
             await message.delete()
         except:
             pass
 
-        username = (await bot.get_me()).username
-
         if message.reply_to_message:
             g_msg = message.reply_to_message
         else:
-            g_msg = await bot.ask(
+            g_msg = await client.ask(
                 message.chat.id,
                 "📩 Please send me the message (file/text/media) to generate a shareable link.\n\nSend /cancel to stop.",
             )
@@ -303,7 +301,7 @@ async def link(bot, message):
         file_id = str(post.id)
         string = f"file_{file_id}"
         outstr = base64.urlsafe_b64encode(string.encode("ascii")).decode().strip("=")
-
+        username = (await client.get_me()).username
         share_link = f"https://t.me/{username}?start={outstr}"
 
         reply_markup = InlineKeyboardMarkup(
@@ -316,21 +314,19 @@ async def link(bot, message):
         )
 
     except Exception as e:
-        await bot.send_message(
+        await client.send_message(
             LOG_CHANNEL,
             f"⚠️ Generate Link Error:\n\n<code>{e}</code>\n\nKindly check this message for assistance."
         )
         print(f"⚠️ Generate Link Error: {e}")
 
 @Client.on_message(filters.command(['batch']) & filters.user(ADMINS) & filters.private)
-async def batch(bot, message):
+async def batch(client, message):
     try:
         try:
             await message.delete()
         except:
             pass
-
-        username = (await bot.get_me()).username
 
         usage_text = f"Use correct format.\nExample:\n/batch https://t.me/{username}/10 https://t.me/{username}/20"
 
@@ -361,7 +357,7 @@ async def batch(bot, message):
         if f_chat_id != l_chat_id:
             return await message.reply("❌ Chat IDs do not match.")
 
-        chat_id = (await bot.get_chat(f_chat_id)).id
+        chat_id = (await client.get_chat(f_chat_id)).id
 
         start_id = min(f_msg_id, l_msg_id)
         end_id = max(f_msg_id, l_msg_id)
@@ -378,7 +374,7 @@ async def batch(bot, message):
         og_msg = 0
         tot = 0
 
-        async for msg in bot.iter_messages(f_chat_id, end_id, start_id):
+        async for msg in client.iter_messages(f_chat_id, end_id, start_id):
             tot += 1
             if og_msg % 20 == 0:
                 try:
@@ -403,11 +399,12 @@ async def batch(bot, message):
         with open(filename, "w+") as out:
             json.dump(outlist, out)
         
-        post = await bot.send_document(LOG_CHANNEL, filename, file_name="Batch.json", caption="⚠️ Batch Generated For Filestore.")
+        post = await client.send_document(LOG_CHANNEL, filename, file_name="Batch.json", caption="⚠️ Batch Generated For Filestore.")
         os.remove(filename)
+
         string = str(post.id)
         file_id = base64.urlsafe_b64encode(string.encode("ascii")).decode().strip("=")
-        
+        username = (await client.get_me()).username
         share_link = f"https://t.me/{username}?start=BATCH-{file_id}"
 
         reply_markup = InlineKeyboardMarkup(
@@ -424,7 +421,7 @@ async def batch(bot, message):
     except (UsernameInvalid, UsernameNotModified):
         await message.reply('⚠️ Invalid Link specified.')
     except Exception as e:
-        await bot.send_message(
+        await client.send_message(
             LOG_CHANNEL,
             f"⚠️ Batch Error:\n\n<code>{e}</code>\n\nKindly check this message for assistance."
         )
@@ -455,19 +452,17 @@ def make_progress_bar(done, total):
     return "🟩" * filled + "⬛" * empty
 
 @Client.on_message(filters.command("broadcast") & filters.user(ADMINS) & filters.private)
-async def broadcast(bot, message):
+async def broadcast(client, message):
     try:
         try:
             await message.delete()
         except:
             pass
 
-        users = await db.get_all_users()
-
         if message.reply_to_message:
             b_msg = message.reply_to_message
         else:
-            b_msg = await bot.ask(
+            b_msg = await client.ask(
                 message.chat.id,
                 "📩 Send the message to broadcast\n\n/cancel to stop.",
             )
@@ -481,6 +476,7 @@ async def broadcast(bot, message):
 
         done = blocked = deleted = failed = success = 0
 
+        users = await db.get_all_users()
         async for user in users:
             try:
                 if "id" in user:
@@ -557,7 +553,7 @@ async def broadcast(bot, message):
         await sts.edit(final_text)
 
     except Exception as e:
-        await bot.send_message(
+        await client.send_message(
             LOG_CHANNEL,
             f"⚠️ Broadcast Error:\n\n<code>{e}</code>\n\nKindly check this message for assistance."
         )
