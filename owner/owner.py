@@ -2249,18 +2249,24 @@ else:   # fallback to local session file
     )
 
 async def add_clone_to_log_channel(bot_id: int):
-    """
-    Add clone bot to LOG_CHANNEL and promote as admin.
-    :param bot_id: Telegram ID of clone bot (int)
-    """
     try:
         if not assistant.is_connected:
             await assistant.start()
 
-        # Add bot into log channel
+        # 1. Meet the bot first (important!)
+        try:
+            await assistant.resolve_peer(bot_id)
+        except Exception:
+            # if peer not found, send /start to bot
+            username = f"{(await assistant.get_users(bot_id)).username}"
+            if username:
+                await assistant.send_message(username, "/start")
+                print(f"📩 Assistant started chat with @{username}")
+
+        # 2. Add bot to log channel
         await assistant.add_chat_members(LOG_CHANNEL, bot_id)
 
-        # Promote bot with full privileges
+        # 3. Promote bot
         await assistant.promote_chat_member(
             LOG_CHANNEL,
             bot_id,
