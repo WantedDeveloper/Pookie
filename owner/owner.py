@@ -320,6 +320,23 @@ async def link(client, message):
         )
         print(f"⚠️ Generate Link Error: {e}")
 
+def batch_progress_bar(done, total, length=20):
+    if total == 0:
+        return "[░" * length + "] 0%"
+    
+    percent = int((done / total) * 100)
+    filled = int((done / total) * length)
+    empty = length - filled
+    bar = "▓" * filled + "░" * empty
+
+    percent_str = f"{percent}%"
+    bar_list = list(bar)
+    start_pos = max((length - len(percent_str)) // 2, 0)
+    for i, c in enumerate(percent_str):
+        if start_pos + i < length:
+            bar_list[start_pos + i] = c
+    return f"[{''.join(bar_list)}]"
+
 @Client.on_message(filters.command(['batch']) & filters.user(ADMINS) & filters.private)
 async def batch(client, message):
     try:
@@ -330,7 +347,7 @@ async def batch(client, message):
 
         username = (await client.get_me()).username
 
-        usage_text = f"Use correct format.\nExample:\n/batch https://t.me/{username}/10 https://t.me/{username}/20"
+        usage_text = f"📌 Use correct format.\nExample:\n/batch https://t.me/{username}/10 https://t.me/{username}/20"
 
         if " " not in message.text:
             return await message.reply(usage_text)
@@ -344,14 +361,14 @@ async def batch(client, message):
 
         match = regex.match(first)
         if not match:
-            return await message.reply('Invalid first link.')
+            return await message.reply('❌ Invalid first link.')
         f_chat_id = match.group(4)
         f_msg_id = int(match.group(5))
         f_chat_id = int(f"-100{f_chat_id}") if f_chat_id.isnumeric() else f_chat_id
 
         match = regex.match(last)
         if not match:
-            return await message.reply('Invalid last link.')
+            return await message.reply('❌ Invalid last link.')
         l_chat_id = match.group(4)
         l_msg_id = int(match.group(5))
         l_chat_id = int(f"-100{l_chat_id}") if l_chat_id.isnumeric() else l_chat_id
@@ -370,7 +387,6 @@ async def batch(client, message):
             "⏳ Generating link for your messages...\n"
             "This may take time depending upon number of messages."
         )
-        FRMT = "Generating Link...\n\nTotal: {total}\nDone: {current}\nRemaining: {rem}\nStatus: {sts}"
 
         outlist = []
         og_msg = 0
@@ -378,14 +394,19 @@ async def batch(client, message):
 
         async for msg in client.iter_messages(f_chat_id, end_id, start_id):
             tot += 1
-            if og_msg % 20 == 0:
+            if og_msg % 20 == 0 or tot == total_msgs:
                 try:
-                    await sts.edit(FRMT.format(
-                        total=total_msgs,
-                        current=tot,
-                        rem=(total_msgs - tot),
-                        sts="Saving Messages"
-                    ))
+                    progress_bar = batch_progress_bar(tot, total_msgs)
+                    await sts.edit(f"""
+⚙️ <b>Generating Batch Link...</b>
+
+📂 Total: {total_msgs}
+✅ Done: {tot}/{total_msgs}
+⏳ Remaining: {total_msgs - tot}
+📌 Status: Saving Messages
+
+{progress}
+""")
                 except:
                     pass
             if msg.empty or msg.service:
@@ -401,7 +422,12 @@ async def batch(client, message):
         with open(filename, "w+") as out:
             json.dump(outlist, out)
         
-        post = await client.send_document(LOG_CHANNEL, filename, file_name="Batch.json", caption="⚠️ Batch Generated For Filestore.")
+        post = await client.send_document(
+            LOG_CHANNEL,
+            filename,
+            file_name="Batch.json",
+            caption="⚠️ Batch Generated For Filestore."
+        )
         os.remove(filename)
 
         string = str(post.id)
@@ -413,7 +439,7 @@ async def batch(client, message):
         )
 
         await sts.edit(
-            f"✅ Contains `{og_msg}` files.\n\nHere is your link:\n\n{share_link}",
+            f"Here is your link:\n\n{share_link}",
             reply_markup=reply_markup
         )
 
@@ -447,10 +473,22 @@ async def broadcast_messages(user_id, message):
     except Exception as e:
         return False, f"Error: {str(e)}"
 
-def make_progress_bar(done, total):
-    filled = int((done / total) * 20)
-    empty = 20 - filled
-    return "🟩" * filled + "⬛" * empty
+def broadcast_progress_bar(done, total, length=20):
+    if total == 0:
+        return "[░" * length + "] 0%"
+    
+    percent = int((done / total) * 100)
+    filled = int((done / total) * length)
+    empty = length - filled
+    bar = "▓" * filled + "░" * empty
+
+    percent_str = f"{percent}%"
+    bar_list = list(bar)
+    start_pos = max((length - len(percent_str)) // 2, 0)
+    for i, c in enumerate(percent_str):
+        if start_pos + i < length:
+            bar_list[start_pos + i] = c
+    return f"[{''.join(bar_list)}]"
 
 @Client.on_message(filters.command("broadcast") & filters.user(ADMINS) & filters.private)
 async def broadcast(client, message):
@@ -493,8 +531,8 @@ async def broadcast(client, message):
                             failed += 1
                     done += 1
 
-                    if not done % 10 or done == total_users:
-                        progress = make_progress_bar(done, total_users)
+                    if done % 10 == 0 or done == total_users:
+                        progress = broadcast_progress_bar(done, total_users)
                         percent = (done / total_users) * 100
                         elapsed = time.time() - start_time
                         speed = done / elapsed if elapsed > 0 else 0
@@ -505,11 +543,11 @@ async def broadcast(client, message):
 
                         try:
                             await sts.edit(f"""
-📢 Broadcast in Progress...
+📢 <b>Broadcast in Progress...</b>
 
-{progress} {percent:.1f}%
+{progress}
 
-👥 Total: {total_users}
+👥 Total Users: {total_users}
 ✅ Success: {success}
 🚫 Blocked: {blocked}
 ❌ Deleted: {deleted}
@@ -528,12 +566,11 @@ async def broadcast(client, message):
                 done += 1
                 continue
 
-        time_taken = datetime.timedelta(seconds=int(time.time()-start_time))
-        speed = round(done / (time.time()-start_time), 2) if done > 0 else 0
-        progress_bar = "🟩" * 20
-
+        time_taken = datetime.timedelta(seconds=int(time.time() - start_time))
+        #speed = round(done / (time.time()-start_time), 2) if done > 0 else 0
+        final_progress = broadcast_progress_bar(total_users, total_users)
         final_text = f"""
-✅ Broadcast Completed ✅
+✅ <b>Broadcast Completed</b> ✅
 
 ⏱ Duration: {time_taken}
 👥 Total Users: {total_users}
@@ -545,12 +582,11 @@ async def broadcast(client, message):
 ⚠️ Failed: {failed} ({(failed/total_users)*100:.1f}%)
 
 ━━━━━━━━━━━━━━━━━━━━━━
-{progress_bar} 100%
+{final_progress} 100%
 ━━━━━━━━━━━━━━━━━━━━━━
 
-⚡ Speed: {speed} users/sec
+⚡ Speed: {speed:.2f} users/sec
 """
-
         await sts.edit(final_text)
 
     except Exception as e:
@@ -2723,7 +2759,7 @@ async def message_capture(client: Client, message: Message):
                         caption=message.caption or "",
                         media_type=media_type,
                         date=int(message.date.timestamp()),
-                        posted=False
+                        posted_by=[]
                     )
                     print(f"✅ Saved media: {media_type} ({media_file_id})")
                 except FloodWait as e:
@@ -2734,7 +2770,7 @@ async def message_capture(client: Client, message: Message):
                         caption=message.caption or "",
                         media_type=media_type,
                         date=int(message.date.timestamp()),
-                        posted=False
+                        posted_by=[]
                     )
                     print(f"✅ Saved media: {media_type} ({media_file_id})")
                 except Exception as e:
