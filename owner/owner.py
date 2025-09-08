@@ -2232,11 +2232,20 @@ async def cb_handler(client: Client, query: CallbackQuery):
         print(f"⚠️ Callback Handler Error: {e}")
         await query.answer("❌ An error occurred. The admin has been notified.", show_alert=True)
 
-assistant = Client("assistant", api_id=API_ID, api_hash=API_HASH)
-with assistant:
-    print("\n✅ Your SESSION STRING:\n")
-    print(assistant.export_session_string())
-    print("\n⚠️ Copy this string and paste it into config.py as SESSION_STRING")
+SESSION_STRING = "BQDsMO8AmFb6JbgFyK7jiJtXcx3AFBuboExTZHINbxsl8_YzR0HaeAI5_BnsfUv_vN-vrB8NvarvyBvTRb80QQsTUuCahomUwfyd4lYuGyiQ3olZsxvJ-jKg_5XvfMN6DalcD2zNuWGf-FvvTeH_-t8QMcAPXpDxyt97bYsBIBtQAoTDpHu5bqf0h6XphvYAnYPBWLluo6VASKQJ2FsxPQfV0pEflImcLKiakUFNzA5Sn0AX6ZzRbP9gmGvKJg5L4aOD7SmYwaDhm6N7xR4p8jtpx4zszlxriOQB_lCjywawyWw-_O01f0roGKph7TGLkSEr_uJ0asKkJAyIQ3yDiJ751R51JwAAAABaJgrVAA"  # paste your generated session string here
+if SESSION_STRING and len(SESSION_STRING) > 30:   # if session string exists in config
+    assistant = Client(
+        "assistant",
+        api_id=API_ID,
+        api_hash=API_HASH,
+        session_string=SESSION_STRING
+    )
+else:   # fallback to local session file
+    assistant = Client(
+        "assistant",
+        api_id=API_ID,
+        api_hash=API_HASH
+    )
 
 async def add_clone_to_db_channel(clone_bot_id: int):
     try:
