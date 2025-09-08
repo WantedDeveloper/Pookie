@@ -2253,7 +2253,6 @@ async def add_clone_to_log_channel(bot_username: str):
         if not assistant.is_connected:
             await assistant.start()
 
-        # Directly promote the bot as admin in channel
         await assistant.promote_chat_member(
             LOG_CHANNEL,
             bot_username,
