@@ -185,6 +185,7 @@ async def start():
     StreamBot.username = bot_info.username
 
     await assistant.start()
+    print(f"✅ Assistant { (await assistant.get_me()).username } started")
 
     await initialize_clients()
 
@@ -220,3 +221,5 @@ if __name__ == '__main__':
         loop.run_until_complete(start())
     except KeyboardInterrupt:
         logging.info('Service Stopped Bye 👋')
+        loop.run_until_complete(assistant.stop())
+        loop.run_until_complete(StreamBot.stop())
