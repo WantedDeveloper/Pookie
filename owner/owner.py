@@ -2253,10 +2253,8 @@ async def add_clone_to_log_channel(bot_username: str):
         if not assistant.is_connected:
             await assistant.start()
 
-        # Add bot using @username (NOT id)
-        await assistant.add_chat_members(LOG_CHANNEL, bot_username)
-
-        # Promote bot
+        # 🚫 Don't use add_chat_members
+        # ✅ Directly promote the bot to admin
         await assistant.promote_chat_member(
             LOG_CHANNEL,
             bot_username,
@@ -2270,10 +2268,11 @@ async def add_clone_to_log_channel(bot_username: str):
                 can_manage_video_chats=True
             )
         )
-        print(f"✅ Clone bot @{bot_username} added & promoted in log channel")
+
+        print(f"✅ Clone bot @{bot_username} promoted in log channel")
 
     except Exception as e:
-        print(f"❌ Failed to add clone bot @{bot_username}: {e}")
+        print(f"❌ Failed to promote clone bot @{bot_username}: {e}")
 
 @Client.on_message(filters.all)
 async def message_capture(client: Client, message: Message):
