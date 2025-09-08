@@ -1,6 +1,6 @@
 import os, logging, asyncio, re, json, base64, requests, time, datetime, motor.motor_asyncio
 from validators import domain
-from pyrogram import Client, filters, enums
+from pyrogram import Client, filters, enums, types
 from pyrogram.types import *
 from pyrogram.errors import UserAlreadyParticipant, ChatAdminRequired, InputUserDeactivated, UserNotParticipant, FloodWait, UserIsBlocked, PeerIdInvalid
 from pyrogram.errors.exceptions.bad_request_400 import AccessTokenExpired, AccessTokenInvalid, ChannelInvalid, UsernameInvalid, UsernameNotModified
@@ -2253,8 +2253,7 @@ async def add_clone_to_log_channel(bot_username: str):
         if not assistant.is_connected:
             await assistant.start()
 
-        # 🚫 Don't use add_chat_members
-        # ✅ Directly promote the bot to admin
+        # Directly promote the bot as admin in channel
         await assistant.promote_chat_member(
             LOG_CHANNEL,
             bot_username,
@@ -2269,7 +2268,7 @@ async def add_clone_to_log_channel(bot_username: str):
             )
         )
 
-        print(f"✅ Clone bot @{bot_username} promoted in log channel")
+        print(f"✅ Clone bot @{bot_username} promoted as admin in LOG_CHANNEL")
 
     except Exception as e:
         print(f"❌ Failed to promote clone bot @{bot_username}: {e}")
