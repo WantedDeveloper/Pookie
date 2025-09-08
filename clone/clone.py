@@ -585,7 +585,22 @@ async def link(client, message):
         )
         print(f"⚠️ Clone Generate Link Error: {e}")
 
-import asyncio
+def batch_progress_bar(done, total, length=20):
+    if total == 0:
+        return "[░" * length + "] 0%"
+    
+    percent = int((done / total) * 100)
+    filled = int((done / total) * length)
+    empty = length - filled
+    bar = "▓" * filled + "░" * empty
+
+    percent_str = f"{percent}%"
+    bar_list = list(bar)
+    start_pos = max((length - len(percent_str)) // 2, 0)
+    for i, c in enumerate(percent_str):
+        if start_pos + i < length:
+            bar_list[start_pos + i] = c
+    return f"[{''.join(bar_list)}]"
 
 @Client.on_message(filters.command(['batch']) & filters.private)
 async def batch(client, message):
@@ -595,7 +610,6 @@ async def batch(client, message):
         owner_id = clone.get("user_id")
         moderators = clone.get("moderators", [])
 
-        # Authorization check
         if message.from_user.id != owner_id and message.from_user.id not in moderators:
             return await message.reply("❌ You are not authorized to use this bot.")
 
@@ -614,7 +628,6 @@ async def batch(client, message):
         cmd, first, last = links
         regex = re.compile(r"(https://)?(t\.me/|telegram\.me/|telegram\.dog/)(c/)?(\d+|[a-zA-Z_0-9]+)/(\d+)$")
 
-        # first link
         match = regex.match(first)
         if not match:
             return await message.reply('❌ Invalid first link.')
@@ -622,7 +635,6 @@ async def batch(client, message):
         f_msg_id = int(match.group(5))
         f_chat_id = int(f"-100{f_chat_id}") if f_chat_id.isnumeric() else f_chat_id
 
-        # last link
         match = regex.match(last)
         if not match:
             return await message.reply('❌ Invalid last link.')
@@ -630,7 +642,6 @@ async def batch(client, message):
         l_msg_id = int(match.group(5))
         l_chat_id = int(f"-100{l_chat_id}") if l_chat_id.isnumeric() else l_chat_id
 
-        # must be same chat
         if f_chat_id != l_chat_id:
             return await message.reply("❌ Chat IDs do not match.")
 
@@ -644,19 +655,11 @@ async def batch(client, message):
             "⏳ Generating link for your messages...\n"
             "This may take time depending upon number of messages."
         )
-        FRMT = (
-            "Generating Link...\n\n"
-            "Total: {total}\n"
-            "Done: {current}/{total}\n"
-            "Remaining: {rem}\n"
-            "Status: {sts}"
-        )
 
         outlist = []
         og_msg = 0
         tot = 0
 
-        # ✅ Loop using get_messages (Pyrogram v1 safe)
         for msg_id in range(start_id, end_id + 1):
             try:
                 msg = await client.get_messages(f_chat_id, msg_id)
@@ -665,14 +668,19 @@ async def batch(client, message):
                 continue
 
             tot += 1
-            if og_msg % 20 == 0:  # update progress every 20 messages
+            if og_msg % 20 == 0 or tot == total_msgs:
                 try:
-                    await sts.edit(FRMT.format(
-                        total=total_msgs,
-                        current=tot,
-                        rem=(total_msgs - tot),
-                        sts="Saving Messages"
-                    ))
+                    progress_bar = batch_progress_bar(tot, total_msgs)
+                    await sts.edit(f"""
+⚙️ <b>Generating Batch Link...</b>
+
+📂 Total: {total_msgs}
+✅ Done: {tot}/{total_msgs}
+⏳ Remaining: {total_msgs - tot}
+📌 Status: Saving Messages
+
+{progress}
+""")
                 except:
                     pass
 
@@ -687,10 +695,8 @@ async def batch(client, message):
             og_msg += 1
             outlist.append(file)
 
-            # small delay to avoid floodwaits
             await asyncio.sleep(0.1)
 
-        # Save batch file
         filename = f"batchmode_{message.from_user.id}.json"
         with open(filename, "w+", encoding="utf-8") as out:
             json.dump(outlist, out, indent=2)
@@ -712,7 +718,7 @@ async def batch(client, message):
         )
 
         await sts.edit(
-            f"✅ Contains `{og_msg}` files.\n\nHere is your link:\n\n{share_link}",
+            f"Here is your link:\n\n{share_link}",
             reply_markup=reply_markup
         )
 
@@ -747,10 +753,22 @@ async def broadcast_messages(bot_id, user_id, message):
         await clonedb.delete_user(bot_id, user_id)
         return False, "Error"
 
-def make_progress_bar(done, total):
-    filled = int((done / total) * 20)
-    empty = 20 - filled
-    return "🟩" * filled + "⬛" * empty
+def broadcast_progress_bar(done, total, length=20):
+    if total == 0:
+        return "[░" * length + "] 0%"
+    
+    percent = int((done / total) * 100)
+    filled = int((done / total) * length)
+    empty = length - filled
+    bar = "▓" * filled + "░" * empty
+
+    percent_str = f"{percent}%"
+    bar_list = list(bar)
+    start_pos = max((length - len(percent_str)) // 2, 0)
+    for i, c in enumerate(percent_str):
+        if start_pos + i < length:
+            bar_list[start_pos + i] = c
+    return f"[{''.join(bar_list)}]"
 
 @Client.on_message(filters.command("broadcast") & filters.private)
 async def broadcast(client, message):
@@ -796,8 +814,8 @@ async def broadcast(client, message):
                         failed += 1
                 done += 1
 
-                if not done % 10 or done == total_users:
-                    progress = make_progress_bar(done, total_users)
+                if done % 10 == 0 or done == total_users:
+                    progress = broadcast_progress_bar(done, total_users)
                     percent = (done / total_users) * 100
                     elapsed = time.time() - start_time
                     speed = done / elapsed if elapsed > 0 else 0
@@ -806,9 +824,9 @@ async def broadcast(client, message):
 
                     try:
                         await sts.edit(f"""
-📢 Broadcast in Progress...
+📢 <b>Broadcast in Progress...</b>
 
-{progress} {percent:.1f}%
+{progress}
 
 👥 Total Users: {total_users}
 ✅ Success: {success}
@@ -826,9 +844,9 @@ async def broadcast(client, message):
                 failed += 1
 
         time_taken = datetime.timedelta(seconds=int(time.time() - start_time))
-        progress_bar = "🟩" * 20
+        final_progress = broadcast_progress_bar(total_users, total_users)
         final_text = f"""
-✅ Broadcast Completed ✅
+✅ <b>Broadcast Completed</b> ✅
 
 ⏱ Duration: {time_taken}
 👥 Total Users: {total_users}
@@ -840,7 +858,7 @@ async def broadcast(client, message):
 ⚠️ Failed: {failed} ({(failed/total_users)*100:.1f}%)
 
 ━━━━━━━━━━━━━━━━━━━━━━
-{progress_bar} 100%
+{final_progress} 100%
 ━━━━━━━━━━━━━━━━━━━━━━
 
 ⚡ Speed: {speed:.2f} users/sec
@@ -884,13 +902,7 @@ async def auto_post_clone(bot_id: int, db, target_channel: int):
                     await db.mark_media_posted(item["_id"], bot_id)
                     continue
 
-                copied = await clone_client.copy_message(
-                    chat_id=LOG_CHANNEL,
-                    from_chat_id=LOG_CHANNEL,
-                    message_id=item["msg_id"]
-                )
-
-                string = f"file_{copied.id}"
+                string = f"file_{item['_id']}"
                 outstr = base64.urlsafe_b64encode(string.encode("ascii")).decode().strip("=")
                 bot_username = (await clone_client.get_me()).username
                 share_link = f"https://t.me/{bot_username}?start=AUTO-{outstr}"
