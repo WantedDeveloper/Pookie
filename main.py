@@ -185,10 +185,7 @@ async def start():
     StreamBot.username = bot_info.username
 
     assistant = Client("assistant", api_id=API_ID, api_hash=API_HASH)
-    with assistant:
-        print("\n✅ Your SESSION STRING:\n")
-        print(assistant.export_session_string())
-        print("\n⚠️ Copy this string and paste it into config.py as SESSION_STRING")
+    await assistant.start()
 
     await initialize_clients()
 
