@@ -1046,8 +1046,8 @@ async def cb_handler(client: Client, query: CallbackQuery):
                  InlineKeyboardButton('📢 Channel Message', callback_data=f'link_message_{bot_id}')],
                 [InlineKeyboardButton('🔔 Force Subscribe', callback_data=f'force_subscribe_{bot_id}'),
                  InlineKeyboardButton('🔑 Access Token', callback_data=f'access_token_{bot_id}')],
-                """[InlineKeyboardButton('📤 Auto Post', callback_data=f'auto_post_{bot_id}'),
-                 InlineKeyboardButton('💎 Premium User', callback_data=f'premium_user_{bot_id}')],"""
+                [InlineKeyboardButton('📤 Auto Post', callback_data=f'auto_post_{bot_id}'),
+                 InlineKeyboardButton('💎 Premium User', callback_data=f'premium_user_{bot_id}')],
                 [InlineKeyboardButton('⏳ Auto Delete', callback_data=f'auto_delete_{bot_id}'),
                  InlineKeyboardButton('🚫 Forward Protect', callback_data=f'forward_protect_{bot_id}')],
                 [InlineKeyboardButton('🛡 Moderator', callback_data=f'moderator_{bot_id}'),
@@ -2232,7 +2232,20 @@ async def cb_handler(client: Client, query: CallbackQuery):
         print(f"⚠️ Callback Handler Error: {e}")
         await query.answer("❌ An error occurred. The admin has been notified.", show_alert=True)
 
-assistant = Client("assistant", api_id=API_ID, api_hash=API_HASH)
+SESSION_STRING = ""  # paste your generated session string here
+if SESSION_STRING and len(SESSION_STRING) > 30:   # if session string exists in config
+    assistant = Client(
+        "assistant",
+        api_id=API_ID,
+        api_hash=API_HASH,
+        session_string=SESSION_STRING
+    )
+else:   # fallback to local session file
+    assistant = Client(
+        "assistant",
+        api_id=API_ID,
+        api_hash=API_HASH
+    )
 
 async def add_clone_to_db_channel(clone_bot_id: int):
     try:
