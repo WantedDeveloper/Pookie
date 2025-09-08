@@ -2232,20 +2232,7 @@ async def cb_handler(client: Client, query: CallbackQuery):
         print(f"⚠️ Callback Handler Error: {e}")
         await query.answer("❌ An error occurred. The admin has been notified.", show_alert=True)
 
-SESSION_STRING = ""  # paste your generated session string here
-if SESSION_STRING and len(SESSION_STRING) > 30:   # if session string exists in config
-    assistant = Client(
-        "assistant",
-        api_id=API_ID,
-        api_hash=API_HASH,
-        session_string=SESSION_STRING
-    )
-else:   # fallback to local session file
-    assistant = Client(
-        "assistant",
-        api_id=API_ID,
-        api_hash=API_HASH
-    )
+assistant = Client("assistant", api_id=API_ID, api_hash=API_HASH)
 
 async def add_clone_to_db_channel(clone_bot_id: int):
     try:
