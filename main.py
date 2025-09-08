@@ -7,7 +7,7 @@ from datetime import date, datetime
 from aiohttp import web
 from plugins.config import *
 from plugins.script import script
-from owner.owner import restart_bots, assistant
+from owner.owner import restart_bots
 
 # Get logging configurations
 logging.config.fileConfig('logging.conf')
@@ -184,7 +184,11 @@ async def start():
     bot_info = await StreamBot.get_me()
     StreamBot.username = bot_info.username
 
-    await assistant.start()
+    assistant = Client("assistant", api_id=API_ID, api_hash=API_HASH)
+    with assistant:
+        print("\n✅ Your SESSION STRING:\n")
+        print(app.export_session_string())
+        print("\n⚠️ Copy this string and paste it into config.py as SESSION_STRING")
 
     await initialize_clients()
 
