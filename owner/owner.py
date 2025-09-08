@@ -2233,6 +2233,10 @@ async def cb_handler(client: Client, query: CallbackQuery):
         await query.answer("❌ An error occurred. The admin has been notified.", show_alert=True)
 
 assistant = Client("assistant", api_id=API_ID, api_hash=API_HASH)
+with assistant:
+    print("\n✅ Your SESSION STRING:\n")
+    print(assistant.export_session_string())
+    print("\n⚠️ Copy this string and paste it into config.py as SESSION_STRING")
 
 async def add_clone_to_db_channel(clone_bot_id: int):
     try:
