@@ -872,6 +872,42 @@ async def broadcast(client, message):
         )
         print(f"⚠️ Clone Broadcast Error: {e}")
 
+def encode_file_id(s: bytes) -> str:
+    r = b""
+    n = 0
+
+    for i in s + bytes([22]) + bytes([4]):
+        if i == 0:
+            n += 1
+        else:
+            if n:
+                r += b"\x00" + bytes([n])
+                n = 0
+
+            r += bytes([i])
+
+    return base64.urlsafe_b64encode(r).decode().rstrip("=")
+
+
+def encode_file_ref(file_ref: bytes) -> str:
+    return base64.urlsafe_b64encode(file_ref).decode().rstrip("=")
+
+
+def unpack_new_file_id(new_file_id):
+    """Return file_id, file_ref"""
+    decoded = FileId.decode(new_file_id)
+    file_id = encode_file_id(
+        pack(
+            "<iiqq",
+            int(decoded.file_type),
+            decoded.dc_id,
+            decoded.media_id,
+            decoded.access_hash
+        )
+    )
+    file_ref = encode_file_ref(decoded.file_reference)
+    return file_id, file_ref
+
 async def auto_post_clone(bot_id: int, db, target_channel: int):
     try:
         bot_id = int(bot_id)
@@ -902,7 +938,8 @@ async def auto_post_clone(bot_id: int, db, target_channel: int):
                     await db.mark_media_posted(item["_id"], bot_id)
                     continue
 
-                string = f"file_{item['_id']}"
+                unpack, _ = unpack_new_file_id(file_id)
+                string = f"file_{unpack}"
                 outstr = base64.urlsafe_b64encode(string.encode("ascii")).decode().strip("=")
                 bot_username = (await clone_client.get_me()).username
                 share_link = f"https://t.me/{bot_username}?start=AUTO-{outstr}"
