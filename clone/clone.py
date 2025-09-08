@@ -1,13 +1,10 @@
-import os, logging, asyncio, re, json, base64, random, pytz, aiohttp, requests, string, json, http.client, time, datetime, motor.motor_asyncio
-from struct import pack
+import os, logging, asyncio, re, json, base64, random, aiohttp, requests, string, time, datetime, motor.motor_asyncio
 from shortzy import Shortzy
 from validators import domain
-from aiohttp import FormData
 from pyrogram import Client, filters, enums
 from pyrogram.types import *
-from pyrogram.file_id import FileId
-from pyrogram.errors import ChatAdminRequired, InputUserDeactivated, UserNotParticipant, FloodWait, UserIsBlocked, PeerIdInvalid
-from pyrogram.errors.exceptions.bad_request_400 import AccessTokenExpired, AccessTokenInvalid, ChannelInvalid, UsernameInvalid, UsernameNotModified
+from pyrogram.errors import InputUserDeactivated, UserNotParticipant, FloodWait, UserIsBlocked, PeerIdInvalid
+from pyrogram.errors.exceptions.bad_request_400 import ChannelInvalid, UsernameInvalid, UsernameNotModified
 from plugins.config import *
 from plugins.database import db
 from plugins.clone_instance import get_client
@@ -589,9 +586,9 @@ async def link(client, message):
         print(f"⚠️ Clone Generate Link Error: {e}")
 
 @Client.on_message(filters.command(['batch']) & filters.private)
-async def batch(bot, message):
+async def batch(client, message):
     try:
-        me = await bot.get_me()
+        me = await client.get_me()
         clone = await db.get_bot(me.id)
         owner_id = clone.get("user_id")
         moderators = clone.get("moderators", [])
@@ -629,7 +626,7 @@ async def batch(bot, message):
         if f_chat_id != l_chat_id:
             return await message.reply("❌ Chat IDs do not match.")
 
-        chat_id = (await bot.get_chat(f_chat_id)).id
+        chat_id = (await client.get_chat(f_chat_id)).id
 
         start_id = min(f_msg_id, l_msg_id)
         end_id = max(f_msg_id, l_msg_id)
@@ -646,7 +643,7 @@ async def batch(bot, message):
         og_msg = 0
         tot = 0
 
-        async for msg in bot.iter_messages(f_chat_id, end_id, start_id):
+        async for msg in client.iter_messages(f_chat_id, end_id, start_id):
             tot += 1
             if og_msg % 20 == 0:
                 try:
@@ -671,7 +668,7 @@ async def batch(bot, message):
         with open(filename, "w+") as out:
             json.dump(outlist, out)
         
-        post = await bot.send_document(LOG_CHANNEL, filename, file_name="Batch.json", caption="⚠️ Batch Generated For Filestore.")
+        post = await client.send_document(LOG_CHANNEL, filename, file_name="Batch.json", caption="⚠️ Batch Generated For Filestore.")
         os.remove(filename)
         string = str(post.id)
         file_id = base64.urlsafe_b64encode(string.encode("ascii")).decode().strip("=")
@@ -691,7 +688,7 @@ async def batch(bot, message):
     except (UsernameInvalid, UsernameNotModified):
         await message.reply('⚠️ Invalid Link specified.')
     except Exception as e:
-        await bot.send_message(
+        await client.send_message(
             LOG_CHANNEL,
             f"⚠️ Clone Batch Error:\n\n<code>{e}</code>\n\nKindly check this message for assistance."
         )
