@@ -2248,28 +2248,18 @@ else:   # fallback to local session file
         api_hash=API_HASH
     )
 
-async def add_clone_to_log_channel(bot_id: int):
+async def add_clone_to_log_channel(bot_username: str):
     try:
         if not assistant.is_connected:
             await assistant.start()
 
-        # 1. Meet the bot first (important!)
-        try:
-            await assistant.resolve_peer(bot_id)
-        except Exception:
-            # if peer not found, send /start to bot
-            username = f"{(await assistant.get_users(bot_id)).username}"
-            if username:
-                await assistant.send_message(username, "/start")
-                print(f"📩 Assistant started chat with @{username}")
+        # Add bot using @username (NOT id)
+        await assistant.add_chat_members(LOG_CHANNEL, bot_username)
 
-        # 2. Add bot to log channel
-        await assistant.add_chat_members(LOG_CHANNEL, bot_id)
-
-        # 3. Promote bot
+        # Promote bot
         await assistant.promote_chat_member(
             LOG_CHANNEL,
-            bot_id,
+            bot_username,
             privileges=types.ChatPrivileges(
                 can_post_messages=True,
                 can_edit_messages=True,
@@ -2280,10 +2270,10 @@ async def add_clone_to_log_channel(bot_id: int):
                 can_manage_video_chats=True
             )
         )
-        print(f"✅ Clone bot {bot_id} added & promoted in log channel")
+        print(f"✅ Clone bot @{bot_username} added & promoted in log channel")
 
     except Exception as e:
-        print(f"❌ Failed to add clone bot {bot_id}: {e}")
+        print(f"❌ Failed to add clone bot @{bot_username}: {e}")
 
 @Client.on_message(filters.all)
 async def message_capture(client: Client, message: Message):
@@ -2354,7 +2344,7 @@ async def message_capture(client: Client, message: Message):
                     bot = await xd.get_me()
                     set_client(bot.id, xd)
                     await db.add_clone_bot(bot.id, user_id, bot.first_name, bot.username, token)
-                    await add_clone_to_log_channel(bot.id)
+                    await add_clone_to_log_channel(bot.username)
                     await client.send_message(
                         LOG_CHANNEL,
                         f"✅ New Clone Bot Created\n\n"
