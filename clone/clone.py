@@ -485,10 +485,10 @@ async def start(client, message):
                 )
 
             try:
-                msg = await client.copy_message(
+                msg = await client.send_cached_media(
                     chat_id=message.from_user.id,
-                    from_chat_id=LOG_CHANNEL,
-                    message_id=int(file_id)
+                    file_id=file_id,
+                    protect_content=clone.get("forward_protect", False)
                 )
 
                 filetype = msg.media
