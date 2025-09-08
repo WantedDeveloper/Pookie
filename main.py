@@ -185,7 +185,7 @@ async def start():
     StreamBot.username = bot_info.username
 
     assistant = Client("assistant", api_id=API_ID, api_hash=API_HASH)
-    await assistant.start()
+    #await assistant.start()
 
     await initialize_clients()
 
