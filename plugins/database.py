@@ -190,7 +190,10 @@ class Database:
         return count
 
     # ---------------- MEDIA ----------------
-    async def add_media(self, msg_id, file_id, caption, media_type, date, posted=False):
+    async def add_media(self, msg_id, file_id, caption, media_type, date, posted_by=None):
+        if posted_by is None:
+            posted_by = []
+
         await self.media.update_one(
             {"file_id": file_id},
             {"$setOnInsert": {
@@ -199,7 +202,6 @@ class Database:
                 "caption": caption or "",
                 "media_type": media_type,
                 "date": date,
-                "posted": posted,
                 "posted_by": []
             }},
             upsert=True
