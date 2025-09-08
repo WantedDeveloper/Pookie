@@ -648,12 +648,12 @@ async def batch(client, message):
         og_msg = 0
         tot = 0
 
-        # ✅ Fixed iteration
-        async for msg in client.iter_messages(f_chat_id, offset_id=(start_id - 1), reverse=True):
-            if msg.id > end_id:
-                continue  # skip messages above end_id
-            if msg.id < start_id:
-                break     # stop once we passed the range
+        # ✅ Fixed: loop using get_messages (Pyrogram v1 safe)
+        for msg_id in range(start_id, end_id + 1):
+            try:
+                msg = await client.get_messages(f_chat_id, msg_id)
+            except Exception:
+                continue
 
             tot += 1
             if og_msg % 20 == 0:
@@ -667,7 +667,7 @@ async def batch(client, message):
                 except:
                     pass
 
-            if msg.empty or msg.service:
+            if not msg or msg.empty or msg.service:
                 continue
 
             file = {
