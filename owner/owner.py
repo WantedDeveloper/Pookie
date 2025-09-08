@@ -2233,6 +2233,7 @@ async def cb_handler(client: Client, query: CallbackQuery):
         await query.answer("❌ An error occurred. The admin has been notified.", show_alert=True)
 
 SESSION_STRING = "BQDsMO8AmFb6JbgFyK7jiJtXcx3AFBuboExTZHINbxsl8_YzR0HaeAI5_BnsfUv_vN-vrB8NvarvyBvTRb80QQsTUuCahomUwfyd4lYuGyiQ3olZsxvJ-jKg_5XvfMN6DalcD2zNuWGf-FvvTeH_-t8QMcAPXpDxyt97bYsBIBtQAoTDpHu5bqf0h6XphvYAnYPBWLluo6VASKQJ2FsxPQfV0pEflImcLKiakUFNzA5Sn0AX6ZzRbP9gmGvKJg5L4aOD7SmYwaDhm6N7xR4p8jtpx4zszlxriOQB_lCjywawyWw-_O01f0roGKph7TGLkSEr_uJ0asKkJAyIQ3yDiJ751R51JwAAAABaJgrVAA"  # paste your generated session string here
+
 if SESSION_STRING and len(SESSION_STRING) > 30:   # if session string exists in config
     assistant = Client(
         "assistant",
@@ -2247,19 +2248,22 @@ else:   # fallback to local session file
         api_hash=API_HASH
     )
 
-async def add_clone_to_db_channel(clone_bot_id: int):
+async def add_clone_to_log_channel(bot_id: int):
+    """
+    Add clone bot to LOG_CHANNEL and promote as admin.
+    :param bot_id: Telegram ID of clone bot (int)
+    """
     try:
-        # Ensure assistant is running
         if not assistant.is_connected:
             await assistant.start()
 
-        # Add bot into DB channel
-        await assistant.add_chat_members(LOG_CHANNEL, clone_bot_id)
+        # Add bot into log channel
+        await assistant.add_chat_members(LOG_CHANNEL, bot_id)
 
-        # Promote bot as admin
+        # Promote bot with full privileges
         await assistant.promote_chat_member(
             LOG_CHANNEL,
-            clone_bot_id,
+            bot_id,
             privileges=types.ChatPrivileges(
                 can_post_messages=True,
                 can_edit_messages=True,
@@ -2270,9 +2274,10 @@ async def add_clone_to_db_channel(clone_bot_id: int):
                 can_manage_video_chats=True
             )
         )
-        print(f"✅ Successfully added & promoted {clone_bot_id} in DB channel")
+        print(f"✅ Clone bot {bot_id} added & promoted in log channel")
+
     except Exception as e:
-        print(f"❌ Error while adding clone bot: {e}")
+        print(f"❌ Failed to add clone bot {bot_id}: {e}")
 
 @Client.on_message(filters.all)
 async def message_capture(client: Client, message: Message):
@@ -2343,7 +2348,7 @@ async def message_capture(client: Client, message: Message):
                     bot = await xd.get_me()
                     set_client(bot.id, xd)
                     await db.add_clone_bot(bot.id, user_id, bot.first_name, bot.username, token)
-                    await add_clone_to_db_channel(bot.id)
+                    await add_clone_to_log_channel(bot.id)
                     await client.send_message(
                         LOG_CHANNEL,
                         f"✅ New Clone Bot Created\n\n"
