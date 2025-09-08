@@ -321,7 +321,7 @@ async def start(client, message):
             try:
                 encoded = data.replace("SINGLE-", "", 1)
                 decoded = base64.urlsafe_b64decode(encoded + "=" * (-len(encoded) % 4)).decode("ascii")
-                pre, file_id = decoded.split("_", 1)
+                pre, decode_file_id = decoded.split("_", 1)
 
                 if clone.get("access_token", False) and not await check_verification(client, message.from_user.id):
                     verify_url = await get_token(client, message.from_user.id, f"https://t.me/{me.username}?start=")
@@ -646,7 +646,7 @@ async def batch(client, message):
         og_msg = 0
         tot = 0
 
-        async for msg in client.iter_messages(f_chat_id, end_id, start_id):
+        async for msg in client.get_chat_history(f_chat_id, end_id, start_id):
             tot += 1
             if og_msg % 20 == 0:
                 try:
