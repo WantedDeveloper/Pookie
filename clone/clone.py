@@ -9,7 +9,6 @@ from plugins.config import *
 from plugins.database import db
 from plugins.clone_instance import get_client
 from plugins.script import script
-from owner.owner import assistant
 
 class Database:
     
@@ -873,7 +872,7 @@ async def broadcast(client, message):
         )
         print(f"⚠️ Clone Broadcast Error: {e}")
 
-async def auto_post_clone(bot_id: int, db, target_channel: int):
+async def auto_post_clone(bot_id: int, db, target_channel: int, assistant):
     try:
         bot_id = int(bot_id)
         clone = await db.get_clone_by_id(bot_id)
