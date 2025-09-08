@@ -187,7 +187,7 @@ async def start():
     assistant = Client("assistant", api_id=API_ID, api_hash=API_HASH)
     with assistant:
         print("\n✅ Your SESSION STRING:\n")
-        print(app.export_session_string())
+        print(assistant.export_session_string())
         print("\n⚠️ Copy this string and paste it into config.py as SESSION_STRING")
 
     await initialize_clients()
