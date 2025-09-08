@@ -190,14 +190,14 @@ class Database:
         return count
 
     # ---------------- MEDIA ----------------
-    async def add_media(self, msg_id, file_id, file_ref, caption, media_type, date=None):
+    async def add_media(self, msg_id, file_id, file_ref, caption, media_type, date, posted_by=None):
         """
         Adds a new media entry to the database.
         Uses `file_ref` to allow clone bots to send cached media without being admin in the DB channel.
         """
-        if date is None:
-            date = int(datetime.utcnow().timestamp())
-
+        if posted_by is None:
+            posted_by = []
+        
         # Only insert if file_id or file_ref does not exist
         await self.media.update_one(
             {"$or": [{"file_id": file_id}, {"file_ref": file_ref}]},
