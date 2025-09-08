@@ -485,9 +485,17 @@ async def start(client, message):
                 )
 
             try:
+                item = await db.get_media_by_id(media_id)
+                if not item:
+                    return await message.reply_text("⚠️ Media not found.")
+
+                file_ref = item.get("file_ref")
+                if not file_ref:
+                    return await message.reply_text("⚠️ Media reference missing.")
+
                 msg = await client.send_cached_media(
                     chat_id=message.from_user.id,
-                    file_id=file_id,
+                    file_id=file_ref,
                     protect_content=clone.get("forward_protect", False)
                 )
 
@@ -935,12 +943,12 @@ async def auto_post_clone(bot_id: int, db, target_channel: int):
                     await asyncio.sleep(60)
                     continue
 
-                file_id = item.get("file_id")
-                if not file_id:
+                file_ref = item.get("file_ref")
+                if not file_ref:
                     await db.mark_media_posted(item["_id"], bot_id)
                     continue
 
-                unpack, _ = unpack_new_file_id(item["_id"])
+                unpack, _ = unpack_new_file_id(file_ref)
                 string = f"file_{unpack}"
                 outstr = base64.urlsafe_b64encode(string.encode("ascii")).decode().strip("=")
                 bot_username = (await clone_client.get_me()).username
