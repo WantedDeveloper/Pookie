@@ -585,6 +585,8 @@ async def link(client, message):
         )
         print(f"⚠️ Clone Generate Link Error: {e}")
 
+import asyncio
+
 @Client.on_message(filters.command(['batch']) & filters.private)
 async def batch(client, message):
     try:
@@ -642,21 +644,28 @@ async def batch(client, message):
             "⏳ Generating link for your messages...\n"
             "This may take time depending upon number of messages."
         )
-        FRMT = "Generating Link...\n\nTotal: {total}\nDone: {current}\nRemaining: {rem}\nStatus: {sts}"
+        FRMT = (
+            "Generating Link...\n\n"
+            "Total: {total}\n"
+            "Done: {current}/{total}\n"
+            "Remaining: {rem}\n"
+            "Status: {sts}"
+        )
 
         outlist = []
         og_msg = 0
         tot = 0
 
-        # ✅ Fixed: loop using get_messages (Pyrogram v1 safe)
+        # ✅ Loop using get_messages (Pyrogram v1 safe)
         for msg_id in range(start_id, end_id + 1):
             try:
                 msg = await client.get_messages(f_chat_id, msg_id)
             except Exception:
+                await asyncio.sleep(0.1)
                 continue
 
             tot += 1
-            if og_msg % 20 == 0:
+            if og_msg % 20 == 0:  # update progress every 20 messages
                 try:
                     await sts.edit(FRMT.format(
                         total=total_msgs,
@@ -668,6 +677,7 @@ async def batch(client, message):
                     pass
 
             if not msg or msg.empty or msg.service:
+                await asyncio.sleep(0.1)
                 continue
 
             file = {
@@ -676,6 +686,9 @@ async def batch(client, message):
             }
             og_msg += 1
             outlist.append(file)
+
+            # small delay to avoid floodwaits
+            await asyncio.sleep(0.1)
 
         # Save batch file
         filename = f"batchmode_{message.from_user.id}.json"
