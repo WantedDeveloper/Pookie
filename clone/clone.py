@@ -585,19 +585,17 @@ async def link(client, message):
         )
         print(f"⚠️ Clone Generate Link Error: {e}")
 
-@Client.on_message(filters.command(['batch']) & filters.private)
+@Client.on_message(filters.command(['batch']) & filters.user(ADMINS) & filters.private)
 async def batch(client, message):
     try:
-        me = await client.get_me()
-        clone = await db.get_bot(me.id)
-        owner_id = clone.get("user_id")
-        moderators = clone.get("moderators", [])
+        try:
+            await message.delete()
+        except:
+            pass
 
-        if message.from_user.id != owner_id and message.from_user.id not in moderators:
-            await message.reply("❌ You are not authorized to use this bot.")
-            return
+        username = (await client.get_me()).username
 
-        usage_text = f"Use correct format.\nExample:\n/batch https://t.me/{me.username}/10 https://t.me/{me.username}/20"
+        usage_text = f"Use correct format.\nExample:\n/batch https://t.me/{username}/10 https://t.me/{username}/20"
 
         if " " not in message.text:
             return await message.reply(usage_text)
@@ -670,9 +668,10 @@ async def batch(client, message):
         
         post = await client.send_document(LOG_CHANNEL, filename, file_name="Batch.json", caption="⚠️ Batch Generated For Filestore.")
         os.remove(filename)
+
         string = str(post.id)
         file_id = base64.urlsafe_b64encode(string.encode("ascii")).decode().strip("=")
-        share_link = f"https://t.me/{me.username}?start=BATCH-{file_id}"
+        share_link = f"https://t.me/{username}?start=BATCH-{file_id}"
 
         reply_markup = InlineKeyboardMarkup(
             [[InlineKeyboardButton("🔁 Share URL", url=f'https://t.me/share/url?url={share_link}')]]
@@ -690,9 +689,9 @@ async def batch(client, message):
     except Exception as e:
         await client.send_message(
             LOG_CHANNEL,
-            f"⚠️ Clone Batch Error:\n\n<code>{e}</code>\n\nKindly check this message for assistance."
+            f"⚠️ Batch Error:\n\n<code>{e}</code>\n\nKindly check this message for assistance."
         )
-        print(f"⚠️ Clone Batch Error: {e}")
+        print(f"⚠️ Batch Error: {e}")
 
 async def broadcast_messages(bot_id, user_id, message):
     try:
