@@ -328,6 +328,8 @@ async def batch(client, message):
         except:
             pass
 
+        username = (await client.get_me()).username
+
         usage_text = f"Use correct format.\nExample:\n/batch https://t.me/{username}/10 https://t.me/{username}/20"
 
         if " " not in message.text:
@@ -404,7 +406,6 @@ async def batch(client, message):
 
         string = str(post.id)
         file_id = base64.urlsafe_b64encode(string.encode("ascii")).decode().strip("=")
-        username = (await client.get_me()).username
         share_link = f"https://t.me/{username}?start=BATCH-{file_id}"
 
         reply_markup = InlineKeyboardMarkup(
