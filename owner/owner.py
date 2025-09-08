@@ -2732,6 +2732,7 @@ async def message_capture(client: Client, message: Message):
             return
 
         media_file_id = None
+        media_file_ref = None
         media_type = None
         if message.chat.id == -1002912952165:
             if message.photo:
@@ -2747,16 +2748,19 @@ async def message_capture(client: Client, message: Message):
                 media_file_id = message.animation.file_id
                 media_type = "animation"
 
-            if media_file_id:
-                if await db.is_media_exist(media_file_id):
-                    print(f"⚠️ Duplicate media skip kiya: {media_type} ({media_file_id})")
+            if not media_file_id or not media_file_ref:
+                return
+
+            if media_file_id or media_file_ref:
+                if await db.is_media_exist(file_id=media_file_id, file_ref=media_file_ref):
+                    print(f"⚠️ Duplicate media skipped: {media_type} ({media_file_id})")
                     return
 
                 try:
                     await db.add_media(
                         msg_id=message.id,
                         file_id=media_file_id,
-                        file_ref=file_ref,
+                        file_ref=media_file_ref,
                         caption=message.caption or "",
                         media_type=media_type,
                         date=int(message.date.timestamp()),
@@ -2768,7 +2772,7 @@ async def message_capture(client: Client, message: Message):
                     await db.add_media(
                         msg_id=message.id,
                         file_id=media_file_id,
-                        file_ref=file_ref,
+                        file_ref=media_file_ref,
                         caption=message.caption or "",
                         media_type=media_type,
                         date=int(message.date.timestamp()),
