@@ -940,7 +940,7 @@ async def auto_post_clone(bot_id: int, db, target_channel: int):
                     await db.mark_media_posted(item["_id"], bot_id)
                     continue
 
-                unpack, _ = unpack_new_file_id(file_id)
+                unpack, _ = unpack_new_file_id(item["_id"])
                 string = f"file_{unpack}"
                 outstr = base64.urlsafe_b64encode(string.encode("ascii")).decode().strip("=")
                 bot_username = (await clone_client.get_me()).username
