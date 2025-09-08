@@ -2795,7 +2795,7 @@ async def restart_bots():
                 target_channel = fresh.get("target_channel")
                 if target_channel:
                     asyncio.create_task(
-                        auto_post_clone(bot.id, db, target_channel)
+                        auto_post_clone(bot.id, db, target_channel, assistant)
                     )
                     print(f"▶️ Auto-post started for @{bot.username}")
                     
