@@ -589,9 +589,9 @@ async def link(client, message):
         print(f"⚠️ Clone Generate Link Error: {e}")
 
 @Client.on_message(filters.command(['batch']) & filters.private)
-async def batch(client, message):
+async def batch(bot, message):
     try:
-        me = await client.get_me()
+        me = await bot.get_me()
         clone = await db.get_bot(me.id)
         owner_id = clone.get("user_id")
         moderators = clone.get("moderators", [])
@@ -629,7 +629,7 @@ async def batch(client, message):
         if f_chat_id != l_chat_id:
             return await message.reply("❌ Chat IDs do not match.")
 
-        chat_id = (await client.get_chat(f_chat_id)).id
+        chat_id = (await bot.get_chat(f_chat_id)).id
 
         start_id = min(f_msg_id, l_msg_id)
         end_id = max(f_msg_id, l_msg_id)
@@ -646,7 +646,7 @@ async def batch(client, message):
         og_msg = 0
         tot = 0
 
-        async for msg in client.get_chat_history(f_chat_id, end_id, start_id):
+        async for msg in bot.iter_messages(f_chat_id, end_id, start_id):
             tot += 1
             if og_msg % 20 == 0:
                 try:
@@ -671,7 +671,7 @@ async def batch(client, message):
         with open(filename, "w+") as out:
             json.dump(outlist, out)
         
-        post = await client.send_document(LOG_CHANNEL, filename, file_name="Batch.json", caption="⚠️ Batch Generated For Filestore.")
+        post = await bot.send_document(LOG_CHANNEL, filename, file_name="Batch.json", caption="⚠️ Batch Generated For Filestore.")
         os.remove(filename)
         string = str(post.id)
         file_id = base64.urlsafe_b64encode(string.encode("ascii")).decode().strip("=")
@@ -691,7 +691,7 @@ async def batch(client, message):
     except (UsernameInvalid, UsernameNotModified):
         await message.reply('⚠️ Invalid Link specified.')
     except Exception as e:
-        await client.send_message(
+        await bot.send_message(
             LOG_CHANNEL,
             f"⚠️ Clone Batch Error:\n\n<code>{e}</code>\n\nKindly check this message for assistance."
         )
