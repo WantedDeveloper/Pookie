@@ -247,7 +247,7 @@ async def start(client, message):
             if updated:
                 await db.update_clone(me.id, {"force_subscribe": new_fsub_data})
 
-            if not new_fsub_data:
+            if str(message.from_user.id) not in clone.get("premium", []) and not new_fsub_data:
                 pass
             else:
                 for item in new_fsub_data:
