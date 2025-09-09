@@ -417,6 +417,7 @@ async def start(client, message):
                     channel_id = int(msg.get("channel_id"))
                     msgid = msg.get("msg_id")
                     info = await client.get_messages(channel_id, int(msgid))
+                    f_caption = None
                     if info.media:
                         file = getattr(info, info.media.value)
                         original_caption = info.caption or ""
@@ -444,7 +445,7 @@ async def start(client, message):
                         buttons.append([InlineKeyboardButton(btn["name"], url=btn["url"])])
 
                     if buttons:
-                        await sent_msg.edit_caption(f_caption, reply_markup=InlineKeyboardMarkup(buttons))
+                        await sent_msg.edit_caption(f_caption or (sent_msg.caption or ""), reply_markup=InlineKeyboardMarkup(buttons))
                     elif f_caption and f_caption != (sent_msg.caption or ""):
                         await sent_msg.edit_caption(f_caption)
 
