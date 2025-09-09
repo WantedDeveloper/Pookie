@@ -444,17 +444,17 @@ async def start(client, message):
                         buttons.append([InlineKeyboardButton(btn["name"], url=btn["url"])])
 
                     if buttons:
-                        await msg.edit_caption(f_caption, reply_markup=InlineKeyboardMarkup(buttons))
+                        await info.edit_caption(f_caption, reply_markup=InlineKeyboardMarkup(buttons))
                     else:
-                        await msg.edit_caption(f_caption)
+                        await info.edit_caption(f_caption)
 
                     if clone.get("auto_delete", False):
                         auto_delete_time = clone.get("auto_delete_time", 1)
-                        k = await msg.reply(
+                        k = await info.reply(
                             clone.get('auto_delete_msg', script.AD_TXT).format(time=auto_delete_time),
                             quote=True
                         )
-                        asyncio.create_task(auto_delete_message(client, msg, k, auto_delete_time))
+                        asyncio.create_task(auto_delete_message(client, info, k, auto_delete_time))
                     return
                 return await sts.delete()
             except Exception as e:
