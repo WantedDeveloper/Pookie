@@ -425,7 +425,7 @@ async def start(client, message):
                                 f_caption = clone.get("caption", None).format(
                                     file_name=file.file_name,
                                     file_size=get_size(file.file_size),
-                                    caption=original_caption
+                                    file_caption=original_caption
                                 )
                             except:
                                 f_caption = original_caption or f"<code>{file.file_name}</code>"
