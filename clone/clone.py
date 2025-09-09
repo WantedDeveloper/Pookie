@@ -419,13 +419,13 @@ async def start(client, message):
                     info = await client.get_messages(channel_id, int(msgid))
                     if info.media:
                         file = getattr(info, info.media.value)
-                        original_caption = msg.caption or ""
+                        original_caption = info.caption or ""
                         if clone.get("caption", None):
                             try:
                                 f_caption = clone.get("caption", None).format(
                                     file_name=file.file_name,
                                     file_size=get_size(file.file_size),
-                                    file_caption=original_caption
+                                    caption=original_caption
                                 )
                             except:
                                 f_caption = original_caption or f"<code>{file.file_name}</code>"
