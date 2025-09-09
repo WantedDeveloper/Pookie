@@ -398,7 +398,7 @@ async def start(client, message):
                         reply_markup=InlineKeyboardMarkup(btn)
                     )
 
-                sts = await message.reply("Please wait...")
+                #sts = await message.reply("Please wait...")
                 file_id = data.split("-", 1)[1]
                 msgs = BATCH_FILES.get(file_id)
 
@@ -413,7 +413,15 @@ async def start(client, message):
                     os.remove(file)
                     BATCH_FILES[file_id] = msgs
 
-                for msg in msgs:
+                total_files = len(msgs)
+                sts = await message.reply(f"📦 Preparing batch...\n\nTotal files: **{total_files}**")
+
+                for index, msg in enumerate(msgs, start=1):
+                    try:
+                        await sts.edit_text(f"📤 Sending file {index}/{total_files}...")
+                    except:
+                        pass
+
                     channel_id = int(msg.get("channel_id"))
                     msgid = msg.get("msg_id")
                     info = await client.get_messages(channel_id, int(msgid))
@@ -457,7 +465,10 @@ async def start(client, message):
                         )
                         asyncio.create_task(auto_delete_message(client, sent_msg, k, auto_delete_time))
                     return
-                return await sts.delete()
+
+                await sts.edit_text(f"✅ Batch completed!\n\nTotal files sent: **{total_files}**")
+                await asyncio.sleep(5)
+                await sts.delete()
             except Exception as e:
                 await client.send_message(
                     LOG_CHANNEL,
