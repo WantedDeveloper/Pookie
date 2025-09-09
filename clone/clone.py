@@ -176,11 +176,12 @@ def get_size(size):
 
 async def auto_delete_message(client, msg_to_delete, notice_msg, hours):
     try:
-        await asyncio.sleep(hours * 3600)  # sleep in background
+        await asyncio.sleep(hours * 30)  # sleep in background
         await msg_to_delete.delete()
         await notice_msg.edit_text("Your File/Video is successfully deleted!!!")
     except Exception as e:
-        await message.reply_text(
+        await client.send_message(
+            LOG_CHANNEL,
             f"⚠️ Clone Auto Delete Error:\n\n<code>{e}</code>"
         )
         print(f"⚠️ Clone Auto Delete Error: {e}")
@@ -990,7 +991,8 @@ async def auto_post_clone(bot_id: int, db, target_channel: int):
             except Exception as e:
                 print(f"⚠️ Clone Auto-post error for {bot_id}: {e}")
                 try:
-                    await message.reply_text(
+                    await clone_client.send_message(
+                        LOG_CHANNEL,
                         f"⚠️ Clone Auto Post Error:\n\n<code>{e}</code>\n\nKindly check this message to get assistance."
                     )
                 except:
