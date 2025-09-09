@@ -176,7 +176,7 @@ def get_size(size):
 
 async def auto_delete_message(client, msg_to_delete, notice_msg, hours):
     try:
-        await asyncio.sleep(hours * 30)  # sleep in background
+        await asyncio.sleep(hours * 3600)  # sleep in background
         await msg_to_delete.delete()
         await notice_msg.edit_text("Your File/Video is successfully deleted!!!")
     except Exception as e:
@@ -424,6 +424,7 @@ async def start(client, message):
                 total_files = len(msgs)
                 sts = await message.reply(f"📦 Preparing batch...\n\nTotal files: **{total_files}**")
 
+                sent_files = []
                 for index, msg in enumerate(msgs, start=1):
                     try:
                         await sts.edit_text(f"📤 Sending file {index}/{total_files}...")
@@ -456,6 +457,7 @@ async def start(client, message):
                     else:
                         sent_msg = await info.copy(chat_id=message.from_user.id, protect_content=clone.get("forward_protect", False))
 
+                    sent_files.append(sent_msg)
                     await asyncio.sleep(1)
 
                     buttons_data = clone.get("button", [])
@@ -474,7 +476,7 @@ async def start(client, message):
                         clone.get('auto_delete_msg', script.AD_TXT).format(time=auto_delete_time),
                         quote=True
                     )
-                    asyncio.create_task(auto_delete_message(client, message, k, auto_delete_time))
+                    asyncio.create_task(auto_delete_message(client, sent_files, k, auto_delete_time))
 
                 await sts.edit_text(f"✅ Batch completed!\n\nTotal files sent: **{total_files}**")
                 await asyncio.sleep(5)
