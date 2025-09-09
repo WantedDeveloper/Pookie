@@ -304,7 +304,8 @@ You can add a auto post to your channel.
 Current Status: {status}"""
 
     PREMIUM_TXT = """<u>**✨ PREMIUM USERS**</u>
-"""
+
+Premium users have access to all your clone shareable links."""
 
     DELETE_TXT = """<u>**✨ AUTO DELETE**</u>
 
