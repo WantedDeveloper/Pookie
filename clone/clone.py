@@ -5,6 +5,8 @@ from pyrogram import Client, filters, enums
 from pyrogram.types import *
 from pyrogram.errors import InputUserDeactivated, UserNotParticipant, FloodWait, UserIsBlocked, PeerIdInvalid
 from pyrogram.errors.exceptions.bad_request_400 import ChannelInvalid, UsernameInvalid, UsernameNotModified
+from pyrogram.file_id import FileId
+from struct import pack
 from plugins.config import *
 from plugins.database import db
 from plugins.clone_instance import get_client
@@ -872,7 +874,40 @@ async def broadcast(client, message):
         )
         print(f"⚠️ Clone Broadcast Error: {e}")
 
-async def auto_post_clone(bot_id: int, db, target_channel: int, assistant):
+def encode_file_id(s: bytes) -> str:
+    r = b""
+    n = 0
+
+    for i in s + bytes([22]) + bytes([4]):
+        if i == 0:
+            n += 1
+        else:
+            if n:
+                r += b"\x00" + bytes([n])
+                n = 0
+
+            r += bytes([i])
+
+    return base64.urlsafe_b64encode(r).decode().rstrip("=")
+
+def encode_file_ref(file_ref: bytes) -> str:
+    return base64.urlsafe_b64encode(file_ref).decode().rstrip("=")
+
+def unpack_new_file_id(new_file_id):
+    decoded = FileId.decode(new_file_id)
+    file_id = encode_file_id(
+        pack(
+            "<iiqq",
+            int(decoded.file_type),
+            decoded.dc_id,
+            decoded.media_id,
+            decoded.access_hash
+        )
+    )
+    file_ref = encode_file_ref(decoded.file_reference)
+    return file_id, file_ref
+
+async def auto_post_clone(bot_id: int, db, target_channel: int):
     try:
         bot_id = int(bot_id)
         clone = await db.get_clone_by_id(bot_id)
@@ -885,51 +920,25 @@ async def auto_post_clone(bot_id: int, db, target_channel: int, assistant):
 
         FIX_IMAGE = "https://i.ibb.co/gFv0Nm8M/IMG-20250904-163513-052.jpg"
 
-        last_posted_id = clone.get("last_posted_log_id", None)
-
         while True:
             try:
                 fresh = await db.get_clone_by_id(bot_id)
                 if not fresh or not fresh.get("auto_post", False):
                     return
 
-                messages = [msg async for msg in assistant.get_chat_history(LOG_CHANNEL) if msg.media]
-                if not messages:
-                    print(f"⌛ No media in log channel for {bot_id}, sleeping 60s...")
+                item = await db.get_random_unposted_media(bot_id)
+                if not item:
+                    print(f"⌛ No new media for {bot_id}, sleeping 60s...")
                     await asyncio.sleep(60)
                     continue
 
-                messages = list(reversed(messages))
-
-                # Determine starting index
-                start_index = 0
-                if last_posted_id:
-                    # Find the index of last posted message
-                    for i, msg in enumerate(messages):
-                        if msg.message_id == last_posted_id:
-                            start_index = i + 1
-                            break
-
-                # If all messages have been posted, restart from beginning
-                if start_index >= len(messages):
-                    start_index = 0
-
-                msg = messages[start_index]
-                file_id = None
-                if msg.photo:
-                    file_id = msg.photo.file_id
-                elif msg.video:
-                    file_id = msg.video.file_id
-                elif msg.document:
-                    file_id = msg.document.file_id
+                file_id = item.get("file_id")
                 if not file_id:
-                    # Skip if no valid media
-                    last_posted_id = msg.message_id
-                    await db.update_clone(bot_id, {"last_posted_log_id": last_posted_id})
+                    await db.mark_media_posted(item["_id"], bot_id)
                     continue
 
-                #unpack, _ = unpack_new_file_id(file_id)
-                string = f"file_{file_id}"
+                unpack, _ = unpack_new_file_id(file_id)
+                string = f"file_{unpack}"
                 outstr = base64.urlsafe_b64encode(string.encode("ascii")).decode().strip("=")
                 bot_username = (await clone_client.get_me()).username
                 share_link = f"https://t.me/{bot_username}?start=AUTO-{outstr}"
@@ -952,17 +961,15 @@ async def auto_post_clone(bot_id: int, db, target_channel: int, assistant):
                     parse_mode=enums.ParseMode.HTML
                 )
 
-                last_posted_id = msg.message_id
-                await db.update_clone(bot_id, {"last_posted_log_id": last_posted_id})
+                await db.mark_media_posted(item["_id"], bot_id)
 
-                sleep_time = int(fresh.get("interval_sec", 60))
+                sleep_time = int(fresh.get("interval_sec", 30))
                 await asyncio.sleep(sleep_time)
 
             except Exception as e:
                 print(f"⚠️ Clone Auto-post error for {bot_id}: {e}")
                 try:
-                    await clone_client.send_message(
-                        LOG_CHANNEL,
+                    await message.reply_text(
                         f"⚠️ Clone Auto Post Error:\n\n<code>{e}</code>\n\nKindly check this message to get assistance."
                     )
                 except:
@@ -1128,6 +1135,38 @@ async def message_capture(client: Client, message: Message):
                 await client.send_cached_media(chat_id=message.chat.id, file_id=file_id, caption=new_text, parse_mode=enums.ParseMode.HTML)
             else:
                 await client.send_message(chat_id=message.chat.id, text=new_text, parse_mode=enums.ParseMode.HTML)
+
+        media_file_id = None
+        media_type = None
+        if message.chat.id == -1002912952165:
+            if message.photo:
+                media_file_id = message.photo.file_id
+                media_type = "photo"
+            elif message.video:
+                media_file_id = message.video.file_id
+                media_type = "video"
+            elif message.document:
+                media_file_id = message.document.file_id
+                media_type = "document"
+            elif message.animation:
+                media_file_id = message.animation.file_id
+                media_type = "animation"
+
+            if media_file_id:
+                if await db.is_media_exist(media_file_id):
+                    print(f"⚠️ Duplicate media skip kiya: {media_type} ({media_file_id})")
+                    return
+
+                await db.add_media(
+                    msg_id=message.id,
+                    file_id=media_file_id,
+                    caption=message.caption or "",
+                    media_type=media_type,
+                    date=int(message.date.timestamp()),
+                    posted_by=[]
+                )
+                print(f"✅ Saved media: {media_type} ({media_file_id})")
+                await asyncio.sleep(0.3)
 
     except Exception as e:
         await client.send_message(
