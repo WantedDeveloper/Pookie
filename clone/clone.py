@@ -339,14 +339,18 @@ async def start(client, message):
                     )
 
                 msg = await client.get_messages(LOG_CHANNEL, int(decode_file_id))
+                f_caption = None
+                sent_msg = None
                 if msg.media:
                     file = getattr(msg, msg.media.value)
+                    file_name = getattr(file, "file_name", None) or "Media"
+                    file_size = getattr(file, "file_size", None)
                     original_caption = msg.caption or ""
                     if clone.get("caption", None):
                         try:
                             f_caption = clone.get("caption", None).format(
                                 file_name=file.file_name,
-                                file_size=get_size(file.file_size),
+                                file_size=get_size(file.file_size) if file_size else "N/A",
                                 caption=original_caption
                             )
                         except:
@@ -354,9 +358,9 @@ async def start(client, message):
                     else:
                         f_caption = original_caption or f"<code>{file.file_name}</code>"
 
-                    await msg.copy(chat_id=message.from_user.id, caption=f_caption, protect_content=clone.get("forward_protect", False))
+                    sent_msg = await msg.copy(chat_id=message.from_user.id, caption=f_caption, protect_content=clone.get("forward_protect", False))
                 else:
-                    await msg.copy(chat_id=message.from_user.id, protect_content=clone.get("forward_protect", False))
+                    sent_msg = await msg.copy(chat_id=message.from_user.id, protect_content=clone.get("forward_protect", False))
 
                 buttons_data = clone.get("button", [])
                 buttons = []
@@ -364,17 +368,17 @@ async def start(client, message):
                     buttons.append([InlineKeyboardButton(btn["name"], url=btn["url"])])
 
                 if buttons:
-                    await msg.edit_caption(f_caption, reply_markup=InlineKeyboardMarkup(buttons))
-                else:
-                    await msg.edit_caption(f_caption)
+                     await sent_msg.edit_caption(f_caption or (sent_msg.caption or ""), reply_markup=InlineKeyboardMarkup(buttons))
+                elif f_caption and f_caption != (sent_msg.caption or ""):
+                     await sent_msg.edit_caption(f_caption)
 
                 if clone.get("auto_delete", False):
                     auto_delete_time = clone.get("auto_delete_time", 1)
-                    k = await msg.reply(
+                    k = await sent_msg.reply(
                         clone.get('auto_delete_msg', script.AD_TXT).format(time=auto_delete_time),
                         quote=True
                     )
-                    asyncio.create_task(auto_delete_message(client, msg, k, auto_delete_time))
+                    asyncio.create_task(auto_delete_message(client, sent_msg, k, auto_delete_time))
                 return
             except Exception as e:
                 await client.send_message(
@@ -429,14 +433,17 @@ async def start(client, message):
                     msgid = msg.get("msg_id")
                     info = await client.get_messages(channel_id, int(msgid))
                     f_caption = None
+                    sent_msg = None
                     if info.media:
                         file = getattr(info, info.media.value)
+                        file_name = getattr(file, "file_name", None) or "Media"
+                        file_size = getattr(file, "file_size", None)
                         original_caption = info.caption or ""
                         if clone.get("caption", None):
                             try:
                                 f_caption = clone.get("caption", None).format(
                                     file_name=file.file_name,
-                                    file_size=get_size(file.file_size),
+                                    file_size=get_size(file.file_size) if file_size else "N/A",
                                     caption=original_caption
                                 )
                             except:
@@ -462,7 +469,7 @@ async def start(client, message):
 
                 if clone.get("auto_delete", False):
                     auto_delete_time = clone.get("auto_delete_time", 1)
-                    k = await message.reply_text(
+                    k = await message.reply(
                         clone.get('auto_delete_msg', script.AD_TXT).format(time=auto_delete_time),
                         quote=True
                     )
@@ -509,14 +516,14 @@ async def start(client, message):
 
                 filetype = msg.media
                 file = getattr(msg, filetype.value)
-
+                file_name = getattr(file, "file_name", None) or "Media"
+                file_size = getattr(file, "file_size", None)
                 original_caption = msg.caption or ""
-
                 if clone.get("caption", None):
                     try:
                         f_caption = clone.get("caption", None).format(
                             file_name=file.file_name,
-                            file_size=get_size(file.file_size),
+                            file_size=get_size(file.file_size) if file_size else "N/A",
                             caption=original_caption
                         )
                     except:
