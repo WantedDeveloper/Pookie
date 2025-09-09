@@ -69,7 +69,6 @@ class Database:
             # Auto Post
             'auto_post': False,
             'target_channel': None,
-            'last_posted_log_id': None,
             # Premium User
             'premium': [],
             # Auto Delete

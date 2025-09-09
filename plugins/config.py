@@ -21,6 +21,7 @@ try:
     # Bot Information
     API_ID = int(os.environ.get("API_ID", "15479023"))
     API_HASH = os.environ.get("API_HASH", "f8f6cf547822449c29fc60dae3b31dd4")
+    SESSION_STRING = os.environ.get("SESSION_STRING", "BQDsMO8AmFb6JbgFyK7jiJtXcx3AFBuboExTZHINbxsl8_YzR0HaeAI5_BnsfUv_vN-vrB8NvarvyBvTRb80QQsTUuCahomUwfyd4lYuGyiQ3olZsxvJ-jKg_5XvfMN6DalcD2zNuWGf-FvvTeH_-t8QMcAPXpDxyt97bYsBIBtQAoTDpHu5bqf0h6XphvYAnYPBWLluo6VASKQJ2FsxPQfV0pEflImcLKiakUFNzA5Sn0AX6ZzRbP9gmGvKJg5L4aOD7SmYwaDhm6N7xR4p8jtpx4zszlxriOQB_lCjywawyWw-_O01f0roGKph7TGLkSEr_uJ0asKkJAyIQ3yDiJ751R51JwAAAABaJgrVAA")
     BOT_TOKEN = os.environ.get("BOT_TOKEN", "7845374433:AAGsstCb801Ry-pQSNF-gNbdARqZqKH913I")
     BOT_USERNAME = os.environ.get("BOT_USERNAME", "Testaf1bot") # without @
 
