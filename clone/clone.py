@@ -349,14 +349,14 @@ async def start(client, message):
                     if clone.get("caption", None):
                         try:
                             f_caption = clone.get("caption", None).format(
-                                file_name=file.file_name,
-                                file_size=get_size(file.file_size) if file_size else "N/A",
+                                file_name=file_name,
+                                file_size=get_size(file_size) if file_size else "N/A",
                                 caption=original_caption
                             )
                         except:
-                            f_caption = original_caption or f"<code>{file.file_name}</code>"
+                            f_caption = original_caption or f"<code>{file_name}</code>"
                     else:
-                        f_caption = original_caption or f"<code>{file.file_name}</code>"
+                        f_caption = original_caption or f"<code>{file_name}</code>"
 
                     sent_msg = await msg.copy(chat_id=message.from_user.id, caption=f_caption, protect_content=clone.get("forward_protect", False))
                 else:
@@ -442,14 +442,14 @@ async def start(client, message):
                         if clone.get("caption", None):
                             try:
                                 f_caption = clone.get("caption", None).format(
-                                    file_name=file.file_name,
-                                    file_size=get_size(file.file_size) if file_size else "N/A",
+                                    file_name=file_name,
+                                    file_size=get_size(file_size) if file_size else "N/A",
                                     caption=original_caption
                                 )
                             except:
-                                f_caption = original_caption or f"<code>{file.file_name}</code>"
+                                f_caption = original_caption or f"<code>{file_name}</code>"
                         else:
-                            f_caption = original_caption or f"<code>{file.file_name}</code>"
+                            f_caption = original_caption or f"<code>{file_name}</code>"
 
                         sent_msg = await info.copy(chat_id=message.from_user.id, caption=f_caption, protect_content=clone.get("forward_protect", False))
                     else:
@@ -522,14 +522,14 @@ async def start(client, message):
                 if clone.get("caption", None):
                     try:
                         f_caption = clone.get("caption", None).format(
-                            file_name=file.file_name,
-                            file_size=get_size(file.file_size) if file_size else "N/A",
+                            file_name=file_name,
+                            file_size=get_size(file_size) if file_size else "N/A",
                             caption=original_caption
                         )
                     except:
-                        f_caption = original_caption or f"<code>{file.file_name}</code>"
+                        f_caption = original_caption or f"<code>{file_name}</code>"
                 else:
-                    f_caption = original_caption or f"<code>{file.file_name}</code>"
+                    f_caption = original_caption or f"<code>{file_name}</code>"
 
                 buttons_data = clone.get("button", [])
                 buttons = []
