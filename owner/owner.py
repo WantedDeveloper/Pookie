@@ -67,6 +67,7 @@ ACCESS_TOKEN = {}
 ACCESS_TOKEN_VALIDITY = {}
 ACCESS_TOKEN_TUTORIAL = {}
 AUTO_POST = {}
+ADD_PREMIUM = {}
 AUTO_DELETE_TIME = {}
 AUTO_DELETE_MESSAGE = {}
 ADD_MODERATOR = {}
@@ -946,6 +947,48 @@ async def show_time_menu(client, message, bot_id):
         )
         print(f"⚠️ Show Time Menu Error: {e}")
 
+async def show_premium_menu(client, message, bot_id):
+    try:
+        clone = await db.get_clone_by_id(bot_id)
+        premium = clone.get("premium", [])
+
+        # Build premium user list text
+        pu_list_lines = []
+        for pu in premium:
+            try:
+                user_id_int = int(pu)
+            except ValueError:
+                user_id_int = pu
+
+            user = await db.col.find_one({"id": user_id_int})
+            name = user.get("name") if user else pu
+            pu_list_lines.append(f"👤 {name} (`{pu}`)")
+
+        pu_list_text = "\n".join(pu_list_lines)
+
+        # Buttons
+        buttons = [
+            [
+                InlineKeyboardButton("➕ Add", callback_data=f"add_pu_{bot_id}"),
+                InlineKeyboardButton("➖ Remove", callback_data=f"remove_premium_user_{bot_id}"),
+            ],
+            [InlineKeyboardButton("⬅️ Back", callback_data=f"manage_{bot_id}")]
+        ]
+
+        # Menu text
+        text = script.PREMIUM_TXT
+        if pu_list_text:
+            text += f"\n\n👥 **Current Premium Users:**\n{pu_list_text}"
+
+        await message.edit_text(text=text, reply_markup=InlineKeyboardMarkup(buttons))
+
+    except Exception as e:
+        await client.send_message(
+            LOG_CHANNEL,
+            f"⚠️ Show Premium User Menu Error:\n<code>{e}</code>\nClone Data: {clone}\n\nKindly check this message to get assistance."
+        )
+        print(f"⚠️ Show Premium User Menu Error: {e}")
+
 async def show_message_menu(client, message, bot_id):
     try:
         buttons = [
@@ -1102,7 +1145,7 @@ async def cb_handler(client: Client, query: CallbackQuery):
             "force_subscribe_", "add_fsub_", "fsub_mode_", "cancel_addfsub_", "remove_fsub_",
             "access_token_", "at_status_", "cancel_at_", "at_validty_", "edit_atvalidity_", "cancel_editatvalidity_", "see_atvalidity_", "default_atvalidity_", "at_tutorial_", "add_attutorial_", "cancel_addattutorial_", "see_attutorial_", "delete_attutorial_",
             "auto_post_", "ap_status_", "cancel_autopost_",
-            "premium_user_",
+            "premium_user_", "add_pu_", "cancel_addpu_", "remove_premium_user_", "remove_pu_",
             "auto_delete_", "ad_status_", "ad_time_", "edit_adtime_", "cancel_editadtime_", "see_adtime_", "default_adtime_", "ad_message_", "edit_admessage_", "cancel_editadmessage_", "see_admessage_", "default_admessage_",
             "forward_protect_", "fp_status_",
             "moderator_", "add_moderator_", "cancel_addmoderator_", "remove_moderator_", "remove_mod_", "transfer_moderator_", "transfer_mod_",
@@ -1113,9 +1156,13 @@ async def cb_handler(client: Client, query: CallbackQuery):
 
             action = None
             bot_id = None
+            pu_id = None
             mod_id = None
 
-            if data.startswith("remove_mod_"):
+            if data.startswith("remove_pu_"):
+                _, _, bot_id, pu_id = data.split("_", 3)
+                action = "remove_pu"
+            elif data.startswith("remove_mod_"):
                 _, _, bot_id, mod_id = data.split("_", 3)
                 action = "remove_mod"
             elif data.startswith("transfer_mod_"):
@@ -1874,11 +1921,68 @@ async def cb_handler(client: Client, query: CallbackQuery):
                 if not clone:
                     return await query.answer("Clone not found!", show_alert=True)
 
-                buttons = [[InlineKeyboardButton('⬅️ Back', callback_data=f'manage_{bot_id}')]]
+                await show_premium_menu(client, query.message, bot_id)
+
+            # Add Premium User
+            elif action == "add_pu":
+                if not clone:
+                    return await query.answer("Clone not found!", show_alert=True)
+
+                ADD_PREMIUM[user_id] = (query.message, bot_id)
+                buttons = [[InlineKeyboardButton('❌ Cancel', callback_data=f'cancel_addpu_{bot_id}')]]
                 await query.message.edit_text(
-                    text=script.PREMIUM_TXT,
+                    text="✏️ Please provide the User ID of the new **premium user**:",
                     reply_markup=InlineKeyboardMarkup(buttons)
                 )
+
+            # Cancel Premium User
+            elif action == "cancel_addpu":
+                if not clone:
+                    return await query.answer("Clone not found!", show_alert=True)
+
+                ADD_PREMIUM(user_id, None)
+                await show_premium_menu(client, query.message, bot_id)
+
+            # Remove Premium User Menu
+            elif action == "remove_premium_user":
+                if not clone:
+                    return await query.answer("Clone not found!", show_alert=True)
+
+                premium = clone.get("premium", [])
+                if not premium:
+                    return await query.answer("❌ No premium user found!", show_alert=True)
+
+                buttons = []
+
+                for pu in premium:
+                    try:
+                        user_id_int = int(pu)
+                    except ValueError:
+                        user_id_int = pu
+
+                    user = await db.col.find_one({"id": user_id_int})
+                    name = user.get("name") if user else pu
+
+                    buttons.append([InlineKeyboardButton(f"👤 {name}", callback_data=f"remove_pu_{bot_id}_{pu}")])
+
+                buttons.append([InlineKeyboardButton("⬅️ Back", callback_data=f"premium_user_{bot_id}")])
+                await query.message.edit_text(
+                    "👥 Please select a **premium user** to remove from the list:",
+                    reply_markup=InlineKeyboardMarkup(buttons)
+                )
+
+            # Remove Premium User
+            elif action == "remove_pu":
+                if not clone:
+                    return await query.answer("Clone not found!", show_alert=True)
+
+                premium = clone.get("premium", [])
+                if not premium:
+                    return await query.answer("❌ No premium user found!", show_alert=True)
+
+                await db.update_clone(bot_id, {"$pull": {"premium": pu_id}}, raw=True)
+                await query.answer("✅ Premium user removed!", show_alert=True)
+                await show_premium_menu(client, query.message, bot_id)
 
             # Auto Delete Menu
             elif action == "auto_delete":
@@ -2683,12 +2787,14 @@ async def message_capture(client: Client, message: Message):
                     me = await clone_client.get_me()
                     member = await clone_client.get_chat_member(chat.id, me.id)
                     if member.status not in [enums.ChatMemberStatus.ADMINISTRATOR, enums.ChatMemberStatus.OWNER]:
+                        await db.update_clone(bot_id, {"auto_post": False})
                         await orig_msg.edit_text("❌ The clone bot is NOT an admin in this channel. Add it as admin first.")
                         await asyncio.sleep(2)
                         await show_post_menu(client, orig_msg, bot_id)
                         AUTO_POST.pop(user_id, None)
                         return
                 except Exception as e:
+                    await db.update_clone(bot_id, {"auto_post": False})
                     await orig_msg.edit_text(f"❌ Failed to check clone bot in channel: {e}")
                     await asyncio.sleep(2)
                     await show_post_menu(client, orig_msg, bot_id)
