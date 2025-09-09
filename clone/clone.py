@@ -462,7 +462,7 @@ async def start(client, message):
 
                 if clone.get("auto_delete", False):
                     auto_delete_time = clone.get("auto_delete_time", 1)
-                    k = await message.reply(
+                    k = await message.reply_text(
                         clone.get('auto_delete_msg', script.AD_TXT).format(time=auto_delete_time),
                         quote=True
                     )
