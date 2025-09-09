@@ -368,9 +368,9 @@ async def start(client, message):
                     buttons.append([InlineKeyboardButton(btn["name"], url=btn["url"])])
 
                 if buttons:
-                     await sent_msg.edit_caption(f_caption or (sent_msg.caption or ""), reply_markup=InlineKeyboardMarkup(buttons))
+                    await sent_msg.edit_caption(f_caption or (sent_msg.caption or ""), reply_markup=InlineKeyboardMarkup(buttons))
                 elif f_caption and f_caption != (sent_msg.caption or ""):
-                     await sent_msg.edit_caption(f_caption)
+                    await sent_msg.edit_caption(f_caption)
 
                 if clone.get("auto_delete", False):
                     auto_delete_time = clone.get("auto_delete_time", 1)
