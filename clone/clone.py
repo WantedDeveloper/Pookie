@@ -322,7 +322,7 @@ async def start(client, message):
                 decoded = base64.urlsafe_b64decode(encoded + "=" * (-len(encoded) % 4)).decode("ascii")
                 pre, decode_file_id = decoded.split("_", 1)
 
-                if clone.get("access_token", False) and not await check_verification(client, message.from_user.id):
+                if clone.get("access_token", False) and str(message.from_user.id) not in clone.get("premium", []) and not await check_verification(client, message.from_user.id):
                     verify_url = await get_token(client, message.from_user.id, f"https://t.me/{me.username}?start=")
                     btn = [[InlineKeyboardButton("✅ Verify", url=verify_url)]]
 
@@ -390,7 +390,7 @@ async def start(client, message):
         # --- Batch File Handler ---
         if data.startswith("BATCH-"):
             try:
-                if clone.get("access_token", False) and not await check_verification(client, message.from_user.id):
+                if clone.get("access_token", False) and str(message.from_user.id) not in clone.get("premium", []) and not await check_verification(client, message.from_user.id):
                     verify_url = await get_token(client, message.from_user.id, f"https://t.me/{me.username}?start=")
                     btn = [[InlineKeyboardButton("✅ Verify", url=verify_url)]]
 
@@ -491,7 +491,7 @@ async def start(client, message):
             decoded = base64.urlsafe_b64decode(encoded + "=" * (-len(encoded) % 4)).decode("ascii")
             pre, file_id = decoded.split("_", 1)
 
-            if clone.get("access_token", False) and not await check_verification(client, message.from_user.id):
+            if clone.get("access_token", False) and str(message.from_user.id) not in clone.get("premium", []) and not await check_verification(client, message.from_user.id):
                 verify_url = await get_token(client, message.from_user.id, f"https://t.me/{me.username}?start=")
                 btn = [[InlineKeyboardButton("✅ Verify", url=verify_url)]]
 
