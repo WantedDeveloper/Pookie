@@ -464,7 +464,6 @@ async def start(client, message):
                             quote=True
                         )
                         asyncio.create_task(auto_delete_message(client, sent_msg, k, auto_delete_time))
-                    return
 
                 await sts.edit_text(f"✅ Batch completed!\n\nTotal files sent: **{total_files}**")
                 await asyncio.sleep(5)
