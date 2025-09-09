@@ -330,6 +330,8 @@ async def start(client, message):
                     if tutorial_url:
                         btn.append([InlineKeyboardButton("ℹ️ Tutorial", url=tutorial_url)])
 
+                    btn.append([InlineKeyboardButton("♻️ Try Again", url=f"https://t.me/{me.username}?start=SINGLE-{encoded}")])
+
                     return await message.reply_text(
                         "🚫 You are not **verified**! Kindly **verify** to continue.",
                         protect_content=clone.get("forward_protect", False),
@@ -392,13 +394,14 @@ async def start(client, message):
                     if tutorial_url:
                         btn.append([InlineKeyboardButton("ℹ️ Tutorial", url=tutorial_url)])
 
+                    btn.append([InlineKeyboardButton("♻️ Try Again", url=f"https://t.me/{me.username}?start=BATCH-{file_id}")])
+
                     return await message.reply_text(
                         "🚫 You are not **verified**! Kindly **verify** to continue.",
                         protect_content=clone.get("forward_protect", False),
                         reply_markup=InlineKeyboardMarkup(btn)
                     )
 
-                #sts = await message.reply("Please wait...")
                 file_id = data.split("-", 1)[1]
                 msgs = BATCH_FILES.get(file_id)
 
@@ -457,13 +460,13 @@ async def start(client, message):
                     elif f_caption and f_caption != (sent_msg.caption or ""):
                         await sent_msg.edit_caption(f_caption)
 
-                    if clone.get("auto_delete", False):
-                        auto_delete_time = clone.get("auto_delete_time", 1)
-                        k = await sent_msg.reply(
-                            clone.get('auto_delete_msg', script.AD_TXT).format(time=auto_delete_time),
-                            quote=True
-                        )
-                        asyncio.create_task(auto_delete_message(client, sent_msg, k, auto_delete_time))
+                if clone.get("auto_delete", False):
+                    auto_delete_time = clone.get("auto_delete_time", 1)
+                    k = await message.reply(
+                        clone.get('auto_delete_msg', script.AD_TXT).format(time=auto_delete_time),
+                        quote=True
+                    )
+                    asyncio.create_task(auto_delete_message(client, message, k, auto_delete_time))
 
                 await sts.edit_text(f"✅ Batch completed!\n\nTotal files sent: **{total_files}**")
                 await asyncio.sleep(5)
@@ -489,7 +492,7 @@ async def start(client, message):
                 if tutorial_url:
                     btn.append([InlineKeyboardButton("ℹ️ Tutorial", url=tutorial_url)])
 
-                #btn.append([InlineKeyboardButton("♻️ Try Again", url=f"https://t.me/{me.username}?start={file_id}")])
+                btn.append([InlineKeyboardButton("♻️ Try Again", url=f"https://t.me/{me.username}?start=AUTO-{encoded}")])
 
                 return await message.reply_text(
                     "🚫 You are not **verified**! Kindly **verify** to continue.",
