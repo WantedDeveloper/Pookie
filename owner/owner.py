@@ -2265,16 +2265,14 @@ async def cb_handler(client: Client, query: CallbackQuery):
         print(f"⚠️ Callback Handler Error: {e}")
         await query.answer("❌ An error occurred. The admin has been notified.", show_alert=True)
 
-SESSION_STRING = "BQDsMO8AmFb6JbgFyK7jiJtXcx3AFBuboExTZHINbxsl8_YzR0HaeAI5_BnsfUv_vN-vrB8NvarvyBvTRb80QQsTUuCahomUwfyd4lYuGyiQ3olZsxvJ-jKg_5XvfMN6DalcD2zNuWGf-FvvTeH_-t8QMcAPXpDxyt97bYsBIBtQAoTDpHu5bqf0h6XphvYAnYPBWLluo6VASKQJ2FsxPQfV0pEflImcLKiakUFNzA5Sn0AX6ZzRbP9gmGvKJg5L4aOD7SmYwaDhm6N7xR4p8jtpx4zszlxriOQB_lCjywawyWw-_O01f0roGKph7TGLkSEr_uJ0asKkJAyIQ3yDiJ751R51JwAAAABaJgrVAA"  # paste your generated session string here
-
-if SESSION_STRING and len(SESSION_STRING) > 30:   # if session string exists in config
+if SESSION_STRING and len(SESSION_STRING) > 30:
     assistant = Client(
         "assistant",
         api_id=API_ID,
         api_hash=API_HASH,
         session_string=SESSION_STRING
     )
-else:   # fallback to local session file
+else:
     assistant = Client(
         "assistant",
         api_id=API_ID,
@@ -2703,7 +2701,7 @@ async def message_capture(client: Client, message: Message):
                         "auto_post": True,
                         "target_channel": int(chat.id)
                     })
-                    asyncio.create_task(auto_post_clone(bot_id, db, int(chat.id), assistant))
+                    asyncio.create_task(auto_post_clone(bot_id, db, int(chat.id)))
                     await orig_msg.edit_text("✅ Successfully updated **auto post**!")
                     await asyncio.sleep(2)
                     await show_post_menu(client, orig_msg, bot_id)
@@ -2717,55 +2715,6 @@ async def message_capture(client: Client, message: Message):
                 finally:
                     AUTO_POST.pop(user_id, None)
                 return
-
-        # -------------------- MEDIA CAPTURING --------------------
-        if client not in CLONE_ME or CLONE_ME[client] is None:
-            try:
-                CLONE_ME[client] = await client.get_me()
-            except Exception as e:
-                print(f"⚠️ get_me() failed: {e}")
-                return
-
-        me = CLONE_ME.get(client)
-        if not me:
-            print("❌ Failed to get bot info (me is None)")
-            return
-
-        media_file_id = None
-        media_type = None
-        if message.chat.id == -1002912952165:
-            if message.photo:
-                media_file_id = message.photo.file_id
-                media_type = "photo"
-            elif message.video:
-                media_file_id = message.video.file_id
-                media_type = "video"
-            elif message.document:
-                media_file_id = message.document.file_id
-                media_type = "document"
-            elif message.animation:
-                media_file_id = message.animation.file_id
-                media_type = "animation"
-
-            if media_file_id:
-                if await db.is_media_exist(media_file_id):
-                    print(f"⚠️ Duplicate media skip kiya: {media_type} ({media_file_id})")
-                    return
-
-                try:
-                    await db.add_media(
-                        msg_id=message.id,
-                        file_id=media_file_id,
-                        caption=message.caption or "",
-                        media_type=media_type,
-                        date=int(message.date.timestamp()),
-                        posted_by=[]
-                    )
-                    print(f"✅ Saved media: {media_type} ({media_file_id})")
-                except Exception as e:
-                    print(f"Error: {e}")
-
-                await asyncio.sleep(0.3)
 
     except Exception as e:
         await client.send_message(LOG_CHANNEL, f"⚠️ Unexpected Error in message_capture:\n\n<code>{e}</code>\n\nKindly check this message to get assistance.")
@@ -2795,7 +2744,7 @@ async def restart_bots():
                 target_channel = fresh.get("target_channel")
                 if target_channel:
                     asyncio.create_task(
-                        auto_post_clone(bot.id, db, target_channel, assistant)
+                        auto_post_clone(bot.id, db, target_channel)
                     )
                     print(f"▶️ Auto-post started for @{bot.username}")
                     
