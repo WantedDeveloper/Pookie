@@ -432,9 +432,9 @@ async def start(client, message):
                         else:
                             f_caption = original_caption or f"<code>{file.file_name}</code>"
 
-                        await info.copy(chat_id=message.from_user.id, caption=f_caption, protect_content=clone.get("forward_protect", False))
+                        sent_msg = await info.copy(chat_id=message.from_user.id, caption=f_caption, protect_content=clone.get("forward_protect", False))
                     else:
-                        await info.copy(chat_id=message.from_user.id, protect_content=clone.get("forward_protect", False))
+                        sent_msg = await info.copy(chat_id=message.from_user.id, protect_content=clone.get("forward_protect", False))
 
                     await asyncio.sleep(1)
 
@@ -444,17 +444,17 @@ async def start(client, message):
                         buttons.append([InlineKeyboardButton(btn["name"], url=btn["url"])])
 
                     if buttons:
-                        await info.edit_caption(f_caption, reply_markup=InlineKeyboardMarkup(buttons))
+                        await sent_msg.edit_caption(f_caption, reply_markup=InlineKeyboardMarkup(buttons))
                     else:
-                        await info.edit_caption(f_caption)
+                        await sent_msg.edit_caption(f_caption)
 
                     if clone.get("auto_delete", False):
                         auto_delete_time = clone.get("auto_delete_time", 1)
-                        k = await info.reply(
+                        k = await sent_msg.reply(
                             clone.get('auto_delete_msg', script.AD_TXT).format(time=auto_delete_time),
                             quote=True
                         )
-                        asyncio.create_task(auto_delete_message(client, info, k, auto_delete_time))
+                        asyncio.create_task(auto_delete_message(client, sent_msg, k, auto_delete_time))
                     return
                 return await sts.delete()
             except Exception as e:
@@ -462,7 +462,7 @@ async def start(client, message):
                     LOG_CHANNEL,
                     f"⚠️ Clone Batch File Handler Error:\n\n<code>{e}</code>\n\nKindly check this message to get assistance."
                 )
-                print(f"⚠️ Clone Single File Handler Error: {e}")
+                print(f"⚠️ Clone Batch File Handler Error: {e}")
 
         # --- Auto Post Handler ---
         if data.startswith("AUTO-"):
