@@ -444,7 +444,7 @@ async def start(client, message):
                         buttons.append([InlineKeyboardButton(btn["name"], url=btn["url"])])
 
                     if buttons:
-                        await sent_msg.edit_caption(f_caption or (sent_msg.caption or ""), reply_markup=InlineKeyboardMarkup(buttons))
+                        await sent_msg.edit_caption(f_caption, reply_markup=InlineKeyboardMarkup(buttons))
                     elif f_caption and f_caption != (sent_msg.caption or ""):
                         await sent_msg.edit_caption(f_caption)
 
