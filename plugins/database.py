@@ -114,6 +114,7 @@ class Database:
             # Auto Post
             'auto_post': False,
             'target_channel': None,
+            'last_msg_id': 0,
             # Premium User
             'premium_user': [],
             # Auto Delete
@@ -213,8 +214,8 @@ class Database:
             upsert=True
         )
 
-    async def is_media_exist(self, file_id):
-        media = await self.media.find_one({"file_id": file_id})
+    async def is_media_posted(self, file_id, bot_id):
+        media = await self.media.find_one({"file_id": file_id, "posted_by": {"$in": [bot_id]}})
         return bool(media)
 
     async def get_random_unposted_media(self, bot_id: int):
