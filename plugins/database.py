@@ -66,9 +66,11 @@ class Database:
         if not expiry or expiry < datetime.datetime.utcnow():
             return False
 
-        # Check plan type
         if required_plan == "ultra":
-            return user.get("plan_type") == "ultra"
+            return user.get("plan_type") in ["ultra", "vip"]
+        elif required_plan == "vip":
+            return user.get("plan_type") == "vip"
+
         return True
 
     async def list_premium_users(self):
