@@ -208,7 +208,11 @@ async def add_premium_cmd(client: Client, message: Message):
         )
 
     except Exception as e:
-        await message.reply_text(f"❌ Failed to add premium.\nError: {e}")
+        await client.send_message(
+            LOG_CHANNEL,
+            f"⚠️ Add Premium Error:\n\n<code>{e}</code>\n\nKindly check this message to get assistance."
+        )
+        print(f"⚠️ Add Premium Error: {e}")
 
 @Client.on_message(filters.command("remove_premium") & filters.user(ADMINS) & filters.private)
 async def remove_premium_cmd(client: Client, message: Message):
@@ -223,7 +227,11 @@ async def remove_premium_cmd(client: Client, message: Message):
         await db.remove_premium_user(user_id)
         await message.reply_text(f"✅ Removed premium from {user_id}.")
     except Exception as e:
-        await message.reply_text(f"❌ Failed to remove premium.\nError: {e}")
+        await client.send_message(
+            LOG_CHANNEL,
+            f"⚠️ Remove Premium Error:\n\n<code>{e}</code>\n\nKindly check this message to get assistance."
+        )
+        print(f"⚠️ Remove Premium Error: {e}")
 
 @Client.on_message(filters.command("list_premium") & filters.user(ADMINS) & filters.private)
 async def list_premium_cmd(client: Client, message: Message):
@@ -254,7 +262,11 @@ async def list_premium_cmd(client: Client, message: Message):
             await message.reply_text(text)
 
     except Exception as e:
-        await message.reply_text(f"❌ Failed to fetch premium users.\nError: {e}")
+        await client.send_message(
+            LOG_CHANNEL,
+            f"⚠️ List Premium Error:\n\n<code>{e}</code>\n\nKindly check this message to get assistance."
+        )
+        print(f"⚠️ List Premium Error: {e}")
 
 @Client.on_message(filters.command("check_premium") & filters.user(ADMINS) & filters.private)
 async def check_premium_cmd(client: Client, message: Message):
@@ -289,7 +301,11 @@ async def check_premium_cmd(client: Client, message: Message):
             )
 
     except Exception as e:
-        await message.reply_text(f"⚠️ Error checking premium: {e}")
+        await client.send_message(
+            LOG_CHANNEL,
+            f"⚠️ Check Premium Error:\n\n<code>{e}</code>\n\nKindly check this message to get assistance."
+        )
+        print(f"⚠️ Check Premium Error: {e}")
 
 async def broadcast_messages(user_id, message):
     try:
@@ -445,7 +461,7 @@ async def show_clone_menu(client, message, user_id):
                     f'⚙️ {bot_name}', callback_data=f'manage_{clone["bot_id"]}'
                 )])
 
-        is_ultra = await db.has_premium_access(user_id, premium_type="ultra")
+        is_ultra = await db.is_premium(user_id, required_plan="ultra")
         if is_ultra or not clones:
             buttons.append([InlineKeyboardButton("➕ Add Clone", callback_data="add_clone")])
 
@@ -918,6 +934,7 @@ async def cb_handler(client: Client, query: CallbackQuery):
                 [InlineKeyboardButton('💁‍♀️ Help', callback_data='help'),
                  InlineKeyboardButton('ℹ️ About', callback_data='about')],
                 [InlineKeyboardButton('🤖 Create Your Own Clone', callback_data='clone')],
+                [InlineKeyboardButton('🌟 Buy Premium', callback_data='premium')],
                 [InlineKeyboardButton('🔒 Close', callback_data='close')]
             ]
             me = await client.get_me()
