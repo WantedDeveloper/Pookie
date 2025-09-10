@@ -2221,8 +2221,8 @@ async def cb_handler(client: Client, query: CallbackQuery):
             )
 
             buttons = [
-                [InlineKeyboardButton("💰 Buy Normal Premium", url="https://t.me/Admin")],
-                [InlineKeyboardButton("🚀 Buy Ultra Premium", url="https://t.me/Admin")],
+                [InlineKeyboardButton("💰 Buy Normal Premium", url="buy_normal")],
+                [InlineKeyboardButton("🚀 Buy Ultra Premium", url="buy_ultra")],
                 [InlineKeyboardButton("⬅️ Back", callback_data="start")]
             ]
 
