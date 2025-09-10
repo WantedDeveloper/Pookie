@@ -8,6 +8,7 @@ class Database:
         self._client = motor.motor_asyncio.AsyncIOMotorClient(uri)
         self.db = self._client[database_name]
         self.col = self.db.users
+        self.premium = self.db.premium_users
         self.bot = self.db.clone_bots
         self.settings = self.db.bot_settings
         self.media = self.db.media_files
