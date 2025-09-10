@@ -2229,7 +2229,7 @@ async def cb_handler(client: Client, query: CallbackQuery):
             await query.message.edit_text(
                 text=text,
                 reply_markup=InlineKeyboardMarkup(buttons),
-                parse_mode="Markdown"
+                parse_mode=enums.ParseMode.MARKDOWN
             )
 
         # Payment Flow
@@ -2257,7 +2257,7 @@ async def cb_handler(client: Client, query: CallbackQuery):
             await query.message.edit_text(
                 text=text,
                 reply_markup=InlineKeyboardMarkup(buttons),
-                parse_mode="Markdown"
+                parse_mode=enums.ParseMode.MARKDOWN
             )
 
         # User clicked Payment Done
@@ -2267,7 +2267,7 @@ async def cb_handler(client: Client, query: CallbackQuery):
             await query.message.edit_text(
                 f"⏳ Payment received for **{feature_type}**.\n"
                 "Waiting for admin approval...",
-                parse_mode="Markdown"
+                parse_mode=enums.ParseMode.MARKDOWN
             )
 
             approve_buttons = [
