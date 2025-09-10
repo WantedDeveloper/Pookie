@@ -2229,8 +2229,11 @@ async def cb_handler(client: Client, query: CallbackQuery):
                 "**Normal Premium:**\n"
                 "- Unlimited Button\n"
                 "- Unlimited FSub Channel\n"
-                "- Auto Posting\n\n"
                 "**Ultra Premium:**\n"
+                "- Unlimited Button\n"
+                "- Unlimited FSub Channel\n"
+                "- Auto Posting\n\n"
+                "**Vip Premium:**\n"
                 "- Unlimited Clone Bot\n"
                 "- Unlimited Button\n"
                 "- Unlimited FSub Channel\n"
@@ -2240,6 +2243,7 @@ async def cb_handler(client: Client, query: CallbackQuery):
             buttons = [
                 [InlineKeyboardButton("💰 Buy Normal Premium", callback_data="buy_normal")],
                 [InlineKeyboardButton("🚀 Buy Ultra Premium", callback_data="buy_ultra")],
+                [InlineKeyboardButton("👑 Buy VIP Premium", callback_data="buy_vip")],
                 [InlineKeyboardButton("⬅️ Back", callback_data="start")]
             ]
 
@@ -2250,13 +2254,17 @@ async def cb_handler(client: Client, query: CallbackQuery):
             )
 
         # Payment Flow
-        elif query.data in ["buy_normal", "buy_ultra"]:
+        elif query.data in ["buy_normal", "buy_ultra", "buy_vip"]:
             if query.data == "buy_normal":
                 price = "₹100"
                 feature_type = "Normal Premium"
-            else:
+            elif query.data == "buy_ultra":
                 price = "₹300"
                 feature_type = "Ultra Premium"
+            else:
+                price = "₹500"
+                feature_type = "VIP Premium"
+
 
             text = (
                 f"💳 **{feature_type} Payment** 💳\n\n"
@@ -2292,26 +2300,37 @@ async def cb_handler(client: Client, query: CallbackQuery):
                 [InlineKeyboardButton("❌ Reject", callback_data=f"reject_{user_id}_{feature_type.replace(' ', '_')}")]
             ]
 
-            await client.send_message(
-                ADMINS,
-                f"💰 Payment confirmation request:\n\n"
-                f"User: {query.from_user.mention} (`{user_id}`)\n"
-                f"Feature: {feature_type}\n\n"
-                "Click Approve or Reject:",
-                reply_markup=InlineKeyboardMarkup(approve_buttons)
-            )
+            for admin_id in ADMINS:
+                await client.send_message(
+                    admin_id,
+                    f"💰 Payment confirmation request:\n\n"
+                    f"User: {query.from_user.mention} (`{user_id}`)\n"
+                    f"Feature: {feature_type}\n\n"
+                    "Click Approve or Reject:",
+                    reply_markup=InlineKeyboardMarkup(approve_buttons)
+                )
 
         # Owner approves
-        elif query.data.startswith("approve_") and user_id == OWNER_ID:
+        elif query.data.startswith("approve_") and user_id in ADMINS:
             parts = query.data.split("_", 2)
             target_user_id = int(parts[1])
             feature_type = parts[2].replace("_", " ")
 
-            plan_type = "normal" if "Normal" in feature_type else "ultra"
-            days = 30
+            if "Normal" in feature_type:
+                plan_type = "normal"
+                days = 30
+            elif "Ultra" in feature_type:
+                plan_type = "ultra"
+                days = 30
+            elif "VIP" in feature_type:
+                plan_type = "vip"
+                days = 30
+            else:
+                plan_type = "normal"
+                days = 30
 
-            await db.add_premium_user(target_user_id, days, plan_type)
             expiry_date = datetime.datetime.utcnow() + datetime.timedelta(days=days)
+            await db.add_premium_user(target_user_id, days, plan_type)
 
             await query.message.edit_text(f"✅ Payment approved for user `{target_user_id}` ({feature_type})")
 
@@ -2326,7 +2345,7 @@ async def cb_handler(client: Client, query: CallbackQuery):
                 pass
 
         # Owner rejects
-        elif query.data.startswith("reject_") and user_id == OWNER_ID:
+        elif query.data.startswith("reject_") and user_id in ADMINS:
             parts = query.data.split("_", 2)
             target_user_id = int(parts[1])
             feature_type = parts[2].replace("_", " ")
