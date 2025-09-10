@@ -46,11 +46,11 @@ I am a permenant file store bot. you can store files from your public channel wi
 
 You can now manage and create your very own identical clone bot, mirroring all my awesome features, using the given buttons."""
 
-    CLONE_TXT = """1) Send <code>/newbot</code> to @BotFather.
-2) Give a name for your bot.
-3) Give a unique username.
-4) Then you will get a message with your bot token.
-5) Forward that message to me.
+    CLONE_TXT = """1️⃣ Send <code>/newbot</code> to @BotFather.
+2️⃣ Give a name for your bot.
+3️⃣ Give a unique username.
+4️⃣ Then you will get a message with your bot token.
+5️⃣ Forward that message to me.
 
 Then i am try to create a clone bot of me for u only 😌"""
 
@@ -121,6 +121,7 @@ Current Status: {status}"""
     "lundgand", "gaand", "gaandfat", "chutgand", "lundmar", "chutkala", "lundkala", "bhosdk",
     "bhenchode", "madarchode", "chutwa", "lundwa", "ludka", "lodu", "bc", "mc", "bcch",
     "bcchd", "behench", "bhosdi", "gandu", "madar", "randiya", "chutiyapa", "harami", "chodu",
+    
     # English slangs / curse words
     "fuck", "fucker", "bastard", "bitch", "asshole", "dickhead", "motherfucker", "sonofabitch",
     "cunt", "slut", "whore", "cock", "pussy", "tits", "boobs", "penis", "vagina", "cum",
@@ -332,12 +333,6 @@ Current Status: {status}"""
     MODERATOR_TXT = """<u>**✨ MODERATOR**</u>
 
 Moderators have access to all your clone features."""
-
-    CAPTION = """<b>📂 ғɪʟᴇɴᴀᴍᴇ : {file_name}
-
-⚙️ sɪᴢᴇ : {file_size}
-
-Jᴏɪɴ [ᴜᴘᴅᴀᴛᴇ ᴄʜᴀɴɴᴇʟ](https://t.me/vj_botz)</b>""" 
 
     RESTART_TXT = """
 <b>Bot Restarted !
