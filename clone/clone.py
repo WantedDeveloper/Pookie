@@ -1120,10 +1120,14 @@ async def auto_post_clone(bot_id: int, target_channel: int, log_channel: int, as
 
         # Start from very first message if never posted
         if last_msg_id == 0:
-            try:
-                first_msg = await assistant.get_chat_history(log_channel, limit=1, reverse=True).__anext__()
+            messages = []
+            async for msg in assistant.get_chat_history(log_channel, limit=100):
+                messages.append(msg)
+
+            if messages:
+                first_msg = messages[-1]  # last in list = oldest
                 last_msg_id = first_msg.id - 1
-            except StopAsyncIteration:
+            else:
                 print(f"⚠️ No messages found in log channel {log_channel}")
                 return
 
@@ -1134,11 +1138,10 @@ async def auto_post_clone(bot_id: int, target_channel: int, log_channel: int, as
                     return
 
                 messages = []
-                async for msg in assistant.get_chat_history(log_channel, offset_id=last_msg_id, limit=50):
+                async for msg in assistant.get_chat_history(log_channel, offset_id=last_msg_id):
                     messages.append(msg)
 
                 for msg in reversed(messages):
-                
                     if not msg.media:
                         continue
 
