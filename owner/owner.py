@@ -1749,7 +1749,7 @@ async def cb_handler(client: Client, query: CallbackQuery):
                 user_data = await db.get_premium_user(user_id)
                 if not user_data:
                     return await query.answer(
-                        "🚫 This feature is for **premium users only**.\n\n"
+                        "🚫 This feature is for premium users only.\n\n"
                         "Contact @Admin to upgrade.",
                         show_alert=True
                     )
@@ -2238,8 +2238,8 @@ async def cb_handler(client: Client, query: CallbackQuery):
             )
 
             buttons = [
-                [InlineKeyboardButton("💰 Buy Normal Premium", url="buy_normal")],
-                [InlineKeyboardButton("🚀 Buy Ultra Premium", url="buy_ultra")],
+                [InlineKeyboardButton("💰 Buy Normal Premium", callback_data="buy_normal")],
+                [InlineKeyboardButton("🚀 Buy Ultra Premium", callback_data="buy_ultra")],
                 [InlineKeyboardButton("⬅️ Back", callback_data="start")]
             ]
 
