@@ -53,9 +53,7 @@ join_db = JoinReqs
 
 logger = logging.getLogger(__name__)
 
-BATCH_FILES = {}
 CLONE_TOKEN = {}
-CLONE_ME = {}
 START_TEXT = {}
 START_PHOTO = {}
 CAPTION_TEXT = {}
@@ -104,22 +102,6 @@ async def is_subscribed(client, query):
             if user.status != enums.ChatMemberStatus.BANNED:
                 return True
         return False
-
-def get_size(size):
-    units = ["Bytes", "KB", "MB", "GB", "TB", "PB", "EB"]
-    size = float(size)
-    i = 0
-    while size >= 1024.0 and i < len(units):
-        i += 1
-        size /= 1024.0
-    return "%.2f %s" % (size, units[i])
-
-def formate_file_name(file_name):
-    chars = ["[", "]", "(", ")"]
-    for c in chars:
-        file_name.replace(c, "")
-    file_name = '@PookieManagerBot ' + ' '.join(filter(lambda x: not x.startswith('http') and not x.startswith('@') and not x.startswith('www.'), file_name.split()))
-    return file_name
 
 @Client.on_message(filters.command("start") & filters.private & filters.incoming)
 async def start(client, message):
@@ -171,105 +153,13 @@ async def start(client, message):
                     InlineKeyboardButton('😊 About', callback_data='about')
                 ],
                 [InlineKeyboardButton('🤖 Create Your Own Clone', callback_data='clone')],
+                [InlineKeyboardButton('🌟 Buy Premium', callback_data='premium')],
                 [InlineKeyboardButton('🔒 Close', callback_data='close')]
             ]
             return await message.reply_text(
                 script.START_TXT.format(user=message.from_user.mention, bot=client.me.mention),
                 reply_markup=InlineKeyboardMarkup(buttons)
             )
-
-        # --- Verification Handler ---
-        data = message.command[1]
-        if data.startswith("verify-"):
-            parts = data.split("-", 2)
-            if len(parts) < 3 or str(message.from_user.id) != parts[1]:
-                return await message.reply_text("❌ Invalid or expired link!", protect_content=True)
-
-            if await check_token(client, parts[1], parts[2]):
-                await verify_user(client, parts[1], parts[2])
-                return await message.reply_text(
-                    f"Hey {message.from_user.mention}, **verification** successful! ✅",
-                    protect_content=True
-                )
-            else:
-                return await message.reply_text("❌ Invalid or expired link!", protect_content=True)
-
-        # --- Batch Handler ---
-        if data.startswith("BATCH-"):
-            if VERIFY_MODE and not await check_verification(client, message.from_user.id):
-                btn = [
-                    [InlineKeyboardButton("✅ Verify", url=await get_token(client, message.from_user.id, f"https://t.me/{username}?start="))],
-                    [InlineKeyboardButton("ℹ️ How To Open Link & Verify", url=VERIFY_TUTORIAL)]
-                ]
-                return await message.reply_text(
-                    "🚫 You are not **verified**! Kindly **verify** to continue.",
-                    protect_content=True,
-                    reply_markup=InlineKeyboardMarkup(btn)
-                )
-
-            sts = await message.reply("Please wait...")
-            file_id = data.split("-", 1)[1]
-            msgs = BATCH_FILES.get(file_id)
-
-            if not msgs:
-                decode_file_id = base64.urlsafe_b64decode(file_id + "=" * (-len(file_id) % 4)).decode("ascii")
-                msg = await client.get_messages(LOG_CHANNEL, int(decode_file_id))
-                media = getattr(msg, msg.media.value)
-                file_id = media.file_id
-                file = await client.download_media(file_id)
-                with open(file) as file_data:
-                    msgs = json.loads(file_data.read())
-                os.remove(file)
-                BATCH_FILES[file_id] = msgs
-
-            for msg in msgs:
-                channel_id = int(msg.get("channel_id"))
-                msgid = msg.get("msg_id")
-                info = await client.get_messages(channel_id, int(msgid))
-                if info.media:
-                    f_caption = info.caption or ""
-                    title = formate_file_name(getattr(info, info.media.value).file_name or "")
-                    size = get_size(int(getattr(info, info.media.value).file_size))
-                    if BATCH_FILE_CAPTION:
-                        f_caption = BATCH_FILE_CAPTION.format(
-                            file_name=title or '',
-                            file_size=size or '',
-                            file_caption=f_caption or ''
-                        )
-                    await info.copy(chat_id=message.from_user.id, caption=f_caption, protect_content=FORWARD_PROTECT_MODE)
-                else:
-                    await info.copy(chat_id=message.from_user.id, protect_content=FORWARD_PROTECT_MODE)
-                await asyncio.sleep(1)
-            return await sts.delete()
-
-        # --- Single File Handler ---
-        pre, decode_file_id = base64.urlsafe_b64decode(data + "=" * (-len(data) % 4)).decode("ascii").split("_", 1)
-        if VERIFY_MODE and not await check_verification(client, message.from_user.id):
-            btn = [
-                [InlineKeyboardButton("✅ Verify", url=await get_token(client, message.from_user.id, f"https://t.me/{username}?start="))],
-                [InlineKeyboardButton("ℹ️ How To Open Link & Verify", url=VERIFY_TUTORIAL)]
-            ]
-            return await message.reply_text(
-                "🚫 You are not **verified**! Kindly **verify** to continue.",
-                protect_content=True,
-                reply_markup=InlineKeyboardMarkup(btn)
-            )
-
-        msg = await client.get_messages(LOG_CHANNEL, int(decode_file_id))
-        if msg.media:
-            media = getattr(msg, msg.media.value)
-            title = formate_file_name(media.file_name or "")
-            size = get_size(media.file_size)
-            f_caption = f"<code>{title}</code>"
-            if CUSTOM_FILE_CAPTION:
-                f_caption = CUSTOM_FILE_CAPTION.format(
-                    file_name=title or '',
-                    file_size=size or '',
-                    file_caption=''
-                )
-            await msg.copy(chat_id=message.from_user.id, caption=f_caption, protect_content=FORWARD_PROTECT_MODE)
-        else:
-            await msg.copy(chat_id=message.from_user.id, protect_content=FORWARD_PROTECT_MODE)
 
     except Exception as e:
         await client.send_message(
@@ -278,182 +168,128 @@ async def start(client, message):
         )
         print(f"⚠️ Start Handler Error: {e}")
 
-@Client.on_message(filters.command(['genlink']) & filters.user(ADMINS) & filters.private)
-async def link(client, message):
+@Client.on_message(filters.command("add_premium") & filters.user(ADMINS) & filters.private)
+async def add_premium_cmd(client: Client, message: Message):
     try:
-        try:
-            await message.delete()
-        except:
-            pass
+        ask_id = await client.ask(
+            chat_id=message.chat.id,
+            text="👤 Send the User ID to add as premium:",
+            filters=filters.text,
+            timeout=60
+        )
+        user_id = int(ask_id.text.strip())
 
-        if message.reply_to_message:
-            g_msg = message.reply_to_message
+        ask_days = await client.ask(
+            chat_id=message.chat.id,
+            text="📅 Send number of days for premium:",
+            filters=filters.text,
+            timeout=60
+        )
+        days = int(ask_days.text.strip())
+
+        ask_plan = await client.ask(
+            chat_id=message.chat.id,
+            text="💎 Send plan type:\n\n- `normal`\n- `ultra`",
+            filters=filters.text,
+            timeout=60
+        )
+        plan = ask_plan.text.lower().strip()
+        if plan not in ["normal", "ultra"]:
+            return await message.reply_text("❌ Invalid plan type. Must be 'normal' or 'ultra'.")
+
+        await db.add_premium_user(user_id, days, plan)
+
+        expiry = (datetime.datetime.utcnow() + datetime.timedelta(days=days)).strftime("%Y-%m-%d %H:%M")
+        await message.reply_text(
+            f"✅ Added **{plan.title()} Premium**\n\n"
+            f"👤 User ID: `{user_id}`\n"
+            f"📅 Days: {days}\n"
+            f"⏳ Expiry: {expiry}"
+        )
+
+    except Exception as e:
+        await message.reply_text(f"❌ Failed to add premium.\nError: {e}")
+
+@Client.on_message(filters.command("remove_premium") & filters.user(ADMINS) & filters.private)
+async def remove_premium_cmd(client: Client, message: Message):
+    try:
+        ask_id = await client.ask(
+            chat_id=message.chat.id,
+            text="👤 Send the User ID to remove from premium:",
+            filters=filters.text,
+            timeout=60
+        )
+        user_id = int(ask_id.text.strip())
+        await db.remove_premium_user(user_id)
+        await message.reply_text(f"✅ Removed premium from {user_id}.")
+    except Exception as e:
+        await message.reply_text(f"❌ Failed to remove premium.\nError: {e}")
+
+@Client.on_message(filters.command("list_premium") & filters.user(ADMINS) & filters.private)
+async def list_premium_cmd(client: Client, message: Message):
+    try:
+        users = await db.list_premium_users()
+        if not users:
+            return await message.reply_text("ℹ️ No premium users found.")
+
+        text = "👑 **Premium Users List** 👑\n\n"
+        for u in users:
+            user_id = u["id"]
+            plan = u.get("plan_type", "normal").title()
+            expiry = u.get("expiry_time")
+            if expiry:
+                exp_str = expiry.strftime("%Y-%m-%d %H:%M")
+                remaining = expiry - datetime.datetime.utcnow()
+                days_left = remaining.days
+                text += f"• `{user_id}` | {plan} | Expires: {exp_str} ({days_left} days left)\n"
+            else:
+                text += f"• `{user_id}` | {plan} | ❌ Expired\n"
+
+        if len(text) > 4000:
+            await message.reply_document(
+                document=("premium_users.txt", text.encode("utf-8")),
+                caption="📄 Premium Users List"
+            )
         else:
-            g_msg = await client.ask(
-                message.chat.id,
-                "📩 Please send me the message (file/text/media) to generate a shareable link.\n\nSend /cancel to stop.",
+            await message.reply_text(text)
+
+    except Exception as e:
+        await message.reply_text(f"❌ Failed to fetch premium users.\nError: {e}")
+
+@Client.on_message(filters.command("check_premium") & filters.user(ADMINS) & filters.private)
+async def check_premium_cmd(client: Client, message: Message):
+    try:
+        if len(message.command) < 2:
+            return await message.reply_text("❌ Usage: /check_premium <user_id>")
+
+        user_id = int(message.command[1])
+        user = await db.get_premium_user(user_id)
+
+        if not user:
+            return await message.reply_text(f"ℹ️ User `{user_id}` is **not premium**.")
+
+        plan = user.get("plan_type", "normal").title()
+        expiry = user.get("expiry_time")
+
+        if expiry and expiry > datetime.datetime.utcnow():
+            remaining = expiry - datetime.datetime.utcnow()
+            days_left = remaining.days
+            exp_str = expiry.strftime("%Y-%m-%d %H:%M")
+            await message.reply_text(
+                f"👤 **User:** `{user_id}`\n"
+                f"💎 **Plan:** {plan}\n"
+                f"📅 **Expiry:** {exp_str}\n"
+                f"⏳ **Remaining:** {days_left} days"
+            )
+        else:
+            await message.reply_text(
+                f"👤 **User:** `{user_id}`\n"
+                f"💎 **Plan:** {plan}\n"
+                f"❌ Premium expired."
             )
 
-            if g_msg.text and g_msg.text.lower() == '/cancel':
-                return await message.reply('🚫 Process has been cancelled.')
-
-        post = await g_msg.copy(LOG_CHANNEL)
-
-        file_id = str(post.id)
-        string = f"file_{file_id}"
-        outstr = base64.urlsafe_b64encode(string.encode("ascii")).decode().strip("=")
-        username = (await client.get_me()).username
-        share_link = f"https://t.me/{username}?start={outstr}"
-
-        reply_markup = InlineKeyboardMarkup(
-            [[InlineKeyboardButton("🔁 Share URL", url=f'https://t.me/share/url?url={share_link}')]]
-        )
-
-        await message.reply(
-            f"Here is your link:\n\n{share_link}",
-            reply_markup=reply_markup
-        )
-
     except Exception as e:
-        await client.send_message(
-            LOG_CHANNEL,
-            f"⚠️ Generate Link Error:\n\n<code>{e}</code>\n\nKindly check this message for assistance."
-        )
-        print(f"⚠️ Generate Link Error: {e}")
-
-def batch_progress_bar(done, total, length=20):
-    if total == 0:
-        return "[░" * length + "] 0%"
-    
-    percent = int((done / total) * 100)
-    filled = int((done / total) * length)
-    empty = length - filled
-    bar = "▓" * filled + "░" * empty
-
-    percent_str = f"{percent}%"
-    bar_list = list(bar)
-    start_pos = max((length - len(percent_str)) // 2, 0)
-    for i, c in enumerate(percent_str):
-        if start_pos + i < length:
-            bar_list[start_pos + i] = c
-    return f"[{''.join(bar_list)}]"
-
-@Client.on_message(filters.command(['batch']) & filters.user(ADMINS) & filters.private)
-async def batch(client, message):
-    try:
-        try:
-            await message.delete()
-        except:
-            pass
-
-        username = (await client.get_me()).username
-
-        usage_text = f"📌 Use correct format.\nExample:\n/batch https://t.me/{username}/10 https://t.me/{username}/20"
-
-        if " " not in message.text:
-            return await message.reply(usage_text)
-
-        links = message.text.strip().split(" ")
-        if len(links) != 3:
-            return await message.reply(usage_text)
-
-        cmd, first, last = links
-        regex = re.compile(r"(https://)?(t\.me/|telegram\.me/|telegram\.dog/)(c/)?(\d+|[a-zA-Z_0-9]+)/(\d+)$")
-
-        match = regex.match(first)
-        if not match:
-            return await message.reply('❌ Invalid first link.')
-        f_chat_id = match.group(4)
-        f_msg_id = int(match.group(5))
-        f_chat_id = int(f"-100{f_chat_id}") if f_chat_id.isnumeric() else f_chat_id
-
-        match = regex.match(last)
-        if not match:
-            return await message.reply('❌ Invalid last link.')
-        l_chat_id = match.group(4)
-        l_msg_id = int(match.group(5))
-        l_chat_id = int(f"-100{l_chat_id}") if l_chat_id.isnumeric() else l_chat_id
-
-        if f_chat_id != l_chat_id:
-            return await message.reply("❌ Chat IDs do not match.")
-
-        chat_id = (await client.get_chat(f_chat_id)).id
-
-        start_id = min(f_msg_id, l_msg_id)
-        end_id = max(f_msg_id, l_msg_id)
-
-        total_msgs = (end_id - start_id) + 1
-
-        sts = await message.reply(
-            "⏳ Generating link for your messages...\n"
-            "This may take time depending upon number of messages."
-        )
-
-        outlist = []
-        og_msg = 0
-        tot = 0
-
-        async for msg in client.iter_messages(f_chat_id, end_id, start_id):
-            tot += 1
-            if og_msg % 20 == 0 or tot == total_msgs:
-                try:
-                    progress_bar = batch_progress_bar(tot, total_msgs)
-                    await sts.edit(f"""
-⚙️ <b>Generating Batch Link...</b>
-
-📂 Total: {total_msgs}
-✅ Done: {tot}/{total_msgs}
-⏳ Remaining: {total_msgs - tot}
-📌 Status: Saving Messages
-
-{progress}
-""")
-                except:
-                    pass
-            if msg.empty or msg.service:
-                continue
-            file = {
-                "channel_id": f_chat_id,
-                "msg_id": msg.id
-            }
-            og_msg += 1
-            outlist.append(file)
-
-        filename = f"batchmode_{message.from_user.id}.json"
-        with open(filename, "w+") as out:
-            json.dump(outlist, out)
-        
-        post = await client.send_document(
-            LOG_CHANNEL,
-            filename,
-            file_name="Batch.json",
-            caption="⚠️ Batch Generated For Filestore."
-        )
-        os.remove(filename)
-
-        string = str(post.id)
-        file_id = base64.urlsafe_b64encode(string.encode("ascii")).decode().strip("=")
-        share_link = f"https://t.me/{username}?start=BATCH-{file_id}"
-
-        reply_markup = InlineKeyboardMarkup(
-            [[InlineKeyboardButton("🔁 Share URL", url=f'https://t.me/share/url?url={share_link}')]]
-        )
-
-        await sts.edit(
-            f"Here is your link:\n\n{share_link}",
-            reply_markup=reply_markup
-        )
-
-    except ChannelInvalid:
-        await message.reply('⚠️ This may be a private channel / group. Make me an admin over there to index the files.')
-    except (UsernameInvalid, UsernameNotModified):
-        await message.reply('⚠️ Invalid Link specified.')
-    except Exception as e:
-        await client.send_message(
-            LOG_CHANNEL,
-            f"⚠️ Batch Error:\n\n<code>{e}</code>\n\nKindly check this message for assistance."
-        )
-        print(f"⚠️ Batch Error: {e}")
+        await message.reply_text(f"⚠️ Error checking premium: {e}")
 
 async def broadcast_messages(user_id, message):
     try:
@@ -608,7 +444,9 @@ async def show_clone_menu(client, message, user_id):
                 buttons.append([InlineKeyboardButton(
                     f'⚙️ {bot_name}', callback_data=f'manage_{clone["bot_id"]}'
                 )])
-        else:
+
+        is_ultra = await db.has_premium_access(user_id, premium_type="ultra")
+        if is_ultra or not clones:
             buttons.append([InlineKeyboardButton("➕ Add Clone", callback_data="add_clone")])
 
         buttons.append([InlineKeyboardButton('⬅️ Back', callback_data='start')])
@@ -693,7 +531,11 @@ async def show_button_menu(client, message, bot_id):
                   InlineKeyboardButton("❌", callback_data=f"remove_button_{i}_{bot_id}")]
             )
 
-        if len(buttons_data) < 3:
+        user_id = message.from_user.id
+        user_data = await db.get_premium_user(user_id)
+        is_premium = bool(user_data)
+
+        if is_premium or len(buttons_data) < 3:
             buttons.append([InlineKeyboardButton("➕ Add Button", callback_data=f"add_button_{bot_id}")])
 
         buttons.append([InlineKeyboardButton("⬅️ Back", callback_data=f"start_message_{bot_id}")])
@@ -796,7 +638,10 @@ async def show_fsub_menu(client, message, bot_id):
             row.append(InlineKeyboardButton("❌", callback_data=f"remove_fsub_{i}_{bot_id}"))
             buttons.append(row)
 
-        if len(fsub_data) < 4:
+        user_id = message.from_user.id
+        user_data = await db.get_premium_user(user_id)
+        is_premium = bool(user_data)
+        if is_premium or len(fsub_data) < 4:
             buttons.append([InlineKeyboardButton("➕ Add Channel", callback_data=f"add_fsub_{bot_id}")])
 
         buttons.append([InlineKeyboardButton("⬅️ Back", callback_data=f"manage_{bot_id}")])
@@ -950,11 +795,10 @@ async def show_time_menu(client, message, bot_id):
 async def show_premium_menu(client, message, bot_id):
     try:
         clone = await db.get_clone_by_id(bot_id)
-        premium = clone.get("premium", [])
+        premium_user = clone.get("premium_user", [])
 
-        # Build premium user list text
         pu_list_lines = []
-        for pu in premium:
+        for pu in premium_user:
             try:
                 user_id_int = int(pu)
             except ValueError:
@@ -966,7 +810,6 @@ async def show_premium_menu(client, message, bot_id):
 
         pu_list_text = "\n".join(pu_list_lines)
 
-        # Buttons
         buttons = [
             [
                 InlineKeyboardButton("➕ Add", callback_data=f"add_pu_{bot_id}"),
@@ -975,7 +818,6 @@ async def show_premium_menu(client, message, bot_id):
             [InlineKeyboardButton("⬅️ Back", callback_data=f"manage_{bot_id}")]
         ]
 
-        # Menu text
         text = script.PREMIUM_TXT
         if pu_list_text:
             text += f"\n\n👥 **Current Premium Users:**\n{pu_list_text}"
@@ -1013,7 +855,6 @@ async def show_moderator_menu(client, message, bot_id):
         clone = await db.get_clone_by_id(bot_id)
         moderators = clone.get("moderators", [])
 
-        # Build moderator list text
         mod_list_lines = []
         for mod in moderators:
             try:
@@ -1027,7 +868,6 @@ async def show_moderator_menu(client, message, bot_id):
 
         mod_list_text = "\n".join(mod_list_lines)
 
-        # Buttons
         buttons = [
             [
                 InlineKeyboardButton("➕ Add", callback_data=f"add_moderator_{bot_id}"),
@@ -1037,7 +877,6 @@ async def show_moderator_menu(client, message, bot_id):
             [InlineKeyboardButton("⬅️ Back", callback_data=f"manage_{bot_id}")]
         ]
 
-        # Menu text
         text = script.MODERATOR_TXT
         if mod_list_text:
             text += f"\n\n👥 **Current Moderators:**\n{mod_list_text}"
@@ -1050,6 +889,15 @@ async def show_moderator_menu(client, message, bot_id):
             f"⚠️ Show Moderator Menu Error:\n<code>{e}</code>\nClone Data: {clone}\n\nKindly check this message to get assistance."
         )
         print(f"⚠️ Show Moderator Menu Error: {e}")
+
+def get_size(size):
+    units = ["Bytes", "KB", "MB", "GB", "TB", "PB", "EB"]
+    size = float(size)
+    i = 0
+    while size >= 1024.0 and i < len(units):
+        i += 1
+        size /= 1024.0
+    return "%.2f %s" % (size, units[i])
 
 @Client.on_callback_query()
 async def cb_handler(client: Client, query: CallbackQuery):
@@ -1123,7 +971,7 @@ async def cb_handler(client: Client, query: CallbackQuery):
                 [InlineKeyboardButton('🔔 Force Subscribe', callback_data=f'force_subscribe_{bot_id}'),
                  InlineKeyboardButton('🔑 Access Token', callback_data=f'access_token_{bot_id}')],
                 [InlineKeyboardButton('📤 Auto Post', callback_data=f'auto_post_{bot_id}'),
-                 InlineKeyboardButton('💎 Premium User', callback_data=f'premium_user_{bot_id}')],
+                 InlineKeyboardButton('🌟 Premium User', callback_data=f'premium_user_{bot_id}')],
                 [InlineKeyboardButton('⏳ Auto Delete', callback_data=f'auto_delete_{bot_id}'),
                  InlineKeyboardButton('🚫 Forward Protect', callback_data=f'forward_protect_{bot_id}')],
                 [InlineKeyboardButton('🛡 Moderator', callback_data=f'moderator_{bot_id}'),
@@ -1641,8 +1489,9 @@ async def cb_handler(client: Client, query: CallbackQuery):
                     return await query.answer("Clone not found!", show_alert=True)
 
                 fsub_data = clone.get("force_subscribe", [])
-                if len(fsub_data) >= 4:
-                    return await query.answer("❌ You can only add up to 4 channel.", show_alert=True)
+                if not await db.is_premium(user_id):
+                    if len(fsub_data) >= 4:
+                        return await query.answer("❌ You can only add up to 4 channel.", show_alert=True)
 
                 ADD_FSUB[user_id] = {
                     "orig_msg": query.message,
@@ -1880,6 +1729,14 @@ async def cb_handler(client: Client, query: CallbackQuery):
                 if not clone:
                     return await query.answer("Clone not found!", show_alert=True)
 
+                user_data = await db.get_premium_user(user_id)
+                if not user_data:
+                    return await query.answer(
+                        "🚫 This feature is for **premium users only**.\n\n"
+                        "Contact @Admin to upgrade.",
+                        show_alert=True
+                    )
+
                 await show_post_menu(client, query.message, bot_id)
 
             # Auto Post Status
@@ -1948,13 +1805,13 @@ async def cb_handler(client: Client, query: CallbackQuery):
                 if not clone:
                     return await query.answer("Clone not found!", show_alert=True)
 
-                premium = clone.get("premium", [])
-                if not premium:
+                premium_user = clone.get("premium_user", [])
+                if not premium_user:
                     return await query.answer("❌ No premium user found!", show_alert=True)
 
                 buttons = []
 
-                for pu in premium:
+                for pu in premium_user:
                     try:
                         user_id_int = int(pu)
                     except ValueError:
@@ -1976,11 +1833,11 @@ async def cb_handler(client: Client, query: CallbackQuery):
                 if not clone:
                     return await query.answer("Clone not found!", show_alert=True)
 
-                premium = clone.get("premium", [])
-                if not premium:
+                premium_user = clone.get("premium_user", [])
+                if not premium_user:
                     return await query.answer("❌ No premium user found!", show_alert=True)
 
-                await db.update_clone(bot_id, {"$pull": {"premium": pu_id}}, raw=True)
+                await db.update_clone(bot_id, {"$pull": {"premium_user": pu_id}}, raw=True)
                 await query.answer("✅ Premium user removed!", show_alert=True)
                 await show_premium_menu(client, query.message, bot_id)
 
@@ -2348,12 +2205,127 @@ async def cb_handler(client: Client, query: CallbackQuery):
                 await asyncio.sleep(2)
                 await show_clone_menu(client, query.message, user_id)
 
+        # Premium Menu
+        elif query.data == "premium":
+            text = (
+                "💎 **Premium Features** 💎\n\n"
+                "**Normal Premium:**\n"
+                "- Unlimited Button\n"
+                "- Unlimited FSub Channel\n"
+                "- Auto Posting\n\n"
+                "**Ultra Premium:**\n"
+                "- Unlimited Clone Bot\n"
+                "- Unlimited Button\n"
+                "- Unlimited FSub Channel\n"
+                "- Auto Posting\n\n"
+            )
+
+            buttons = [
+                [InlineKeyboardButton("💰 Buy Normal Premium", url="https://t.me/Admin")],
+                [InlineKeyboardButton("🚀 Buy Ultra Premium", url="https://t.me/Admin")],
+                [InlineKeyboardButton("⬅️ Back", callback_data="start")]
+            ]
+
+            await query.message.edit_text(
+                text=text,
+                reply_markup=InlineKeyboardMarkup(buttons),
+                parse_mode="Markdown"
+            )
+
+        # Payment Flow
+        elif query.data in ["buy_normal", "buy_ultra"]:
+            if query.data == "buy_normal":
+                price = "₹100"
+                feature_type = "Normal Premium"
+            else:
+                price = "₹300"
+                feature_type = "Ultra Premium"
+
+            text = (
+                f"💳 **{feature_type} Payment** 💳\n\n"
+                f"Amount: {price}\n"
+                "UPI ID: `your-upi@bank`\n"
+                "Send payment to UPI ID\n\n"
+                "After payment, click the **Payment Done** button below to confirm."
+            )
+
+            buttons = [
+                [InlineKeyboardButton("✅ Payment Done", callback_data=f"paid_{feature_type.replace(' ', '_')}")],
+                [InlineKeyboardButton("⬅️ Back", callback_data="premium")]
+            ]
+
+            await query.message.edit_text(
+                text=text,
+                reply_markup=InlineKeyboardMarkup(buttons),
+                parse_mode="Markdown"
+            )
+
+        # User clicked Payment Done
+        elif query.data.startswith("paid_"):
+            feature_type = query.data.replace("paid_", "").replace("_", " ")
+
+            await query.message.edit_text(
+                f"⏳ Payment received for **{feature_type}**.\n"
+                "Waiting for admin approval...",
+                parse_mode="Markdown"
+            )
+
+            approve_buttons = [
+                [InlineKeyboardButton("✅ Approve", callback_data=f"approve_{user_id}_{feature_type.replace(' ', '_')}")],
+                [InlineKeyboardButton("❌ Reject", callback_data=f"reject_{user_id}_{feature_type.replace(' ', '_')}")]
+            ]
+
+            await client.send_message(
+                ADMINS,
+                f"💰 Payment confirmation request:\n\n"
+                f"User: {query.from_user.mention} (`{user_id}`)\n"
+                f"Feature: {feature_type}\n\n"
+                "Click Approve or Reject:",
+                reply_markup=InlineKeyboardMarkup(approve_buttons)
+            )
+
+        # Owner approves
+        elif query.data.startswith("approve_") and user_id == OWNER_ID:
+            parts = query.data.split("_", 2)
+            target_user_id = int(parts[1])
+            feature_type = parts[2].replace("_", " ")
+
+            expiry_date = datetime.datetime.now() + datetime.timedelta(days=30)  # 30 days premium
+            await db.add_premium_user(target_user_id, feature_type, expiry_date)
+
+            await query.message.edit_text(f"✅ Payment approved for user `{target_user_id}` ({feature_type})")
+
+            try:
+                await client.send_message(
+                    target_user_id,
+                    f"✅ Your **{feature_type}** has been activated!\n"
+                    f"Expires on: {expiry_date.strftime('%d-%m-%Y')}\n"
+                    "Use /start to continue."
+                )
+            except:
+                pass
+
+        # Owner rejects
+        elif query.data.startswith("reject_") and user_id == OWNER_ID:
+            parts = query.data.split("_", 2)
+            target_user_id = int(parts[1])
+            feature_type = parts[2].replace("_", " ")
+
+            await query.message.edit_text(f"❌ Payment rejected for user `{target_user_id}` ({feature_type})")
+
+            try:
+                await client.send_message(
+                    target_user_id,
+                    f"❌ Your payment for **{feature_type}** was rejected.\nContact @Admin for assistance."
+                )
+            except:
+                pass
+
         # Close
         elif query.data == "close":
             await query.message.delete()
             await query.message.reply_text("❌ Menu closed. Send /start again.")
 
-        # Optional: Handle unknown callback
         else:
             await client.send_message(
                 LOG_CHANNEL,
@@ -2416,7 +2388,6 @@ async def message_capture(client: Client, message: Message):
 
             if not (
                 user_id in CLONE_TOKEN
-                or user_id in CLONE_ME
                 or user_id in START_TEXT
                 or user_id in START_PHOTO
                 or user_id in CAPTION_TEXT
