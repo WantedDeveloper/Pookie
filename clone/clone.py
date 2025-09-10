@@ -1133,7 +1133,12 @@ async def auto_post_clone(bot_id: int, target_channel: int, log_channel: int, as
                 if not fresh or not fresh.get("auto_post", False):
                     return
 
-                async for msg in assistant.get_chat_history(log_channel, offset_id=last_msg_id, reverse=True):
+                messages = []
+                async for msg in assistant.get_chat_history(log_channel, offset_id=last_msg_id):
+                    messages.append(msg)
+
+                for msg in reversed(messages):
+
                     if not msg.media:
                         continue
 
