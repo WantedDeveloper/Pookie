@@ -461,7 +461,7 @@ async def show_clone_menu(client, message, user_id):
                     f'⚙️ {bot_name}', callback_data=f'manage_{clone["bot_id"]}'
                 )])
 
-        is_ultra = await db.is_premium(user_id, required_plan="ultra")
+        is_ultra = await db.is_premium(user_id, required_plan="vip")
         if is_ultra or not clones:
             buttons.append([InlineKeyboardButton("➕ Add Clone", callback_data="add_clone")])
 
@@ -1754,6 +1754,15 @@ async def cb_handler(client: Client, query: CallbackQuery):
                         show_alert=True
                     )
 
+                plan_type = user_data.get("plan_type", "normal")
+
+                if plan_type not in ["ultra", "vip"]:
+                    return await query.answer(
+                        "🚫 This feature is available only for ultra & vip premium users.\n\n"
+                        "Upgrade to access.",
+                        show_alert=True
+                    )
+
                 await show_post_menu(client, query.message, bot_id)
 
             # Auto Post Status
@@ -2228,7 +2237,7 @@ async def cb_handler(client: Client, query: CallbackQuery):
                 "💎 **Premium Features** 💎\n\n"
                 "**Normal Premium:**\n"
                 "- Unlimited Button\n"
-                "- Unlimited FSub Channel\n"
+                "- Unlimited FSub Channel\n\n"
                 "**Ultra Premium:**\n"
                 "- Unlimited Button\n"
                 "- Unlimited FSub Channel\n"
