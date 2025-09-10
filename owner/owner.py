@@ -14,7 +14,7 @@ class JoinReqs:
 
     def __init__(self):
         if DB_URI:
-            self.client = motor.motor_asyncio.AsyncIOMotorClient(OTHER_DB_URI)
+            self.client = motor.motor_asyncio.AsyncIOMotorClient(DB_URI)
             self.db = self.client["JoinReqs"]
             self.col = self.db[str(AUTH_CHANNEL)]
         else:
