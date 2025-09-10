@@ -2307,8 +2307,11 @@ async def cb_handler(client: Client, query: CallbackQuery):
             target_user_id = int(parts[1])
             feature_type = parts[2].replace("_", " ")
 
-            expiry_date = datetime.datetime.now() + datetime.timedelta(days=30)  # 30 days premium
-            await db.add_premium_user(target_user_id, feature_type, expiry_date)
+            plan_type = "normal" if "Normal" in feature_type else "ultra"
+            days = 30
+
+            await db.add_premium_user(target_user_id, days, plan_type)
+            expiry_date = datetime.datetime.utcnow() + datetime.timedelta(days=days)
 
             await query.message.edit_text(f"✅ Payment approved for user `{target_user_id}` ({feature_type})")
 
