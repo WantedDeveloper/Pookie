@@ -774,7 +774,7 @@ async def shorten_handler(client: Client, message: Message):
 
         user_id = message.from_user.id
         cmd = message.command
-        user = await get_user(user_id)
+        user = await db.get_user(user_id)
 
         help_text = (
             "/shorten - Start shortening links\n"
@@ -836,7 +836,7 @@ async def shorten_handler(client: Client, message: Message):
 
         if state["step"] == 3:
             long_link = message.text.strip()
-            user = await get_user(user_id)
+            user = await db.get_user(user_id)
             base_site = user.get("base_site")
             api_key = user.get("shortener_api")
             if not base_site or not api_key:
@@ -1026,7 +1026,7 @@ def unpack_new_file_id(new_file_id):
     file_ref = encode_file_ref(decoded.file_reference)
     return file_id, file_ref
 
-async def auto_post_clone(bot_id: int, db, target_channel: int):
+"""async def auto_post_clone(bot_id: int, db, target_channel: int):
     try:
         bot_id = int(bot_id)
         clone = await db.get_clone_by_id(bot_id)
@@ -1091,6 +1091,101 @@ async def auto_post_clone(bot_id: int, db, target_channel: int):
                     await clone_client.send_message(
                         LOG_CHANNEL,
                         f"⚠️ Clone Auto Post Error:\n\n<code>{e}</code>\n\nKindly check this message to get assistance."
+                    )
+                except:
+                    pass
+                await asyncio.sleep(30)
+
+    except Exception as e:
+        print(f"❌ AutoPost crashed for {bot_id}: {e}")"""
+
+async def auto_post_clone(bot_id: int, target_channel: int, log_channel: int, assistant):
+    """
+    Auto-post for a clone bot using main owner's session string to read log channel.
+    get_client(bot_id) -> returns the clone bot client
+    """
+    try:
+        bot_id = int(bot_id)
+        clone = await db.get_clone_by_id(bot_id)
+        if not clone or not clone.get("auto_post", False):
+            return
+
+        clone_client = get_client(bot_id)  # Clone bot client
+        if not clone_client:
+            return
+
+        FIX_IMAGE = "https://i.ibb.co/gFv0Nm8M/IMG-20250904-163513-052.jpg"
+
+        last_msg_id = int(clone.get("last_msg_id", 0))
+
+        # Start from very first message if never posted
+        if last_msg_id == 0:
+            try:
+                first_msg = await assistant.get_chat_history(log_channel, limit=1, reverse=True).__anext__()
+                last_msg_id = first_msg.id - 1
+            except StopAsyncIteration:
+                print(f"⚠️ No messages found in log channel {log_channel}")
+                return
+
+        while True:
+            try:
+                fresh = await db.get_clone_by_id(bot_id)
+                if not fresh or not fresh.get("auto_post", False):
+                    return
+
+                async for msg in assistant.get_chat_history(log_channel, offset_id=last_msg_id, reverse=True):
+                    if not msg.media:
+                        continue
+
+                    file_type = msg.media.value
+                    file = getattr(msg, file_type, None)
+                    if not file:
+                        continue
+
+                    already = await db.is_media_posted(file.file_id, bot_id)
+                    if already:
+                        continue
+
+                    unpack, _ = unpack_new_file_id(file.file_id)
+                    string = f"file_{unpack}"
+                    outstr = base64.urlsafe_b64encode(string.encode("ascii")).decode().strip("=")
+                    bot_username = (await clone_client.get_me()).username
+                    share_link = f"https://t.me/{bot_username}?start=AUTO-{outstr}"
+
+                    header = fresh.get("header")
+                    footer = fresh.get("footer")
+                    selected_caption = random.choice(script.CAPTION_LIST) if script.CAPTION_LIST else "Here is your file"
+
+                    text = ""
+                    if header:
+                        text += f"<blockquote>{header}</blockquote>\n\n"
+                    text += f"{selected_caption}\n\n<blockquote>🔗 Here is your link:\n{share_link}</blockquote>"
+                    if footer:
+                        text += f"\n\n<blockquote>{footer}</blockquote>"
+
+                    await clone_client.send_photo(
+                        chat_id=target_channel,
+                        photo=FIX_IMAGE,
+                        caption=text,
+                        parse_mode=enums.ParseMode.HTML
+                    )
+
+                    await db.mark_media_posted(file.file_id, bot_id)
+
+                    last_msg_id = msg.id
+                    await db.update_clone(bot_id, {"last_msg_id": last_msg_id})
+
+                    sleep_time = int(fresh.get("interval_sec", 30))
+                    await asyncio.sleep(sleep_time)
+
+                await asyncio.sleep(60)
+
+            except Exception as e:
+                print(f"⚠️ Clone Auto-post error for {bot_id}: {e}")
+                try:
+                    await clone_client.send_message(
+                        LOG_CHANNEL,
+                        f"⚠️ Clone Auto Post Error:\n\n<code>{e}</code>"
                     )
                 except:
                     pass
