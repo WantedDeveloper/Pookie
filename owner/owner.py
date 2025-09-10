@@ -223,7 +223,12 @@ async def remove_premium_cmd(client: Client, message: Message):
             filters=filters.text,
             timeout=60
         )
+        
         user_id = int(ask_id.text.strip())
+        user = await db.get_premium_user(user_id)
+        if not user:
+            return await message.reply_text(f"ℹ️ User `{user_id}` is **not premium**.")
+
         await db.remove_premium_user(user_id)
         await message.reply_text(f"✅ Removed premium from {user_id}.")
     except Exception as e:
@@ -2826,7 +2831,7 @@ async def message_capture(client: Client, message: Message):
                         "auto_post": True,
                         "target_channel": int(chat.id)
                     })
-                    asyncio.create_task(auto_post_clone(bot_id, db, int(chat.id)))
+                    asyncio.create_task(auto_post_clone(bot_id, int(chat.id), -1002912952165, assistant))
                     await orig_msg.edit_text("✅ Successfully updated **auto post**!")
                     await asyncio.sleep(2)
                     await show_post_menu(client, orig_msg, bot_id)
@@ -2869,7 +2874,7 @@ async def restart_bots():
                 target_channel = fresh.get("target_channel")
                 if target_channel:
                     asyncio.create_task(
-                        auto_post_clone(bot.id, db, target_channel)
+                        auto_post_clone(bot.id, target_channel, -1002912952165, assistant)
                     )
                     print(f"▶️ Auto-post started for @{bot.username}")
                     
