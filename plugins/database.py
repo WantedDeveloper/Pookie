@@ -1,4 +1,4 @@
-import motor.motor_asyncio
+import motor.motor_asyncio, datetime
 from plugins.config import DB_NAME, DB_URI
 from plugins.script import script
 
@@ -37,7 +37,49 @@ class Database:
     async def delete_user(self, user_id):
         await self.col.delete_many({'id': int(user_id)})
 
-    # ---------------- CLONE BOT ----------------
+    # ---------------- PREMIUM USERS ----------------
+    async def add_premium_user(self, user_id: int, days: int, plan_type: str = "normal"):
+        expiry_time = datetime.datetime.utcnow() + datetime.timedelta(days=days)
+        await self.premium.update_one(
+            {"id": int(user_id)},
+            {"$set": {
+                "id": int(user_id),
+                "plan_type": plan_type,
+                "expiry_time": expiry_time
+            }},
+            upsert=True
+        )
+
+    async def remove_premium_user(self, user_id: int):
+        await self.premium.delete_one({"id": int(user_id)})
+
+    async def get_premium_user(self, user_id: int):
+        return await self.premium.find_one({"id": int(user_id)})
+
+    async def is_premium(self, user_id: int, required_plan: str = "normal"):
+        user = await self.get_premium_user(user_id)
+        if not user:
+            return False
+
+        expiry = user.get("expiry_time")
+        if not expiry or expiry < datetime.datetime.utcnow():
+            return False
+
+        # Check plan type
+        if required_plan == "ultra":
+            return user.get("plan_type") == "ultra"
+        return True
+
+    async def list_premium_users(self):
+        cursor = self.premium.find({
+            "expiry_time": {"$gt": datetime.datetime.utcnow()}
+        })
+        users = []
+        async for user in cursor:
+            users.append(user)
+        return users
+
+    # ---------------- CLONE ----------------
     async def add_clone_bot(self, bot_id, user_id, first_name, username, bot_token):
         settings = {
             'is_bot': True,
@@ -70,7 +112,7 @@ class Database:
             'auto_post': False,
             'target_channel': None,
             # Premium User
-            'premium': [],
+            'premium_user': [],
             # Auto Delete
             'auto_delete': False,
             'auto_delete_time': 1,
@@ -93,16 +135,16 @@ class Database:
 
     async def get_clones_by_user(self, user_id):
         clones = []
-        user_id_str = str(user_id)  # moderator match as string
+        user_id_str = str(user_id)
         try:
-            user_id_int = int(user_id)  # owner match as int
+            user_id_int = int(user_id)
         except ValueError:
             return []
 
         cursor = self.bot.find({
             "$or": [
-                {"user_id": user_id_int},    # owner
-                {"moderators": user_id_str}  # moderator
+                {"user_id": user_id_int},
+                {"moderators": user_id_str}
             ]
         })
 
@@ -149,45 +191,6 @@ class Database:
     async def get_banned_users(self, bot_id):
         clone = await self.bot.find_one({'bot_id': int(bot_id)})
         return clone.get("banned_users", []) if clone else []
-
-    # ---------------- PREMIUM ----------------
-    async def has_premium_access(self, user_id):
-        user_data = await self.get_user(user_id)
-        if user_data:
-            expiry_time = user_data.get("expiry_time")
-            if expiry_time is None:
-                return False
-            elif isinstance(expiry_time, datetime.datetime) and datetime.datetime.now() <= expiry_time:
-                return True
-            else:
-                await self.users.update_one({"id": user_id}, {"$set": {"expiry_time": None}})
-        return False
-
-    async def check_remaining_uasge(self, userid):
-        user_id = userid
-        user_data = await self.get_user(user_id)        
-        expiry_time = user_data.get("expiry_time")
-        remaining_time = expiry_time - datetime.datetime.now()
-        return remaining_time
-
-    async def get_free_trial_status(self, user_id):
-        user_data = await self.get_user(user_id)
-        if user_data:
-            return user_data.get("has_free_trial", False)
-        return False
-
-    async def give_free_trail(self, userid):        
-        user_id = userid
-        seconds = 5*60         
-        expiry_time = datetime.datetime.now() + datetime.timedelta(seconds=seconds)
-        user_data = {"id": user_id, "expiry_time": expiry_time, "has_free_trial": True}
-        await self.users.update_one({"id": user_id}, {"$set": user_data}, upsert=True)
-
-    async def all_premium_users(self):
-        count = await self.users.count_documents({
-        "expiry_time": {"$gt": datetime.datetime.now()}
-        })
-        return count
 
     # ---------------- MEDIA ----------------
     async def add_media(self, msg_id, file_id, caption, media_type, date, posted_by=None):
