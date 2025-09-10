@@ -1134,11 +1134,11 @@ async def auto_post_clone(bot_id: int, target_channel: int, log_channel: int, as
                     return
 
                 messages = []
-                async for msg in assistant.get_chat_history(log_channel, offset_id=last_msg_id):
+                async for msg in assistant.get_chat_history(log_channel, offset_id=last_msg_id, limit=50):
                     messages.append(msg)
 
                 for msg in reversed(messages):
-
+                
                     if not msg.media:
                         continue
 
