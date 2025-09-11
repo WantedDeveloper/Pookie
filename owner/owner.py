@@ -2153,6 +2153,7 @@ async def cb_handler(client: Client, query: CallbackQuery):
                     return await query.answer("Clone not found!", show_alert=True)
 
                 await query.message.delete()
+                await db.delete_all_media()
 
             # Restart
             elif action == "restart":
