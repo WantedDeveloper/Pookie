@@ -11,6 +11,7 @@ class Database:
         self.premium = self.db.premium_users
         self.bot = self.db.clone_bots
         self.settings = self.db.bot_settings
+        self.media = self.db.media_files
 
     # ---------------- USERS ----------------
     def new_user(self, id, name):
@@ -254,7 +255,6 @@ class CloneDatabase:
     def __init__(self, uri, database_name):
         self._client = motor.motor_asyncio.AsyncIOMotorClient(uri)
         self.db = self._client[database_name]
-        self.media = self.db.media_files
 
     async def add_user(self, bot_id, user_id):
         user = {'user_id': int(user_id)}
