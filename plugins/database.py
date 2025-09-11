@@ -231,14 +231,21 @@ class Database:
     async def get_media_by_id(self, bot_id: int, msg_id: int):
         return await self.media.find_one({"bot_id": bot_id, "msg_id": msg_id})
 
-    async def get_all_media(self, bot_id: int):
+    async def get_all_clone_media(self, bot_id: int):
         return self.media.find({"bot_id": bot_id})
+
+    async def get_all_media(self):
+        return self.media.find({})
 
     async def delete_media(self, bot_id: int, msg_id: int):
         await self.media.delete_one({"bot_id": bot_id, "msg_id": msg_id})
 
-    async def delete_all_media(self, bot_id: int):
+    async def delete_all_clone_media(self, bot_id: int):
         result = await self.media.delete_many({"bot_id": bot_id})
+        return result.deleted_count
+
+    async def delete_all_media(self):
+        result = await self.media.delete_many({})
         return result.deleted_count
 
     async def reset_clone_posts(self, bot_id: int):
