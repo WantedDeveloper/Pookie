@@ -13,10 +13,12 @@ I am a permenant file store bot. you can store files from your public channel wi
 
 📚 Available Commands:
 🔻 /start - Check i am alive.
+🔻 /help - Show a help menu.
 🔻 /genlink - To store a single message or file.
 🔻 /batch - To store mutiple messages from a channel.
 🔻 /shortener - To shorten any shareable links.
-🔻 /broadcast - Broadcast a message to users."""
+🔻 /broadcast - Broadcast a message to users.
+🔻 /stats - View bot statistics."""
 
     ABOUT_TXT = """<u>**✨ ABOUT ME**</u>
 
