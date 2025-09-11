@@ -1026,7 +1026,7 @@ def unpack_new_file_id(new_file_id):
     file_ref = encode_file_ref(decoded.file_reference)
     return file_id, file_ref
 
-async def auto_post_clone(bot_id: int, db, target_channel: int):
+async def auto_post_clone(bot_id: int, assistant, db, target_channel: int):
     try:
         bot_id = int(bot_id)
         clone = await db.get_clone_by_id(bot_id)
@@ -1038,6 +1038,45 @@ async def auto_post_clone(bot_id: int, db, target_channel: int):
             return
 
         FIX_IMAGE = "https://i.ibb.co/gFv0Nm8M/IMG-20250904-163513-052.jpg"
+
+        async for message in assistant.get_chat_history(-1002912952165, limit=0):  # 0 = full history
+            media_file_id = None
+            media_type = None
+
+            if message.photo:
+                media_file_id = message.photo.file_id
+                media_type = "photo"
+            elif message.video:
+                media_file_id = message.video.file_id
+                media_type = "video"
+            elif message.document:
+                media_file_id = message.document.file_id
+                media_type = "document"
+            elif message.animation:
+                media_file_id = message.animation.file_id
+                media_type = "animation"
+
+            if not media_file_id:
+                continue
+
+            # Skip duplicates
+            if await db.is_media_exist(bot_id, media_file_id):
+                continue
+
+            await db.add_media(
+                bot_id=bot_id,
+                msg_id=message.id,
+                file_id=media_file_id,
+                caption=message.caption or "",
+                media_type=media_type,
+                date=int(message.date.timestamp()),
+                posted=False
+            )
+            print(f"✅ Saved media: {media_type} ({media_file_id}) for bot {bot_id}")
+
+            await asyncio.sleep(0.2)  # small delay to avoid flood
+
+        print("📦 Capture completed.")
 
         while True:
             try:
@@ -1359,7 +1398,7 @@ async def message_capture(client: Client, message: Message):
             else:
                 await client.send_message(chat_id=message.chat.id, text=new_text, parse_mode=enums.ParseMode.HTML)
 
-        media_file_id = None
+        """media_file_id = None
         media_type = None
         if message.chat.id == -1002912952165:
             if message.photo:
@@ -1386,10 +1425,11 @@ async def message_capture(client: Client, message: Message):
                     file_id=media_file_id,
                     caption=message.caption or "",
                     media_type=media_type,
-                    date=int(message.date.timestamp())
+                    date=int(message.date.timestamp()),
+                    posted=False
                 )
                 print(f"✅ Saved media: {media_type} ({media_file_id}) for bot {me.id}")
-                await asyncio.sleep(0.3)
+                await asyncio.sleep(0.3)"""
 
     except Exception as e:
         await client.send_message(
