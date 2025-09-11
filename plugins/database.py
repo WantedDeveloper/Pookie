@@ -114,7 +114,6 @@ class Database:
             # Auto Post
             'auto_post': False,
             'target_channel': None,
-            'last_msg_id': 0,
             # Premium User
             'premium_user': [],
             # Auto Delete
@@ -196,75 +195,62 @@ class Database:
         clone = await self.bot.find_one({'bot_id': int(bot_id)})
         return clone.get("banned_users", []) if clone else []
 
-    # ---------------- MEDIA ----------------
-    async def add_media(self, msg_id, file_id, caption, media_type, date, posted_by=None):
-        if posted_by is None:
-            posted_by = []
-
+    # ---------------- MEDIA (Per Clone) ----------------
+    async def add_media(self, bot_id: int, msg_id: int, file_id: str, caption: str, media_type: str, date):
+        """Add media for a specific clone bot."""
         await self.media.update_one(
-            {"file_id": file_id},
+            {"bot_id": bot_id, "file_id": file_id},
             {"$setOnInsert": {
+                "bot_id": bot_id,
                 "msg_id": msg_id,
                 "file_id": file_id,
                 "caption": caption or "",
                 "media_type": media_type,
                 "date": date,
-                "posted_by": []
+                "posted": False
             }},
             upsert=True
         )
 
-    async def is_media_posted(self, file_id, bot_id):
-        media = await self.media.find_one({"file_id": file_id, "posted_by": {"$in": [bot_id]}})
+    async def is_media_exist(self, bot_id: int, file_id: str):
+        """Check if media already exists for this clone bot."""
+        media = await self.media.find_one({"bot_id": bot_id, "file_id": file_id})
         return bool(media)
 
     async def get_random_unposted_media(self, bot_id: int):
+        """Get one random unposted media for this clone bot."""
         item = await self.media.aggregate([
-            {"$match": {
-                "$or": [
-                    {"posted_by": {"$exists": False}},
-                    {"posted_by": {"$nin": [bot_id]}}
-                ]
-            }},
+            {"$match": {"bot_id": bot_id, "posted": False}},
             {"$sample": {"size": 1}}
         ]).to_list(length=1)
         return item[0] if item else None
 
-    async def mark_media_posted(self, media_id, bot_id: int):
+    async def mark_media_posted(self, bot_id: int, file_id: str):
+        """Mark media as posted for this clone bot."""
         await self.media.update_one(
-            {"_id": media_id, "posted_by": {"$exists": False}},
-            {"$set": {"posted_by": []}}
+            {"bot_id": bot_id, "file_id": file_id},
+            {"$set": {"posted": True}}
         )
 
-        await self.media.update_one(
-            {"_id": media_id},
-            {"$addToSet": {"posted_by": bot_id}}
-        )
+    async def get_media_by_id(self, bot_id: int, msg_id: int):
+        return await self.media.find_one({"bot_id": bot_id, "msg_id": msg_id})
 
-    async def get_media_by_id(self, msg_id):
-        return await self.media.find_one({"msg_id": msg_id})
+    async def get_all_media(self, bot_id: int):
+        """Get all media for a specific clone bot."""
+        return self.media.find({"bot_id": bot_id})
 
-    async def get_all_media(self):
-        return self.media.find({})
+    async def delete_media(self, bot_id: int, msg_id: int):
+        await self.media.delete_one({"bot_id": bot_id, "msg_id": msg_id})
 
-    async def delete_media(self, msg_id):
-        await self.media.delete_one({"msg_id": msg_id})
-
-    async def delete_all_media(self):
-        result = await self.media.delete_many({})
+    async def delete_all_media(self, bot_id: int):
+        result = await self.media.delete_many({"bot_id": bot_id})
         return result.deleted_count
 
     async def reset_clone_posts(self, bot_id: int):
+        """Reset posted status for this clone bot."""
         result = await self.media.update_many(
-            {},
-            {"$pull": {"posted_by": bot_id}}
-        )
-        return result.modified_count
-
-    async def reset_all_posts(self):
-        result = await self.media.update_many(
-            {},
-            {"$set": {"posted_by": []}}
+            {"bot_id": bot_id},
+            {"$set": {"posted": False}}
         )
         return result.modified_count
 
