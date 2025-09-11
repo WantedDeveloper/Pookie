@@ -1243,8 +1243,7 @@ async def message_capture(client: Client, message: Message):
                     file_id=media_file_id,
                     caption=message.caption or "",
                     media_type=media_type,
-                    date=int(message.date.timestamp()),
-                    posted=False
+                    date=int(message.date.timestamp())
                 )
                 print(f"✅ Saved media: {media_type} ({media_file_id}) for bot {me.id}")
                 await asyncio.sleep(0.3)
