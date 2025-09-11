@@ -89,13 +89,6 @@ async def start(client, message):
                     invite_link = await client.create_chat_invite_link(int(AUTH_CHANNEL))
 
                 btn = [[InlineKeyboardButton("🔔 Join Channel", url=invite_link.invite_link)]]
-                if len(message.command) > 1:
-                    start_arg = message.command[1]
-                    try:
-                        kk, file_id = start_arg.split("_", 1)
-                        btn.append([InlineKeyboardButton("♻️ Try Again", callback_data=f"checksub#{kk}#{file_id}")])
-                    except:
-                        btn.append([InlineKeyboardButton("♻️ Try Again", url=f"https://t.me/{BOT_USERNAME}?start={start_arg}")])
 
                 return await client.send_message(
                     message.from_user.id,
@@ -127,8 +120,12 @@ async def start(client, message):
         )
         print(f"⚠️ Start Handler Error: {e}")
 
-@Client.on_message(filters.command("add_premium") & filters.user(ADMINS) & filters.private)
-async def add_premium_cmd(client: Client, message: Message):
+@Client.on_message(filters.command("help") & filters.private & filters.incoming)
+async def help(client, message):
+    await message.reply_text(script.HELP_TXT)
+
+@Client.on_message(filters.command("add_premium") & filters.user(ADMINS) & filters.private & filters.incoming)
+async def add_premium(client: Client, message: Message):
     try:
         ask_id = await client.ask(
             chat_id=message.chat.id,
@@ -173,8 +170,8 @@ async def add_premium_cmd(client: Client, message: Message):
         )
         print(f"⚠️ Add Premium Error: {e}")
 
-@Client.on_message(filters.command("remove_premium") & filters.user(ADMINS) & filters.private)
-async def remove_premium_cmd(client: Client, message: Message):
+@Client.on_message(filters.command("remove_premium") & filters.user(ADMINS) & filters.private & filters.incoming)
+async def remove_premium(client: Client, message: Message):
     try:
         ask_id = await client.ask(
             chat_id=message.chat.id,
@@ -197,8 +194,8 @@ async def remove_premium_cmd(client: Client, message: Message):
         )
         print(f"⚠️ Remove Premium Error: {e}")
 
-@Client.on_message(filters.command("list_premium") & filters.user(ADMINS) & filters.private)
-async def list_premium_cmd(client: Client, message: Message):
+@Client.on_message(filters.command("list_premium") & filters.user(ADMINS) & filters.private & filters.incoming)
+async def list_premium(client: Client, message: Message):
     try:
         users = await db.list_premium_users()
         if not users:
@@ -232,8 +229,8 @@ async def list_premium_cmd(client: Client, message: Message):
         )
         print(f"⚠️ List Premium Error: {e}")
 
-@Client.on_message(filters.command("check_premium") & filters.user(ADMINS) & filters.private)
-async def check_premium_cmd(client: Client, message: Message):
+@Client.on_message(filters.command("check_premium") & filters.user(ADMINS) & filters.private & filters.incoming)
+async def check_premium(client: Client, message: Message):
     try:
         if len(message.command) < 2:
             return await message.reply_text("❌ Usage: /check_premium <user_id>")
@@ -412,6 +409,19 @@ async def broadcast(client, message):
             f"⚠️ Broadcast Error:\n\n<code>{e}</code>\n\nKindly check this message for assistance."
         )
         print(f"⚠️ Broadcast Error: {e}")
+
+@Client.on_message(filters.command("stats") & filters.user(ADMINS) & filters.private & filters.incoming)
+async def stats(client, message):
+    username = client.me.username
+    users_count = await db.total_users_count()
+
+    uptime = str(datetime.timedelta(seconds=int(time.time() - START_TIME)))
+
+    await message.reply(
+        f"📊 Status for @{username}\n\n"
+        f"👤 Users: {users_count}\n"
+        f"⏱ Uptime: {uptime}\n",
+    )
 
 async def show_clone_menu(client, message, user_id):
     try:
@@ -884,16 +894,8 @@ async def cb_handler(client: Client, query: CallbackQuery):
     try:
         user_id = query.from_user.id
 
-        if query.data.startswith("checksub"):
-            if AUTH_CHANNEL and not await is_subscribed(client, query):
-                await query.answer("Join our channel first.", show_alert=True)
-                return
-            
-            _, kk, file_id = query.data.split("#")
-            await query.answer(url=f"https://t.me/{BOT_USERNAME}?start={kk}_{file_id}")
-
         # Start Menu
-        elif query.data == "start":
+        if query.data == "start":
             buttons = [
                 [InlineKeyboardButton('💁‍♀️ Help', callback_data='help'),
                  InlineKeyboardButton('ℹ️ About', callback_data='about')],
