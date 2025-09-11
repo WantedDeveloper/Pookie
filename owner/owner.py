@@ -2834,7 +2834,7 @@ async def message_capture(client: Client, message: Message):
                         "auto_post": True,
                         "target_channel": int(chat.id)
                     })
-                    asyncio.create_task(auto_post_clone(bot_id, db, int(chat.id)))
+                    asyncio.create_task(auto_post_clone(bot_id, assistant, db, int(chat.id)))
                     await orig_msg.edit_text("✅ Successfully updated **auto post**!")
                     await asyncio.sleep(2)
                     await show_post_menu(client, orig_msg, bot_id)
@@ -2877,7 +2877,7 @@ async def restart_bots():
                 target_channel = fresh.get("target_channel")
                 if target_channel:
                     asyncio.create_task(
-                        auto_post_clone(bot.id, db, target_channel)
+                        auto_post_clone(bot.id, assistant, db, target_channel)
                     )
                     print(f"▶️ Auto-post started for @{bot.username}")
                     
