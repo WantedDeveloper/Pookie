@@ -1026,7 +1026,7 @@ def unpack_new_file_id(new_file_id):
     file_ref = encode_file_ref(decoded.file_reference)
     return file_id, file_ref
 
-"""async def auto_post_clone(bot_id: int, db, target_channel: int):
+async def auto_post_clone(bot_id: int, db, target_channel: int):
     try:
         bot_id = int(bot_id)
         clone = await db.get_clone_by_id(bot_id)
@@ -1082,7 +1082,7 @@ def unpack_new_file_id(new_file_id):
 
                 await db.mark_media_posted(item["_id"], bot_id)
 
-                sleep_time = int(fresh.get("interval_sec", 30))
+                sleep_time = int(fresh.get("interval_sec", 60))
                 await asyncio.sleep(sleep_time)
 
             except Exception as e:
@@ -1097,13 +1097,13 @@ def unpack_new_file_id(new_file_id):
                 await asyncio.sleep(30)
 
     except Exception as e:
-        print(f"❌ AutoPost crashed for {bot_id}: {e}")"""
+        await client.send_message(
+            LOG_CHANNEL,
+            f"❌ Clone AutoPost crashed for {bot_id}:\n\n<code>{e}</code>\n\nKindly check this message for assistance."
+        )
+        print(f"❌ Clone AutoPost crashed for {bot_id}: {e}")
 
-async def auto_post_clone(bot_id: int, target_channel: int, log_channel: int, assistant):
-    """
-    Auto-post for a clone bot using main owner's session string to read log channel.
-    get_client(bot_id) -> returns the clone bot client
-    """
+"""async def auto_post_clone(bot_id: int, target_channel: int, log_channel: int, assistant):
     try:
         bot_id = int(bot_id)
         clone = await db.get_clone_by_id(bot_id)
@@ -1200,7 +1200,7 @@ async def auto_post_clone(bot_id: int, target_channel: int, log_channel: int, as
                 await asyncio.sleep(30)
 
     except Exception as e:
-        print(f"❌ AutoPost crashed for {bot_id}: {e}")
+        print(f"❌ AutoPost crashed for {bot_id}: {e}")"""
 
 @Client.on_callback_query()
 async def cb_handler(client: Client, query: CallbackQuery):
@@ -1376,19 +1376,19 @@ async def message_capture(client: Client, message: Message):
                 media_type = "animation"
 
             if media_file_id:
-                if await db.is_media_exist(media_file_id):
-                    print(f"⚠️ Duplicate media skip kiya: {media_type} ({media_file_id})")
+                if await db.is_media_exist(me.id, media_file_id):
+                    print(f"⚠️ Duplicate media skip kiya: {media_type} ({media_file_id}) for bot {bot_id}")
                     return
 
                 await db.add_media(
+                    bot_id=me.id,
                     msg_id=message.id,
                     file_id=media_file_id,
                     caption=message.caption or "",
                     media_type=media_type,
-                    date=int(message.date.timestamp()),
-                    posted_by=[]
+                    date=int(message.date.timestamp())
                 )
-                print(f"✅ Saved media: {media_type} ({media_file_id})")
+                print(f"✅ Saved media: {media_type} ({media_file_id}) for bot {bot_id}")
                 await asyncio.sleep(0.3)
 
     except Exception as e:
