@@ -128,7 +128,9 @@ class Database:
             'users_count': 0,
             'banned_users': [],
             'storage_used': 0,
-            'storage_limit': 536870912 # 512 MB default
+            'storage_limit': 536870912, # 512 MB default
+            # Activate/Deactivate
+            'active': True
         }
         await self.bot.insert_one(settings)
 
