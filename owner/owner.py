@@ -5,51 +5,10 @@ from pyrogram.types import *
 from pyrogram.errors import InputUserDeactivated, UserNotParticipant, FloodWait, UserIsBlocked, PeerIdInvalid
 from pyrogram.errors.exceptions.bad_request_400 import ChannelInvalid, UsernameInvalid, UsernameNotModified
 from plugins.config import *
-from plugins.database import db
+from plugins.database import db, JoinReqs
 from plugins.clone_instance import set_client, get_client
 from plugins.script import script
 from clone.clone import auto_post_clone
-
-class JoinReqs:
-
-    def __init__(self):
-        if DB_URI:
-            self.client = motor.motor_asyncio.AsyncIOMotorClient(DB_URI)
-            self.db = self.client["JoinReqs"]
-            self.col = self.db[str(AUTH_CHANNEL)]
-        else:
-            self.client = None
-            self.db = None
-            self.col = None
-
-    def isActive(self):
-        if self.client is not None:
-            return True
-        else:
-            return False
-
-    async def add_user(self, user_id, first_name, username, date):
-        try:
-            await self.col.insert_one({"_id": int(user_id),"user_id": int(user_id), "first_name": first_name, "username": username, "date": date})
-        except:
-            pass
-
-    async def get_user(self, user_id):
-        return await self.col.find_one({"user_id": int(user_id)})
-
-    async def get_all_users(self):
-        return await self.col.find().to_list(None)
-
-    async def delete_user(self, user_id):
-        await self.col.delete_one({"user_id": int(user_id)})
-
-    async def delete_all_users(self):
-        await self.col.delete_many({})
-
-    async def get_all_users_count(self):
-        return await self.col.count_documents({})
-
-join_db = JoinReqs
 
 logger = logging.getLogger(__name__)
 
@@ -73,9 +32,9 @@ ADD_MODERATOR = {}
 START_TIME = time.time()
 
 async def is_subscribed(client, query):
-    if REQUEST_TO_JOIN_MODE == True and join_db().isActive():
+    if REQUEST_TO_JOIN_MODE == True and JoinReqs().isActive():
         try:
-            user = await join_db().get_user(query.from_user.id)
+            user = await JoinReqs().get_user(query.from_user.id)
             if user and user["user_id"] == query.from_user.id:
                 return True
             else:
@@ -2194,7 +2153,6 @@ async def cb_handler(client: Client, query: CallbackQuery):
                     return await query.answer("Clone not found!", show_alert=True)
 
                 await query.message.delete()
-                await db.delete_all_media(bot_id)
 
             # Restart
             elif action == "restart":
@@ -2834,7 +2792,7 @@ async def message_capture(client: Client, message: Message):
                         "auto_post": True,
                         "target_channel": int(chat.id)
                     })
-                    asyncio.create_task(auto_post_clone(bot_id, assistant, db, int(chat.id)))
+                    asyncio.create_task(auto_post_clone(bot_id, db, int(chat.id)))
                     await orig_msg.edit_text("✅ Successfully updated **auto post**!")
                     await asyncio.sleep(2)
                     await show_post_menu(client, orig_msg, bot_id)
@@ -2877,7 +2835,7 @@ async def restart_bots():
                 target_channel = fresh.get("target_channel")
                 if target_channel:
                     asyncio.create_task(
-                        auto_post_clone(bot.id, assistant, db, target_channel)
+                        auto_post_clone(bot.id, db, target_channel)
                     )
                     print(f"▶️ Auto-post started for @{bot.username}")
                     
