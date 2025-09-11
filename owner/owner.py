@@ -2194,7 +2194,7 @@ async def cb_handler(client: Client, query: CallbackQuery):
                     return await query.answer("Clone not found!", show_alert=True)
 
                 await query.message.delete()
-                await db.delete_all_media()
+                await db.delete_all_media(bot_id)
 
             # Restart
             elif action == "restart":
