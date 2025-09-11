@@ -1377,7 +1377,7 @@ async def message_capture(client: Client, message: Message):
 
             if media_file_id:
                 if await db.is_media_exist(me.id, media_file_id):
-                    print(f"⚠️ Duplicate media skip kiya: {media_type} ({media_file_id}) for bot {bot_id}")
+                    print(f"⚠️ Duplicate media skip kiya: {media_type} ({media_file_id}) for bot {me.id}")
                     return
 
                 await db.add_media(
@@ -1388,7 +1388,7 @@ async def message_capture(client: Client, message: Message):
                     media_type=media_type,
                     date=int(message.date.timestamp())
                 )
-                print(f"✅ Saved media: {media_type} ({media_file_id}) for bot {bot_id}")
+                print(f"✅ Saved media: {media_type} ({media_file_id}) for bot {me.id}")
                 await asyncio.sleep(0.3)
 
     except Exception as e:
