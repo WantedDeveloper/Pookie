@@ -1044,9 +1044,11 @@ async def auto_post_clone(bot_id: int, assistant, db, target_channel: int):
         batch_size = 100
 
         while True:
-            messages = []
-            async for msg in assistant.get_chat_history(-100123456789, limit=batch_size, offset_id=offset_id):
-                messages.append(msg)
+            messages = await assistant.get_chat_history(
+                chat_id=-100123456789,
+                limit=batch_size,
+                offset_id=offset_id
+            )
 
             if not messages:
                 break
@@ -1073,6 +1075,7 @@ async def auto_post_clone(bot_id: int, assistant, db, target_channel: int):
                         continue
 
                     if await db.is_media_exist(bot_id, media_file_id):
+                        print(f"⚠️ Duplicate media skip kiya: {media_type} ({media_file_id}) for bot {bot_id}")
                         continue
 
                     await db.add_media(
