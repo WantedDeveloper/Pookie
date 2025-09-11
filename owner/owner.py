@@ -2777,6 +2777,7 @@ async def message_capture(client: Client, message: Message):
 
                 new_text = message.text.strip() if message.text else ""
                 if not new_text:
+                    await db.update_clone(bot_id, {"auto_post": False})
                     await orig_msg.edit_text("❌ You sent an empty message. Please send a valid text.")
                     await asyncio.sleep(2)
                     await show_post_menu(client, orig_msg, bot_id)
@@ -2790,6 +2791,7 @@ async def message_capture(client: Client, message: Message):
 
                 clone_client = get_client(bot_id)
                 if not clone_client:
+                    await db.update_clone(bot_id, {"auto_post": False})
                     await orig_msg.edit_text("❌ Clone bot not running, please restart it.")
                     await asyncio.sleep(2)
                     await show_post_menu(client, orig_msg, bot_id)
@@ -2801,6 +2803,7 @@ async def message_capture(client: Client, message: Message):
                     ch_name = chat.title or "Unknown"
                     ch_link = f"https://t.me/{chat.username}" if chat.username else None
                 except Exception as e:
+                    await db.update_clone(bot_id, {"auto_post": False})
                     await orig_msg.edit_text(f"❌ Failed to get channel info: {e}")
                     await asyncio.sleep(2)
                     await show_post_menu(client, orig_msg, bot_id)
