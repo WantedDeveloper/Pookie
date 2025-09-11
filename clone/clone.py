@@ -1040,41 +1040,46 @@ async def auto_post_clone(bot_id: int, assistant, db, target_channel: int):
         FIX_IMAGE = "https://i.ibb.co/gFv0Nm8M/IMG-20250904-163513-052.jpg"
 
         async for message in assistant.get_chat_history(-1002912952165, limit=0):  # 0 = full history
-            media_file_id = None
-            media_type = None
+            try:
+                media_file_id = None
+                media_type = None
 
-            if message.photo:
-                media_file_id = message.photo.file_id
-                media_type = "photo"
-            elif message.video:
-                media_file_id = message.video.file_id
-                media_type = "video"
-            elif message.document:
-                media_file_id = message.document.file_id
-                media_type = "document"
-            elif message.animation:
-                media_file_id = message.animation.file_id
-                media_type = "animation"
+                if message.photo:
+                    media_file_id = message.photo.file_id
+                    media_type = "photo"
+                elif message.video:
+                    media_file_id = message.video.file_id
+                    media_type = "video"
+                elif message.document:
+                    media_file_id = message.document.file_id
+                    media_type = "document"
+                elif message.animation:
+                    media_file_id = message.animation.file_id
+                    media_type = "animation"
 
-            if not media_file_id:
-                continue
+                if not media_file_id:
+                    continue
 
-            # Skip duplicates
-            if await db.is_media_exist(bot_id, media_file_id):
-                continue
+                # Skip duplicates
+                if await db.is_media_exist(bot_id, media_file_id):
+                    print(f"⚠️ Duplicate media skip kiya: {media_type} ({media_file_id}) for bot {bot_id}")
+                    continue
 
-            await db.add_media(
-                bot_id=bot_id,
-                msg_id=message.id,
-                file_id=media_file_id,
-                caption=message.caption or "",
-                media_type=media_type,
-                date=int(message.date.timestamp()),
-                posted=False
-            )
-            print(f"✅ Saved media: {media_type} ({media_file_id}) for bot {bot_id}")
+                await db.add_media(
+                    bot_id=bot_id,
+                    msg_id=message.id,
+                    file_id=media_file_id,
+                    caption=message.caption or "",
+                    media_type=media_type,
+                    date=int(message.date.timestamp()),
+                    posted=False
+                )
+                print(f"✅ Saved media: {media_type} ({media_file_id}) for bot {bot_id}")
 
-            await asyncio.sleep(0.2)  # small delay to avoid flood
+                await asyncio.sleep(0.2)  # small delay to avoid flood
+
+            except Exception as e:
+                print(f"⚠️ Capture error: {e}")
 
         print("📦 Capture completed.")
 
