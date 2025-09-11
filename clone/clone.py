@@ -21,6 +21,8 @@ VERIFIED = {}
 BATCH_FILES = {}
 SHORTEN_STATE = {}
 
+START_TIME = time.time()
+
 async def is_subscribed(client, user_id: int, bot_id: int):
     clone = await db.get_bot(bot_id)
     if not clone:
@@ -524,6 +526,19 @@ async def start(client, message):
             f"⚠️ Clone Start Bot Error:\n\n<code>{e}</code>"
         )
         print(f"⚠️ Clone Start Bot Error: {e}")
+
+@Client.on_message(filters.command("help") & filters.private & filters.incoming)
+async def help(client, message):
+    me = await client.get_me()
+    clone = await db.get_bot(me.id)
+    owner_id = clone.get("user_id")
+    moderators = clone.get("moderators", [])
+
+    if message.from_user.id != owner_id and message.from_user.id not in moderators:
+        await message.reply("❌ You are not authorized to use this bot.")
+        return
+
+    await message.reply_text(script.HELP_TXT)
 
 def encode_file_id(s: bytes) -> str:
     r = b""
@@ -1069,6 +1084,34 @@ async def broadcast(client, message):
             f"⚠️ Clone Broadcast Error:\n\n<code>{e}</code>\n\nKindly check this message for assistance."
         )
         print(f"⚠️ Clone Broadcast Error: {e}")
+
+@Client.on_message(filters.command("stats") & filters.private & filters.incoming)
+async def stats(client, message):
+    me = await client.get_me()
+    clone = await db.get_bot(me.id)
+    owner_id = clone.get("user_id")
+    moderators = clone.get("moderators", [])
+
+    if message.from_user.id != owner_id and message.from_user.id not in moderators:
+        await message.reply("❌ You are not authorized to use this bot.")
+        return
+
+    users_count = clone.get("users_count", 0)
+    storage_used = clone.get("storage_used", 0)
+    storage_limit = clone.get("storage_limit", 536870912)
+    storage_free = storage_limit - storage_used
+    banned_users = len(clone.get("banned_users", []))
+
+    uptime = str(datetime.timedelta(seconds=int(time.time() - START_TIME)))
+
+    await message.reply(
+        f"📊 Status for @{clone.get('username')}\n\n"
+        f"👤 Users: {users_count}\n"
+        f"🚫 Banned: {banned_users}\n"
+        f"💾 Used: {get_size(storage_used)} / {get_size(storage_limit)}\n"
+        f"💽 Free: {get_size(storage_free)}\n"
+        f"⏱ Uptime: {uptime}\n",
+    )
 
 @Client.on_callback_query()
 async def cb_handler(client: Client, query: CallbackQuery):
