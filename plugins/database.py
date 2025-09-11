@@ -1,4 +1,4 @@
-import motor.motor_asyncio, datetime
+import motor.motor_asyncio, datetime, time
 from plugins.config import *
 from plugins.script import script
 
@@ -130,7 +130,8 @@ class Database:
             'storage_used': 0,
             'storage_limit': 536870912, # 512 MB default
             # Activate/Deactivate
-            'active': True
+            'active': True,
+            'last_active': int(time.time())
         }
         await self.bot.insert_one(settings)
 
