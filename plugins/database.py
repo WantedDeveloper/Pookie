@@ -1,5 +1,5 @@
 import motor.motor_asyncio, datetime
-from plugins.config import DB_NAME, DB_URI
+from plugins.config import *
 from plugins.script import script
 
 class Database:
@@ -11,7 +11,6 @@ class Database:
         self.premium = self.db.premium_users
         self.bot = self.db.clone_bots
         self.settings = self.db.bot_settings
-        self.media = self.db.media_files
 
     # ---------------- USERS ----------------
     def new_user(self, id, name):
@@ -195,9 +194,8 @@ class Database:
         clone = await self.bot.find_one({'bot_id': int(bot_id)})
         return clone.get("banned_users", []) if clone else []
 
-    # ---------------- MEDIA (Per Clone) ----------------
+    # ---------------- MEDIA ----------------
     async def add_media(self, bot_id: int, msg_id: int, file_id: str, caption: str, media_type: str, date):
-        """Add media for a specific clone bot."""
         await self.media.update_one(
             {"bot_id": bot_id, "file_id": file_id},
             {"$setOnInsert": {
@@ -213,12 +211,10 @@ class Database:
         )
 
     async def is_media_exist(self, bot_id: int, file_id: str):
-        """Check if media already exists for this clone bot."""
         media = await self.media.find_one({"bot_id": bot_id, "file_id": file_id})
         return bool(media)
 
     async def get_random_unposted_media(self, bot_id: int):
-        """Get one random unposted media for this clone bot."""
         item = await self.media.aggregate([
             {"$match": {"bot_id": bot_id, "posted": False}},
             {"$sample": {"size": 1}}
@@ -226,7 +222,6 @@ class Database:
         return item[0] if item else None
 
     async def mark_media_posted(self, bot_id: int, file_id: str):
-        """Mark media as posted for this clone bot."""
         await self.media.update_one(
             {"bot_id": bot_id, "file_id": file_id},
             {"$set": {"posted": True}}
@@ -236,7 +231,6 @@ class Database:
         return await self.media.find_one({"bot_id": bot_id, "msg_id": msg_id})
 
     async def get_all_media(self, bot_id: int):
-        """Get all media for a specific clone bot."""
         return self.media.find({"bot_id": bot_id})
 
     async def delete_media(self, bot_id: int, msg_id: int):
@@ -247,7 +241,6 @@ class Database:
         return result.deleted_count
 
     async def reset_clone_posts(self, bot_id: int):
-        """Reset posted status for this clone bot."""
         result = await self.media.update_many(
             {"bot_id": bot_id},
             {"$set": {"posted": False}}
@@ -255,3 +248,88 @@ class Database:
         return result.modified_count
 
 db = Database(DB_URI, DB_NAME)
+
+class CloneDatabase:
+    
+    def __init__(self, uri, database_name):
+        self._client = motor.motor_asyncio.AsyncIOMotorClient(uri)
+        self.db = self._client[database_name]
+        self.media = self.db.media_files
+
+    async def add_user(self, bot_id, user_id):
+        user = {'user_id': int(user_id)}
+        await self.db[str(bot_id)].insert_one(user)
+    
+    async def is_user_exist(self, bot_id, id):
+        user = await self.db[str(bot_id)].find_one({'user_id': int(id)})
+        return bool(user)
+    
+    async def total_users_count(self, bot_id):
+        count = await self.db[str(bot_id)].count_documents({})
+        return count
+
+    async def get_all_users(self, bot_id):
+        return self.db[str(bot_id)].find({})
+
+    async def delete_user(self, bot_id, user_id):
+        await self.db[str(bot_id)].delete_many({'user_id': int(user_id)})
+
+    async def get_user(self, user_id):
+        user_id = int(user_id)
+        user = await self.db.users.find_one({"user_id": user_id})
+        if not user:
+            res = {
+                "user_id": user_id,
+                "shortener_api": None,
+                "base_site": None,
+            }
+            await self.db.users.insert_one(res)
+            user = await self.db.users.find_one({"user_id": user_id})
+        return user
+
+    async def update_user_info(self, user_id, value:dict):
+        user_id = int(user_id)
+        myquery = {"user_id": user_id}
+        newvalues = { "$set": value }
+        await self.db.users.update_one(myquery, newvalues)
+
+clonedb = CloneDatabase(CLONE_DB_URI, CDB_NAME)
+
+class JoinReqs:
+
+    def __init__(self):
+        if DB_URI:
+            self.client = motor.motor_asyncio.AsyncIOMotorClient(DB_URI)
+            self.db = self.client["JoinReqs"]
+            self.col = self.db[str(AUTH_CHANNEL)]
+        else:
+            self.client = None
+            self.db = None
+            self.col = None
+
+    def isActive(self):
+        if self.client is not None:
+            return True
+        else:
+            return False
+
+    async def add_user(self, user_id, first_name, username, date):
+        try:
+            await self.col.insert_one({"_id": int(user_id),"user_id": int(user_id), "first_name": first_name, "username": username, "date": date})
+        except:
+            pass
+
+    async def get_user(self, user_id):
+        return await self.col.find_one({"user_id": int(user_id)})
+
+    async def get_all_users(self):
+        return await self.col.find().to_list(None)
+
+    async def delete_user(self, user_id):
+        await self.col.delete_one({"user_id": int(user_id)})
+
+    async def delete_all_users(self):
+        await self.col.delete_many({})
+
+    async def get_all_users_count(self):
+        return await self.col.count_documents({})
