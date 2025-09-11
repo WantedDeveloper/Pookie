@@ -1029,7 +1029,7 @@ async def cb_handler(client: Client, query: CallbackQuery):
             if not clone:
                 return await query.answer("❌ Clone not found!", show_alert=True)
 
-            last_active = clone.get("last_active", int(time.time()))
+            """last_active = clone.get("last_active", int(time.time()))
             if time.time() - last_active > 7 * 24 * 60 * 60:
                 await db.update_clone(bot_id, {"active": False})
                 clone["active"] = False
@@ -1037,7 +1037,7 @@ async def cb_handler(client: Client, query: CallbackQuery):
 
             active = clone.get("active", True)
             if not active:
-                return await query.answer("⚠️ This bot is deactivate. Activate first!", show_alert=True)
+                return await query.answer("⚠️ This bot is deactivate. Activate first!", show_alert=True)"""
 
             await db.update_clone(bot_id, {"last_active": int(time.time())})
 
