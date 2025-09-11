@@ -1071,8 +1071,8 @@ async def auto_post_clone(bot_id: int, assistant, db, target_channel: int):
                     file_id=media_file_id,
                     caption=message.caption or "",
                     media_type=media_type,
-                    date=int(message.date.timestamp()),
-                    posted=False
+                    date=int(message.date.timestamp())
+                    #posted=False
                 )
                 print(f"✅ Saved media: {media_type} ({media_file_id}) for bot {bot_id}")
 
