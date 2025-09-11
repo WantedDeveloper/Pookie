@@ -1116,26 +1116,26 @@ async def auto_post_clone(bot_id: int, target_channel: int, log_channel: int, as
 
         FIX_IMAGE = "https://i.ibb.co/gFv0Nm8M/IMG-20250904-163513-052.jpg"
 
-        last_msg_id = int(clone.get("last_msg_id", 0))
-
-        # Start from very first message if never posted
-        if last_msg_id == 0:
-            messages = []
-            async for msg in assistant.get_chat_history(log_channel, limit=100):
-                messages.append(msg)
-
-            if messages:
-                first_msg = messages[-1]  # last in list = oldest
-                last_msg_id = first_msg.id - 1
-            else:
-                print(f"⚠️ No messages found in log channel {log_channel}")
-                return
-
         while True:
             try:
                 fresh = await db.get_clone_by_id(bot_id)
                 if not fresh or not fresh.get("auto_post", False):
                     return
+
+                last_msg_id = int(clone.get("last_msg_id", 0))
+
+                # Start from very first message if never posted
+                if last_msg_id == 0:
+                    messages = []
+                    async for msg in assistant.get_chat_history(log_channel, limit=100):
+                        messages.append(msg)
+
+                    if messages:
+                        first_msg = messages[-1]  # last in list = oldest
+                        last_msg_id = first_msg.id - 1
+                    else:
+                        print(f"⚠️ No messages found in log channel {log_channel}")
+                        return
 
                 messages = []
                 async for msg in assistant.get_chat_history(log_channel, offset_id=last_msg_id):
