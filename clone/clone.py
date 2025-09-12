@@ -285,6 +285,10 @@ async def start(client, message):
                     verify_url = await get_token(client, message.from_user.id, f"https://t.me/{me.username}?start=")
                     btn = [[InlineKeyboardButton("✅ Verify", url=verify_url)]]
 
+                    premium_upi = clone.get("premium_upi", None)
+                    if premium_upi:
+                        btn.append([InlineKeyboardButton("🛡 Remove Ads", callback_data='remove_ads')])
+
                     tutorial_url = clone.get("access_token_tutorial", None)
                     if tutorial_url:
                         btn.append([InlineKeyboardButton("ℹ️ Tutorial", url=tutorial_url)])
@@ -353,6 +357,10 @@ async def start(client, message):
                 if clone.get("access_token", False) and str(message.from_user.id) not in clone.get("premium", []) and not await check_verification(client, message.from_user.id):
                     verify_url = await get_token(client, message.from_user.id, f"https://t.me/{me.username}?start=")
                     btn = [[InlineKeyboardButton("✅ Verify", url=verify_url)]]
+
+                    premium_upi = clone.get("premium_upi", None)
+                    if premium_upi:
+                        btn.append([InlineKeyboardButton("🛡 Remove Ads", callback_data='remove_ads')])
 
                     tutorial_url = clone.get("access_token_tutorial", None)
                     if tutorial_url:
@@ -457,6 +465,10 @@ async def start(client, message):
             if clone.get("access_token", False) and str(message.from_user.id) not in clone.get("premium", []) and not await check_verification(client, message.from_user.id):
                 verify_url = await get_token(client, message.from_user.id, f"https://t.me/{me.username}?start=")
                 btn = [[InlineKeyboardButton("✅ Verify", url=verify_url)]]
+
+                premium_upi = clone.get("premium_upi", None)
+                if premium_upi:
+                    btn.append([InlineKeyboardButton("🛡 Remove Ads", callback_data='remove_ads')])
 
                 tutorial_url = clone.get("access_token_tutorial", None)
                 if tutorial_url:
@@ -1184,6 +1196,9 @@ async def reply(client, message):
 async def cb_handler(client: Client, query: CallbackQuery):
     try:
         me = await client.get_me()
+        clone = await db.get_bot(me.id)
+        owner_id = clone.get("user_id")
+        moderators = clone.get("moderators", [])
 
         if query.data.startswith("checksub"):
             if not await is_subscribed(client, query):
@@ -1192,6 +1207,128 @@ async def cb_handler(client: Client, query: CallbackQuery):
             
             _, kk, file_id = query.data.split("#")
             await query.answer(url=f"https://t.me/{me.username}?start={kk}_{file_id}")
+
+        # Remove Ads / Premium Plan Menu
+        elif query.data == "remove_ads":
+            premium_btns = [
+                [InlineKeyboardButton("7 Days", callback_data="premium_7")],
+                [InlineKeyboardButton("1 Month", callback_data="premium_30")],
+                [InlineKeyboardButton("6 Months", callback_data="premium_180")],
+                [InlineKeyboardButton("1 Year", callback_data="premium_365")],
+                [InlineKeyboardButton("⬅️ Back", callback_data="start")]
+            ]
+            await query.message.edit_text(
+                "💎 Choose your Premium Plan to remove ads:",
+                reply_markup=InlineKeyboardMarkup(premium_btns)
+            )
+
+        # User clicked a specific plan
+        elif query.data.startswith("premium_"):
+            days = int(query.data.split("_")[1])
+            price_list = {7: "₹50", 30: "₹150", 180: "₹750", 365: "₹1200"}
+            price = price_list.get(days, "N/A")
+
+            buttons = [
+                [InlineKeyboardButton("✅ Payment Done", callback_data=f"premium_done_{days}")],
+                [InlineKeyboardButton("⬅️ Back", callback_data="remove_ads")]
+            ]
+
+            await query.message.edit_text(
+                f"💎 Premium Plan Details:\n\n"
+                f"🗓 Duration: {days} days\n"
+                f"💰 Price: {price}\n\n"
+                f"Click below after completing payment.",
+                reply_markup=InlineKeyboardMarkup(buttons)
+            )
+
+        # User clicked Payment Done
+        elif query.data.startswith("premium_done_"):
+            days = int(query.data.split("_")[2])
+            user_id = query.from_user.id
+
+            await query.message.edit_text(
+                f"⏳ Payment received for **Premium Plan** ({days} days).\n"
+                "Waiting for admin approval...",
+                parse_mode=enums.ParseMode.MARKDOWN
+            )
+
+            if owner_id:
+                buttons = [
+                    [
+                        InlineKeyboardButton("✅ Approve", callback_data=f"approve_{user_id}_{days}"),
+                        InlineKeyboardButton("❌ Reject", callback_data=f"reject_{user_id}_{days}")
+                    ]
+                ]
+                await client.send_message(
+                    chat_id=owner_id,
+                    text=(
+                        f"📩 *New Payment Confirmation*\n\n"
+                        f"👤 User: `{user_id}`\n"
+                        f"🗓 Plan: {days} days\n\n"
+                        f"Do you want to approve or reject?"
+                    ),
+                    reply_markup=InlineKeyboardMarkup(buttons),
+                    parse_mode=enums.ParseMode.MARKDOWN
+                )
+
+            for mod_id in moderators:
+                buttons = [
+                    [
+                        InlineKeyboardButton("✅ Approve", callback_data=f"approve_{user_id}_{days}"),
+                        InlineKeyboardButton("❌ Reject", callback_data=f"reject_{user_id}_{days}")
+                    ]
+                ]
+                await client.send_message(
+                    chat_id=mod_id,
+                    text=(
+                        f"📩 *New Payment Confirmation*\n\n"
+                        f"👤 User: `{user_id}`\n"
+                        f"🗓 Plan: {days} days\n\n"
+                        f"Do you want to approve or reject?"
+                    ),
+                    reply_markup=InlineKeyboardMarkup(buttons),
+                    parse_mode=enums.ParseMode.MARKDOWN
+                )
+
+        # Admin approves
+        elif query.data.startswith("approve_"):
+            _, user_id, days = query.data.split("_")
+            user_id, days = int(user_id), int(days)
+
+            expiry = datetime.utcnow() + timedelta(days=days)
+            premium_data = {"user_id": user_id, "expiry": expiry.timestamp()}
+
+            premium_users = clone.get("premium_user", [])
+
+            premium_users = [u for u in premium_users if u["user_id"] != user_id]
+            premium_users.append(premium_data)
+            await db.update_clone(me.id, {"premium_user": premium_users})
+
+            await client.send_message(
+                chat_id=user_id,
+                text=f"✅ Your Premium Plan ({days} days) has been approved!\nEnjoy ad-free experience 🎉"
+            )
+
+            await query.message.edit_text(
+                f"✅ Approved Premium Plan for user `{user_id}` ({days} days).",
+                parse_mode=enums.ParseMode.MARKDOWN
+            )
+
+        # Admin rejects
+        elif query.data.startswith("reject_"):
+            _, user_id, days = query.data.split("_")
+            user_id, days = int(user_id), int(days)
+
+            await client.send_message(
+                chat_id=user_id,
+                text=f"❌ Your Premium Plan ({days} days) payment was *rejected*.\nContact support for help.",
+                parse_mode=enums.ParseMode.MARKDOWN
+            )
+
+            await query.message.edit_text(
+                f"❌ Rejected Premium Plan for user `{user_id}` ({days} days).",
+                parse_mode=enums.ParseMode.MARKDOWN
+            )
 
         # Start Menu
         elif query.data == "start":
