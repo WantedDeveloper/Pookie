@@ -13,6 +13,7 @@ from clone.clone import auto_post_clone
 logger = logging.getLogger(__name__)
 
 CLONE_TOKEN = {}
+ACTIVE_CLONES = {}
 START_TEXT = {}
 START_PHOTO = {}
 CAPTION_TEXT = {}
@@ -2897,6 +2898,14 @@ async def message_capture(client: Client, message: Message):
 
                 await msg.edit_text("👨‍💻 Creating your **bot**, please wait...")
                 try:
+                    old_client = ACTIVE_CLONES.get(token)
+                    if old_client:
+                        try:
+                            await old_client.stop()
+                        except:
+                            pass
+                        del ACTIVE_CLONES[token]
+
                     xd = Client(
                         f"{token}", API_ID, API_HASH,
                         bot_token=token,
@@ -2904,6 +2913,7 @@ async def message_capture(client: Client, message: Message):
                     )
 
                     await xd.start()
+                    ACTIVE_CLONES[token] = xd
                     bot = await xd.get_me()
                     set_client(bot.id, xd)
                     await db.add_clone_bot(bot.id, user_id, bot.first_name, bot.username, token)
