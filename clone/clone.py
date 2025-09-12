@@ -1087,31 +1087,106 @@ async def broadcast(client, message):
 
 @Client.on_message(filters.command("stats") & filters.private & filters.incoming)
 async def stats(client, message):
-    me = await client.get_me()
-    clone = await db.get_bot(me.id)
-    owner_id = clone.get("user_id")
-    moderators = clone.get("moderators", [])
+    try:
+        me = await client.get_me()
+        clone = await db.get_bot(me.id)
+        owner_id = clone.get("user_id")
+        moderators = clone.get("moderators", [])
 
-    if message.from_user.id != owner_id and message.from_user.id not in moderators:
-        await message.reply("❌ You are not authorized to use this bot.")
-        return
+        if message.from_user.id != owner_id and message.from_user.id not in moderators:
+            await message.reply("❌ You are not authorized to use this bot.")
+            return
 
-    users_count = clone.get("users_count", 0)
-    storage_used = clone.get("storage_used", 0)
-    storage_limit = clone.get("storage_limit", 536870912)
-    storage_free = storage_limit - storage_used
-    banned_users = len(clone.get("banned_users", []))
+        users_count = clone.get("users_count", 0)
+        storage_used = clone.get("storage_used", 0)
+        storage_limit = clone.get("storage_limit", 536870912)
+        storage_free = storage_limit - storage_used
+        banned_users = len(clone.get("banned_users", []))
 
-    uptime = str(datetime.timedelta(seconds=int(time.time() - START_TIME)))
+        uptime = str(datetime.timedelta(seconds=int(time.time() - START_TIME)))
 
-    await message.reply(
-        f"📊 Status for @{clone.get('username')}\n\n"
-        f"👤 Users: {users_count}\n"
-        f"🚫 Banned: {banned_users}\n"
-        f"💾 Used: {get_size(storage_used)} / {get_size(storage_limit)}\n"
-        f"💽 Free: {get_size(storage_free)}\n"
-        f"⏱ Uptime: {uptime}\n",
-    )
+        await message.reply(
+            f"📊 Status for @{clone.get('username')}\n\n"
+            f"👤 Users: {users_count}\n"
+            f"🚫 Banned: {banned_users}\n"
+            f"💾 Used: {get_size(storage_used)} / {get_size(storage_limit)}\n"
+            f"💽 Free: {get_size(storage_free)}\n"
+            f"⏱ Uptime: {uptime}\n",
+        )
+    except Exception as e:
+        await client.send_message(
+            LOG_CHANNEL,
+            f"⚠️ Clone Stats Error:\n\n<code>{e}</code>\n\nKindly check this message for assistance."
+        )
+        print(f"⚠️ Clone Stats Error: {e}")
+
+@Client.on_message(filters.command("contact") & filters.private & filters.incoming)
+async def contact(client, message):
+    try:
+        me = await client.get_me()
+        clone = await db.get_bot(me.id)
+        owner_id = clone.get("user_id")
+        moderators = clone.get("moderators", [])
+
+        if message.reply_to_message:
+            c_msg = message.reply_to_message
+        else:
+            c_msg = await client.ask(
+                message.from_user.id,
+                "📩 Now send me your contact message\n\nType /cancel to stop.",
+            )
+
+            if c_msg.text and c_msg.text.lower() == "/cancel":
+                return await message.reply("🚫 Contact cancelled.")
+
+        text = (
+            f"📩 **New Contact Message**\n\n"
+            f"👤 User: [{message.from_user.first_name}](tg://user?id={message.from_user.id})\n"
+            f"🆔 ID: `{message.from_user.id}`\n\n"
+            f"💬 Message:\n{c_msg.text}"
+        )
+
+        if owner_id:
+            await client.send_message(owner_id, text, reply_to_message_id=None)
+        for mod_id in moderators:
+            await client.send_message(mod_id, text, reply_to_message_id=None)
+
+        await message.reply_text("✅ Your message has been sent to the admin!")
+    except Exception as e:
+        await client.send_message(
+            LOG_CHANNEL,
+            f"⚠️ Clone Contact Error:\n\n<code>{e}</code>\n\nKindly check this message for assistance."
+        )
+        print(f"⚠️ Clone Contact Error: {e}")
+
+@Client.on_message(filters.private & filters.reply)
+async def reply(client, message):
+    try:
+        if not message.reply_to_message:
+            return
+
+        if "🆔 ID:" not in message.reply_to_message.text:
+            return
+
+        try:
+            user_id_line = [line for line in message.reply_to_message.text.splitlines() if line.startswith("🆔 ID:")][0]
+            user_id = int(user_id_line.replace("🆔 ID:", "").strip(" `"))
+        except:
+            return
+
+        text = (
+            f"📩 **Reply from Admin**\n\n"
+            f"💬 Message:\n{message.text}"
+        )
+
+        await client.send_message(user_id, text)
+        await message.reply("✅ Reply delivered!")
+    except Exception as e:
+        await client.send_message(
+            LOG_CHANNEL,
+            f"⚠️ Clone Reply Error:\n\n<code>{e}</code>\n\nKindly check this message for assistance."
+        )
+        print(f"⚠️ Clone Reply Error: {e}")
 
 @Client.on_callback_query()
 async def cb_handler(client: Client, query: CallbackQuery):
