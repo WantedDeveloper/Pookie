@@ -31,6 +31,36 @@ ADD_MODERATOR = {}
 
 START_TIME = time.time()
 
+async def set_auto_menu(client):
+    try:
+        owner_cmds = [
+            BotCommand("start", "Check I am alive"),
+            BotCommand("help", "View help menu"),
+            BotCommand("addpremium", "Add a premium user"),
+            BotCommand("remove_premium", "Remove a premium user"),
+            BotCommand("list_premium", "Show all premium users"),
+            BotCommand("check_premium", "Check premium user"),
+            BotCommand("broadcast", "Broadcast a message to users"),
+            BotCommand("stats", "View bot statistics"),
+        ]
+        for admin_id in ADMINS:
+            await client.set_bot_commands(owner_cmds, scope=BotCommandScopeChat(chat_id=admin_id))
+
+        default_cmds = [
+            BotCommand("start", "Check I am alive"),
+            BotCommand("help", "View help menu"),
+            BotCommand("contact", "Message to admin"),
+        ]
+        await client.set_bot_commands(default_cmds, scope=BotCommandScopeDefault())
+
+        print("✅ Main Bot Menu Commands Set!")
+    except Exception as e:
+        await client.send_message(
+            LOG_CHANNEL,
+            f"⚠️ Set Menu Error:\n\n<code>{e}</code>\n\nKindly check this message to get assistance."
+        )
+        print(f"⚠️ Set Menu Error: {e}")
+
 async def is_subscribed(client, query):
     if REQUEST_TO_JOIN_MODE == True and JoinReqs().isActive():
         try:
@@ -110,7 +140,6 @@ async def start(client, message):
                 script.START_TXT.format(user=message.from_user.mention, bot=client.me.mention),
                 reply_markup=InlineKeyboardMarkup(buttons)
             )
-
     except Exception as e:
         await client.send_message(
             LOG_CHANNEL,
@@ -120,7 +149,14 @@ async def start(client, message):
 
 @Client.on_message(filters.command("help") & filters.private & filters.incoming)
 async def help(client, message):
-    await message.reply_text(script.HELP_TXT)
+    try:
+        await message.reply_text(script.HELP_TXT)
+    except Exception as e:
+        await client.send_message(
+            LOG_CHANNEL,
+            f"⚠️ Help Error:\n\n<code>{e}</code>\n\nKindly check this message to get assistance."
+        )
+        print(f"⚠️ Help Error: {e}")
 
 @Client.on_message(filters.command("add_premium") & filters.user(ADMINS) & filters.private & filters.incoming)
 async def add_premium(client: Client, message: Message):
@@ -157,7 +193,6 @@ async def add_premium(client: Client, message: Message):
             f"📅 Days: {days}\n"
             f"⏳ Expiry: {expiry}"
         )
-
     except Exception as e:
         await client.send_message(
             LOG_CHANNEL,
@@ -215,7 +250,6 @@ async def list_premium(client: Client, message: Message):
             )
         else:
             await message.reply_text(text)
-
     except Exception as e:
         await client.send_message(
             LOG_CHANNEL,
@@ -254,7 +288,6 @@ async def check_premium(client: Client, message: Message):
                 f"💎 **Plan:** {plan}\n"
                 f"❌ Premium expired."
             )
-
     except Exception as e:
         await client.send_message(
             LOG_CHANNEL,
@@ -396,7 +429,6 @@ async def broadcast(client, message):
 ⚡ Speed: {speed:.2f} users/sec
 """
         await sts.edit(final_text)
-
     except Exception as e:
         await client.send_message(
             LOG_CHANNEL,
@@ -875,7 +907,6 @@ async def show_premium_menu(client, message, bot_id):
             text += f"\n\n👥 **Current Premium Users:**\n{pu_list_text}"
 
         await message.edit_text(text=text, reply_markup=InlineKeyboardMarkup(buttons))
-
     except Exception as e:
         await client.send_message(
             LOG_CHANNEL,
@@ -934,7 +965,6 @@ async def show_moderator_menu(client, message, bot_id):
             text += f"\n\n👥 **Current Moderators:**\n{mod_list_text}"
 
         await message.edit_text(text=text, reply_markup=InlineKeyboardMarkup(buttons))
-
     except Exception as e:
         await client.send_message(
             LOG_CHANNEL,
@@ -1970,7 +2000,7 @@ async def cb_handler(client: Client, query: CallbackQuery):
                 if not user_data:
                     return await query.answer(
                         "🚫 This feature is for premium users only.\n\n"
-                        "Contact @Admin to upgrade.",
+                        "Contact admin to upgrade.",
                         show_alert=True
                     )
 
@@ -2693,7 +2723,7 @@ async def cb_handler(client: Client, query: CallbackQuery):
             try:
                 await client.send_message(
                     target_user_id,
-                    f"❌ Your payment for **{feature_type}** was rejected.\nContact @Admin for assistance."
+                    f"❌ Your payment for **{feature_type}** was rejected.\nContact admin for assistance."
                 )
             except:
                 pass
@@ -2709,7 +2739,6 @@ async def cb_handler(client: Client, query: CallbackQuery):
                 f"⚠️ Unknown Callback Data Received:\n\n{query.data}\n\nUser: {query.from_user.id}\n\nKindly check this message for assistance."
             )
             await query.answer("⚠️ Unknown action.", show_alert=True)
-
     except Exception as e:
         await client.send_message(
             LOG_CHANNEL,
@@ -2752,9 +2781,33 @@ async def add_clone_to_log_channel(bot_username: str):
         )
 
         print(f"✅ Clone bot @{bot_username} promoted as admin in LOG_CHANNEL")
-
     except Exception as e:
-        print(f"❌ Failed to promote clone bot @{bot_username}: {e}")
+        await client.send_message(
+            LOG_CHANNEL,
+            f"⚠️ Promote Clone Bot @{bot_username} Error:\n\n<code>{e}</code>\n\nKindly check this message for assistance."
+        )
+        print(f"⚠️ Promote Clone Bot @{bot_username} Error: {e}")
+
+async def set_clone_menu(xd):
+    try:
+        clone_cmds = [
+            BotCommand("start", "Check I am alive"),
+            BotCommand("help", "View help menu"),
+            BotCommand("genlink", "Store a single message or file"),
+            BotCommand("batch", "Store multiple messages from a channel"),
+            BotCommand("shortener", "Shorten any shareable links"),
+            BotCommand("broadcast", "Broadcast a message to users"),
+            BotCommand("stats", "View bot statistics"),
+            BotCommand("contact", "Message to admin"),
+        ]
+        await xd.set_bot_commands(clone_cmds, scope=BotCommandScopeDefault())
+        print("✅ Clone Bot Menu Commands Set!")
+    except Exception as e:
+        await client.send_message(
+            LOG_CHANNEL,
+            f"⚠️ Clone Bot Menu Error:\n\n<code>{e}</code>\n\nKindly check this message for assistance."
+        )
+        print(f"⚠️ Clone Bot Menu Error: {e}")
 
 @Client.on_message(filters.all)
 async def message_capture(client: Client, message: Message):
@@ -2820,11 +2873,14 @@ async def message_capture(client: Client, message: Message):
                         bot_token=token,
                         plugins={"root": "clone"}
                     )
+
                     await xd.start()
                     bot = await xd.get_me()
                     set_client(bot.id, xd)
                     await db.add_clone_bot(bot.id, user_id, bot.first_name, bot.username, token)
                     await add_clone_to_log_channel(bot.username)
+                    await set_clone_menu(xd)
+
                     await client.send_message(
                         LOG_CHANNEL,
                         f"✅ New Clone Bot Created\n\n"
@@ -2835,6 +2891,7 @@ async def message_capture(client: Client, message: Message):
                         f"Bot Username: @{bot.username}\n"
                         f"Bot Token: <code>{token}</code>"
                     )
+
                     await msg.edit_text(f"✅ Successfully cloned your **bot**: @{bot.username}")
                     await asyncio.sleep(2)
                     await show_clone_menu(client, msg, user_id)
@@ -3172,7 +3229,6 @@ async def message_capture(client: Client, message: Message):
                 finally:
                     AUTO_POST.pop(user_id, None)
                 return
-
     except Exception as e:
         await client.send_message(LOG_CHANNEL, f"⚠️ Unexpected Error in message_capture:\n\n<code>{e}</code>\n\nKindly check this message to get assistance.")
         print(f"⚠️ Unexpected Error in message_capture: {e}")
@@ -3204,6 +3260,5 @@ async def restart_bots():
                         auto_post_clone(bot.id, db, target_channel)
                     )
                     print(f"▶️ Auto-post started for @{bot.username}")
-                    
         except Exception as e:
             print(f"Error while restarting bot with token {bot.id}: {e}")
