@@ -112,8 +112,6 @@ async def check_verification(client, userid):
     return True
 
 def get_size(size):
-    """Get size in readable format"""
-
     units = ["Bytes", "KB", "MB", "GB", "TB", "PB", "EB"]
     size = float(size)
     i = 0
@@ -124,7 +122,7 @@ def get_size(size):
 
 async def auto_delete_message(client, msg_to_delete, notice_msg, hours):
     try:
-        await asyncio.sleep(hours * 3600)  # sleep in background
+        await asyncio.sleep(hours * 3600)
         await msg_to_delete.delete()
         await notice_msg.edit_text("Your File/Video is successfully deleted!!!")
     except Exception as e:
@@ -1435,17 +1433,18 @@ async def message_capture(client: Client, message: Message):
 
         owner_id = clone.get("user_id")
         moderators = clone.get("moderators", [])
-
-        selected_caption = random.choice(script.CAPTION_LIST)
-
+        word_filter = clone.get("word_filter", False)
+        random_caption = clone.get("random_caption", False)
         header = clone.get("header", None)
         footer = clone.get("footer", None)
+
+        selected_caption = random.choice(script.CAPTION_LIST)
 
         text = message.text or message.caption or ""
         original_text = text
 
         if text:
-            if clone.get("word_filter", False):
+            if word_filter:
                 text = clean_text(original_text)
             else:
                 text = text
@@ -1464,7 +1463,7 @@ async def message_capture(client: Client, message: Message):
         if header:
             new_text += f"<blockquote>{header}</blockquote>\n\n"
 
-        if clone.get("random_caption", False):
+        if random_caption:
             new_text += f"{selected_caption}\n\n<blockquote>{text}</blockquote>"
         else:
             new_text += f"{text}"
