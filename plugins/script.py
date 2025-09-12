@@ -18,7 +18,8 @@ I am a permenant file store bot. you can store files from your public channel wi
 🔻 /batch - To store mutiple messages from a channel.
 🔻 /shortener - To shorten any shareable links.
 🔻 /broadcast - Broadcast a message to users.
-🔻 /stats - View bot statistics."""
+🔻 /stats - View bot statistics.
+🔻 /contact - Message to admin."""
 
     ABOUT_TXT = """<u>**✨ ABOUT ME**</u>
 
