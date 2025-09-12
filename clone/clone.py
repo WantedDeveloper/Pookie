@@ -55,6 +55,9 @@ async def is_subscribed(client, user_id: int, bot_id: int):
 async def get_verify_shorted_link(client, link):
     me = await client.get_me()
     clone = await db.get_bot(me.id)
+    if not clone:
+        return
+
     shortlink_url = clone.get("shorten_link", None)
     shortlink_api = clone.get("shorten_api", None)
 
@@ -98,6 +101,9 @@ async def verify_user(client, userid, token):
         TOKENS[userid][token] = True
 
     clone = await db.get_bot((await client.get_me()).id)
+    if not clone:
+        return
+
     validity_hours = clone.get("access_token_validity", 24)
     VERIFIED[userid] = datetime.datetime.now() + datetime.timedelta(hours=validity_hours)
 
@@ -665,6 +671,9 @@ async def link(client, message):
     try:
         me = await client.get_me()
         clone = await db.get_bot(me.id)
+        if not clone:
+            return
+
         owner_id = clone.get("user_id")
         moderators = clone.get("moderators", [])
 
@@ -726,6 +735,9 @@ async def batch(client, message):
     try:
         me = await client.get_me()
         clone = await db.get_bot(me.id)
+        if not clone:
+            return
+
         owner_id = clone.get("user_id")
         moderators = clone.get("moderators", [])
 
@@ -857,6 +869,9 @@ async def shorten_handler(client: Client, message: Message):
     try:
         me = await client.get_me()
         clone = await db.get_bot(me.id)
+        if not clone:
+            return
+
         owner_id = clone.get("user_id")
         moderators = clone.get("moderators", [])
 
@@ -997,6 +1012,9 @@ async def broadcast(client, message):
     try:
         me = await client.get_me()
         clone = await db.get_bot(me.id)
+        if not clone:
+            return
+
         owner_id = clone.get("user_id")
         moderators = clone.get("moderators", [])
 
@@ -1098,6 +1116,9 @@ async def stats(client, message):
     try:
         me = await client.get_me()
         clone = await db.get_bot(me.id)
+        if not clone:
+            return
+
         owner_id = clone.get("user_id")
         moderators = clone.get("moderators", [])
 
@@ -1133,6 +1154,9 @@ async def contact(client, message):
     try:
         me = await client.get_me()
         clone = await db.get_bot(me.id)
+        if not clone:
+            return
+
         owner_id = clone.get("user_id")
         moderators = clone.get("moderators", [])
 
@@ -1201,6 +1225,9 @@ async def cb_handler(client: Client, query: CallbackQuery):
     try:
         me = await client.get_me()
         clone = await db.get_bot(me.id)
+        if not clone:
+            return
+
         owner_id = clone.get("user_id")
         moderators = clone.get("moderators", [])
 
@@ -1351,7 +1378,6 @@ async def cb_handler(client: Client, query: CallbackQuery):
                 [InlineKeyboardButton('🤖 Create Your Own Clone', url=f'https://t.me/{BOT_USERNAME}?start')],
                 [InlineKeyboardButton('🔒 Close', callback_data='close')]
             ]
-            clone = await db.get_bot(me.id)
             start_text = clone.get("wlc") or script.START_TXT
             await query.message.edit_text(
                 text=start_text.format(user=query.from_user.mention, bot=me.mention),
@@ -1369,8 +1395,7 @@ async def cb_handler(client: Client, query: CallbackQuery):
         # About
         elif data == "about":
             buttons = [[InlineKeyboardButton('⬅️ Back', callback_data='start')]]
-            owner = await db.get_bot(me.id)
-            ownerid = int(owner['user_id'])
+            ownerid = int(clone['user_id'])
             await query.message.edit_text(
                 text=script.CABOUT_TXT.format(bot=me.mention, developer=ownerid),
                 reply_markup=InlineKeyboardMarkup(buttons)
