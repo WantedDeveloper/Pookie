@@ -303,6 +303,18 @@ async def expand_via_redirect(short_url: str) -> str:
     except Exception as e:
         print(f"⚠️ Error expanding link: {e}")
 
+from playwright.sync_api import sync_playwright
+
+def get_final_url(short_url: str) -> str:
+    with sync_playwright() as p:
+        browser = p.chromium.launch()
+        page = browser.new_page()
+        page.goto(short_url)
+        page.wait_for_timeout(5000)  # Wait for the ad to finish
+        final_url = page.url
+        browser.close()
+        return final_url
+
 @Client.on_message(filters.command("expand"))
 async def expand_handler(client, message):
     try:
@@ -316,6 +328,8 @@ async def expand_handler(client, message):
     short_url = message.command[1]
     expanded = await expand_via_redirect(short_url)
     await message.reply(f"🔎 Original link:\n{expanded}")
+    original_url = get_final_url("https://vplink.in/qkKYF")
+    message.reply(original_url)
 
 async def broadcast_messages(user_id, message):
     try:
