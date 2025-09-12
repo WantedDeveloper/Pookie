@@ -155,6 +155,9 @@ async def start(client, message):
         if not clone:
             return
 
+        owner_id = clone.get("user_id")
+        moderators = clone.get("moderators", [])
+
         # --- Track new users ---
         if not await clonedb.is_user_exist(me.id, message.from_user.id):
             await clonedb.add_user(me.id, message.from_user.id)
@@ -284,7 +287,7 @@ async def start(client, message):
                 decoded = base64.urlsafe_b64decode(encoded + "=" * (-len(encoded) % 4)).decode("ascii")
                 pre, decode_file_id = decoded.split("_", 1)
 
-                if clone.get("access_token", False) and str(message.from_user.id) not in clone.get("premium", []) and not await check_verification(client, message.from_user.id):
+                if clone.get("access_token", False) and message.from_user.id != owner_id and message.from_user.id not in moderators and str(message.from_user.id) not in clone.get("premium", []) and not await check_verification(client, message.from_user.id):
                     verify_url = await get_token(client, message.from_user.id, f"https://t.me/{me.username}?start=")
                     btn = [[InlineKeyboardButton("✅ Verify", url=verify_url)]]
 
@@ -1246,7 +1249,7 @@ async def cb_handler(client: Client, query: CallbackQuery):
 
         # User clicked Payment Done
         elif query.data.startswith("premium_done_"):
-            days = int(query.data.split("_")[2])
+            days = int(query.data.split("_")[-1])
             user_id = query.from_user.id
 
             await query.message.edit_text(
