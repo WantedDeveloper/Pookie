@@ -2081,6 +2081,7 @@ async def cb_handler(client: Client, query: CallbackQuery):
 
                 PREMIUM_USER.pop(user_id, None)
                 await db.update_clone(bot_id, {"premium_upi": None})
+
                 buttons = [[InlineKeyboardButton('⬅️ Back', callback_data=f'manage_{bot_id}')]]
                 await query.message.edit_text(
                     text="❌ Premium setup cancelled.\nYou can re-enable it anytime by providing a valid UPI ID.",
@@ -2971,13 +2972,14 @@ async def message_capture(client: Client, message: Message):
 
                     await orig_msg.edit_text(f"✏️ Updating **{db_field.replace('_', ' ')}**, please wait...")
                     try:
-                        if db_field == "premium_user":
-                            clone = await db.get_clone_by_id(bot_id)
+                        clone = await db.get_clone_by_id(bot_id)
+                        if db_field == "premium_upi":
+                            await db.update_clone(bot_id, {"premium_upi": content})
+                        elif db_field == "premium_user":
                             premium_user = clone.get("premium_user", [])
                             premium_user.append(content)
                             await db.update_clone(bot_id, {db_field: premium_user})
                         elif db_field == "moderators":
-                            clone = await db.get_clone_by_id(bot_id)
                             moderators = clone.get("moderators", [])
                             moderators.append(content)
                             await db.update_clone(bot_id, {db_field: moderators})
