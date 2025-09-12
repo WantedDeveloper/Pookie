@@ -24,6 +24,7 @@ ACCESS_TOKEN = {}
 ACCESS_TOKEN_VALIDITY = {}
 ACCESS_TOKEN_TUTORIAL = {}
 AUTO_POST = {}
+PREMIUM_UPI = {}
 ADD_PREMIUM = {}
 AUTO_DELETE_TIME = {}
 AUTO_DELETE_MESSAGE = {}
@@ -1080,7 +1081,7 @@ async def cb_handler(client: Client, query: CallbackQuery):
             "force_subscribe_", "add_fsub_", "fsub_mode_", "cancel_addfsub_", "remove_fsub_",
             "access_token_", "at_status_", "cancel_at_", "at_validty_", "edit_atvalidity_", "cancel_editatvalidity_", "see_atvalidity_", "default_atvalidity_", "at_tutorial_", "add_attutorial_", "cancel_addattutorial_", "see_attutorial_", "delete_attutorial_",
             "auto_post_", "ap_status_", "cancel_autopost_",
-            "premium_user_", "add_pu_", "cancel_addpu_", "remove_premium_user_", "remove_pu_",
+            "premium_user_", "cancel_pu_", "add_pu_", "cancel_addpu_", "remove_premium_user_", "remove_pu_",
             "auto_delete_", "ad_status_", "ad_time_", "edit_adtime_", "cancel_editadtime_", "see_adtime_", "default_adtime_", "ad_message_", "edit_admessage_", "cancel_editadmessage_", "see_admessage_", "default_admessage_",
             "forward_protect_", "fp_status_",
             "moderator_", "add_moderator_", "cancel_addmoderator_", "remove_moderator_", "remove_mod_", "transfer_moderator_", "transfer_mod_",
@@ -2063,7 +2064,29 @@ async def cb_handler(client: Client, query: CallbackQuery):
                 if not active:
                     return await query.answer("⚠️ This bot is deactivate. Activate first!", show_alert=True)
 
-                await show_premium_menu(client, query.message, bot_id)
+                PREMIUM_UPI[user_id] = (query.message, bot_id)
+                buttons = [[InlineKeyboardButton('❌ Cancel', callback_data=f'cancel_pu_{bot_id}')]]
+                await query.message.edit_text(
+                    text="🔗 Please provide the updated **Upi I'd**:",
+                    reply_markup=InlineKeyboardMarkup(buttons)
+                )
+
+            # Cancel Premium User
+            elif action == "cancel_pu":
+                if not clone:
+                    return await query.answer("❌ Clone not found!", show_alert=True)
+
+                if not active:
+                    return await query.answer("⚠️ This bot is deactivate. Activate first!", show_alert=True)
+
+                PREMIUM_UPI.pop(user_id, None)
+                await db.update_clone(bot_id, {"premium_upi": None})
+
+                buttons = [[InlineKeyboardButton('⬅️ Back', callback_data=f'manage_{bot_id}')]]
+                await query.message.edit_text(
+                    text="❌ Premium setup cancelled.\nYou can re-enable it anytime by providing a valid UPI ID.",
+                    reply_markup=InlineKeyboardMarkup(buttons)
+                )
 
             # Add Premium User
             elif action == "add_pu":
@@ -2829,6 +2852,8 @@ async def message_capture(client: Client, message: Message):
                 or user_id in ACCESS_TOKEN_VALIDITY
                 or user_id in ACCESS_TOKEN_TUTORIAL
                 or user_id in AUTO_POST
+                or user_id in PREMIUM_UPI
+                or user_id in ADD_PREMIUM
                 or user_id in AUTO_DELETE_TIME
                 or user_id in AUTO_DELETE_MESSAGE
                 or user_id in ADD_MODERATOR
@@ -2915,6 +2940,7 @@ async def message_capture(client: Client, message: Message):
                 ("FOOTER_TEXT", FOOTER_TEXT, "text", "footer", "show_footer_menu"),
                 ("ACCESS_TOKEN_VALIDITY", ACCESS_TOKEN_VALIDITY, "text", "access_token_validity", "show_validity_menu"),
                 ("ACCESS_TOKEN_TUTORIAL", ACCESS_TOKEN_TUTORIAL, "text", "access_token_tutorial", "show_tutorial_menu"),
+                ("PREMIUM_UPI", PREMIUM_UPI, "text", "premium_upi", "show_premium_menu"),
                 ("ADD_PREMIUM", ADD_PREMIUM, "text", "premium_user", "show_premium_menu"),
                 ("AUTO_DELETE_TIME", AUTO_DELETE_TIME, "text", "auto_delete_time", "show_time_menu"),
                 ("AUTO_DELETE_MESSAGE", AUTO_DELETE_MESSAGE, "text", "auto_delete_msg", "show_message_menu"),
