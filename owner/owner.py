@@ -295,42 +295,6 @@ async def check_premium(client: Client, message: Message):
         )
         print(f"⚠️ Check Premium Error: {e}")
 
-async def expand_via_redirect(short_url: str) -> str:
-    try:
-        async with aiohttp.ClientSession() as session:
-            async with session.get(short_url, allow_redirects=True) as resp:
-                return str(resp.url)  # Final destination after redirects
-    except Exception as e:
-        print(f"⚠️ Error expanding link: {e}")
-
-from playwright.sync_api import sync_playwright
-
-def get_final_url(short_url: str) -> str:
-    with sync_playwright() as p:
-        browser = p.chromium.launch()
-        page = browser.new_page()
-        page.goto(short_url)
-        page.wait_for_timeout(5000)  # Wait for the ad to finish
-        final_url = page.url
-        browser.close()
-        return final_url
-
-@Client.on_message(filters.command("expand"))
-async def expand_handler(client, message):
-    try:
-        if len(message.command) < 2:
-            return await message.reply(
-                "⚠️ Please send a shortened link to expand.\n\nUsage: `/expand <short_link>`"
-            )
-    except Exception as e:
-        print(f"⚠️ Error expand handler: {e}")
-
-    short_url = message.command[1]
-    expanded = await expand_via_redirect(short_url)
-    await message.reply(f"🔎 Original link:\n{expanded}")
-    original_url = get_final_url("https://vplink.in/qkKYF")
-    message.reply(original_url)
-
 async def broadcast_messages(user_id, message):
     try:
         await message.copy(chat_id=user_id)
@@ -893,25 +857,6 @@ async def show_post_menu(client, message, bot_id):
         )
         print(f"⚠️ Show Post Menu Error: {e}")
 
-async def show_time_menu(client, message, bot_id):
-    try:
-        buttons = [
-            [InlineKeyboardButton('✏️ Edit', callback_data=f'edit_adtime_{bot_id}'),
-            InlineKeyboardButton('👁️ See', callback_data=f'see_adtime_{bot_id}'),
-            InlineKeyboardButton('🔄 Default', callback_data=f'default_adtime_{bot_id}')],
-            [InlineKeyboardButton('⬅️ Back', callback_data=f'auto_delete_{bot_id}')]
-        ]
-        await message.edit_text(
-            text=script.AD_TIME_TXT,
-            reply_markup=InlineKeyboardMarkup(buttons)
-        )
-    except Exception as e:
-        await client.send_message(
-            LOG_CHANNEL,
-            f"⚠️ Show Time Menu Error:\n\n<code>{e}</code>\n\nKindly check this message to get assistance."
-        )
-        print(f"⚠️ Show Time Menu Error: {e}")
-
 async def show_premium_menu(client, message, bot_id):
     try:
         clone = await db.get_clone_by_id(bot_id)
@@ -949,6 +894,25 @@ async def show_premium_menu(client, message, bot_id):
             f"⚠️ Show Premium User Menu Error:\n<code>{e}</code>\nClone Data: {clone}\n\nKindly check this message to get assistance."
         )
         print(f"⚠️ Show Premium User Menu Error: {e}")
+
+async def show_time_menu(client, message, bot_id):
+    try:
+        buttons = [
+            [InlineKeyboardButton('✏️ Edit', callback_data=f'edit_adtime_{bot_id}'),
+            InlineKeyboardButton('👁️ See', callback_data=f'see_adtime_{bot_id}'),
+            InlineKeyboardButton('🔄 Default', callback_data=f'default_adtime_{bot_id}')],
+            [InlineKeyboardButton('⬅️ Back', callback_data=f'auto_delete_{bot_id}')]
+        ]
+        await message.edit_text(
+            text=script.AD_TIME_TXT,
+            reply_markup=InlineKeyboardMarkup(buttons)
+        )
+    except Exception as e:
+        await client.send_message(
+            LOG_CHANNEL,
+            f"⚠️ Show Time Menu Error:\n\n<code>{e}</code>\n\nKindly check this message to get assistance."
+        )
+        print(f"⚠️ Show Time Menu Error: {e}")
 
 async def show_message_menu(client, message, bot_id):
     try:
@@ -1116,7 +1080,7 @@ async def cb_handler(client: Client, query: CallbackQuery):
             "force_subscribe_", "add_fsub_", "fsub_mode_", "cancel_addfsub_", "remove_fsub_",
             "access_token_", "at_status_", "cancel_at_", "at_validty_", "edit_atvalidity_", "cancel_editatvalidity_", "see_atvalidity_", "default_atvalidity_", "at_tutorial_", "add_attutorial_", "cancel_addattutorial_", "see_attutorial_", "delete_attutorial_",
             "auto_post_", "ap_status_", "cancel_autopost_",
-            "premium_user_", "add_pu_", "cancel_addpu_", "remove_premium_user_", "remove_pu_",
+            "premium_user_", "cancel_pu_", "add_pu_", "cancel_addpu_", "remove_premium_user_", "remove_pu_",
             "auto_delete_", "ad_status_", "ad_time_", "edit_adtime_", "cancel_editadtime_", "see_adtime_", "default_adtime_", "ad_message_", "edit_admessage_", "cancel_editadmessage_", "see_admessage_", "default_admessage_",
             "forward_protect_", "fp_status_",
             "moderator_", "add_moderator_", "cancel_addmoderator_", "remove_moderator_", "remove_mod_", "transfer_moderator_", "transfer_mod_",
@@ -2099,7 +2063,28 @@ async def cb_handler(client: Client, query: CallbackQuery):
                 if not active:
                     return await query.answer("⚠️ This bot is deactivate. Activate first!", show_alert=True)
 
-                await show_premium_menu(client, query.message, bot_id)
+                PREMIUM_USER[user_id] = (query.message, bot_id)
+                buttons = [[InlineKeyboardButton('❌ Cancel', callback_data=f'cancel_pu_{bot_id}')]]
+                await query.message.edit_text(
+                    text="🔗 Please provide the updated **Upi I'd**:",
+                    reply_markup=InlineKeyboardMarkup(buttons)
+                )
+
+            # Cancel Premium User
+            elif action == "cancel_pu":
+                if not clone:
+                    return await query.answer("❌ Clone not found!", show_alert=True)
+
+                if not active:
+                    return await query.answer("⚠️ This bot is deactivate. Activate first!", show_alert=True)
+
+                PREMIUM_USER.pop(user_id, None)
+                await db.update_clone(bot_id, {"premium_upi": None})
+                buttons = [[InlineKeyboardButton('⬅️ Back', callback_data=f'manage_{bot_id}')]]
+                await query.message.edit_text(
+                    text="❌ Premium setup cancelled.\nYou can re-enable it anytime by providing a valid UPI ID.",
+                    reply_markup=InlineKeyboardMarkup(buttons)
+                )
 
             # Add Premium User
             elif action == "add_pu":
@@ -2116,7 +2101,7 @@ async def cb_handler(client: Client, query: CallbackQuery):
                     reply_markup=InlineKeyboardMarkup(buttons)
                 )
 
-            # Cancel Premium User
+            # Cancel Add Premium User
             elif action == "cancel_addpu":
                 if not clone:
                     return await query.answer("❌ Clone not found!", show_alert=True)
@@ -2630,14 +2615,14 @@ async def cb_handler(client: Client, query: CallbackQuery):
         elif query.data == "premium":
             text = (
                 "💎 **Premium Features** 💎\n\n"
-                "**Normal Premium:**\n"
+                "**Normal Plan:**\n"
                 "- Unlimited Button\n"
                 "- Unlimited FSub Channel\n\n"
-                "**Ultra Premium:**\n"
+                "**Ultra Plan:**\n"
                 "- Unlimited Button\n"
                 "- Unlimited FSub Channel\n"
                 "- Auto Posting\n\n"
-                "**Vip Premium:**\n"
+                "**Vip Plan:**\n"
                 "- Unlimited Clone Bot\n"
                 "- Unlimited Button\n"
                 "- Unlimited FSub Channel\n"
@@ -2660,20 +2645,20 @@ async def cb_handler(client: Client, query: CallbackQuery):
         # Payment Flow
         elif query.data in ["buy_normal", "buy_ultra", "buy_vip"]:
             if query.data == "buy_normal":
-                price = "₹100"
+                price = "₹200"
                 feature_type = "Normal Premium"
             elif query.data == "buy_ultra":
-                price = "₹300"
+                price = "₹500"
                 feature_type = "Ultra Premium"
             else:
-                price = "₹500"
+                price = "₹1200"
                 feature_type = "VIP Premium"
 
 
             text = (
                 f"💳 **{feature_type} Payment** 💳\n\n"
                 f"Amount: {price}\n"
-                "UPI ID: `your-upi@bank`\n"
+                "UPI ID: `Krrishmehta@jio`\n"
                 "Send payment to UPI ID\n\n"
                 "After payment, click the **Payment Done** button below to confirm."
             )
@@ -2951,6 +2936,8 @@ async def message_capture(client: Client, message: Message):
                 ("FOOTER_TEXT", FOOTER_TEXT, "text", "footer", "show_footer_menu"),
                 ("ACCESS_TOKEN_VALIDITY", ACCESS_TOKEN_VALIDITY, "text", "access_token_validity", "show_validity_menu"),
                 ("ACCESS_TOKEN_TUTORIAL", ACCESS_TOKEN_TUTORIAL, "text", "access_token_tutorial", "show_tutorial_menu"),
+                ("PREMIUM_USER", PREMIUM_USER, "text", "premium_upi", "show_premium_menu"),
+                ("ADD_PREMIUM", ADD_PREMIUM, "text", "premium_user", "show_premium_menu"),
                 ("AUTO_DELETE_TIME", AUTO_DELETE_TIME, "text", "auto_delete_time", "show_time_menu"),
                 ("AUTO_DELETE_MESSAGE", AUTO_DELETE_MESSAGE, "text", "auto_delete_msg", "show_message_menu"),
                 ("ADD_MODERATOR", ADD_MODERATOR, "text", "moderators", "show_moderator_menu")
@@ -2983,7 +2970,12 @@ async def message_capture(client: Client, message: Message):
 
                     await orig_msg.edit_text(f"✏️ Updating **{db_field.replace('_', ' ')}**, please wait...")
                     try:
-                        if db_field == "moderators":
+                        if db_field == "premium_user":
+                            clone = await db.get_clone_by_id(bot_id)
+                            premium_user = clone.get("premium_user", [])
+                            premium_user.append(content)
+                            await db.update_clone(bot_id, {db_field: premium_user})
+                        elif db_field == "moderators":
                             clone = await db.get_clone_by_id(bot_id)
                             moderators = clone.get("moderators", [])
                             moderators.append(content)
