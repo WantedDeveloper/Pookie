@@ -58,11 +58,11 @@ async def get_verify_shorted_link(client, link):
     shortlink_url = clone.get("shorten_link", None)
     shortlink_api = clone.get("shorten_api", None)
 
-    if shortlink_url == shortlink_url:
+    if shortlink_url or shortlink_url:
         url = f'https://{shortlink_url}/api'
         params = {
-            "key": shortlink_api,
-            "link": link,
+            "api": shortlink_api,
+            "url": link,
         }
         try:
             async with aiohttp.ClientSession() as session:
@@ -1249,7 +1249,12 @@ async def cb_handler(client: Client, query: CallbackQuery):
 
         # User clicked Payment Done
         elif query.data.startswith("premium_done_"):
-            days = int(query.data.split("_")[-1])
+            parts = query.data.split("_")
+            if len(parts) < 3 or not parts[-1].isdigit():
+                await query.answer("⚠️ Invalid premium data.", show_alert=True)
+                return
+
+            days = int(parts[-1])
             user_id = query.from_user.id
 
             await query.message.edit_text(
