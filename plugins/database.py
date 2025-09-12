@@ -84,57 +84,104 @@ class Database:
 
     # ---------------- CLONE ----------------
     async def add_clone_bot(self, bot_id, user_id, first_name, username, bot_token):
-        settings = {
-            'is_bot': True,
-            'bot_id': bot_id,
-            'user_id': user_id,
-            'name': first_name,
-            'username': username,
-            'token': bot_token,
-            # Start Message
-            'wlc': script.START_TXT,
-            'pics': None,
-            'caption': None,
-            'button': [],
-            # Channel Message
-            'word_filter': False,
-            'media_filter': False,
-            'random_captiom': False,
-            'header': None,
-            'footer': None,
-            # Force Subscribe
-            'force_subscribe': [],
-            # Access Token
-            'access_token': False,
-            'shorten_link': None,
-            'shorten_api': None,
-            'access_token_validity': 24,
-            'access_token_renew_log': {},
-            'access_token_tutorial': None,
-            # Auto Post
-            'auto_post': False,
-            'target_channel': None,
-            # Premium User
-            'premium_upi': None,
-            'premium_user': [],
-            # Auto Delete
-            'auto_delete': False,
-            'auto_delete_time': 1,
-            'auto_delete_msg': script.AD_TXT,
-            # Forward Protect
-            'forward_protect': False,
-            # Moderators
-            'moderators': [],
-            # Status
-            'users_count': 0,
-            'banned_users': [],
-            'storage_used': 0,
-            'storage_limit': 536870912, # 512 MB default
-            # Activate/Deactivate
-            'active': True,
-            'last_active': int(time.time())
-        }
-        await self.bot.insert_one(settings)
+        existing_clone = await self.bot.find_one({'bot_id': bot_id})
+        if existing_clone:
+            reset = {
+                'user_id': user_id,
+                'name': first_name,
+                'username': username,
+                'token': bot_token,
+                # Start Message
+                'wlc': script.START_TXT,
+                'pics': None,
+                'caption': None,
+                'button': [],
+                # Channel Message
+                'word_filter': False,
+                'media_filter': False,
+                'random_captiom': False,
+                'header': None,
+                'footer': None,
+                # Force Subscribe
+                'force_subscribe': [],
+                # Access Token
+                'access_token': False,
+                'shorten_link': None,
+                'shorten_api': None,
+                'access_token_validity': 24,
+                'access_token_renew_log': {},
+                'access_token_tutorial': None,
+                # Auto Post
+                'auto_post': False,
+                'target_channel': None,
+                # Premium User
+                'premium_upi': None,
+                'premium_user': [],
+                # Auto Delete
+                'auto_delete': False,
+                'auto_delete_time': 1,
+                'auto_delete_msg': script.AD_TXT,
+                # Forward Protect
+                'forward_protect': False,
+                # Moderators
+                'moderators': [],
+                # Activate/Deactivate
+                'active': True,
+                'last_active': int(time.time())
+            }
+            await self.bot.update_one({'bot_id': bot_id}, {'$set': reset})
+        else:
+            add = {
+                'is_bot': True,
+                'bot_id': bot_id,
+                'user_id': user_id,
+                'name': first_name,
+                'username': username,
+                'token': bot_token,
+                # Start Message
+                'wlc': script.START_TXT,
+                'pics': None,
+                'caption': None,
+                'button': [],
+                # Channel Message
+                'word_filter': False,
+                'media_filter': False,
+                'random_captiom': False,
+                'header': None,
+                'footer': None,
+                # Force Subscribe
+                'force_subscribe': [],
+                # Access Token
+                'access_token': False,
+                'shorten_link': None,
+                'shorten_api': None,
+                'access_token_validity': 24,
+                'access_token_renew_log': {},
+                'access_token_tutorial': None,
+                # Auto Post
+                'auto_post': False,
+                'target_channel': None,
+                # Premium User
+                'premium_upi': None,
+                'premium_user': [],
+                # Auto Delete
+                'auto_delete': False,
+                'auto_delete_time': 1,
+                'auto_delete_msg': script.AD_TXT,
+                # Forward Protect
+                'forward_protect': False,
+                # Moderators
+                'moderators': [],
+                # Status
+                'users_count': 0,
+                'banned_users': [],
+                'storage_used': 0,
+                'storage_limit': 536870912, # 512 MB default
+                # Activate/Deactivate
+                'active': True,
+                'last_active': int(time.time())
+            }
+            await self.bot.insert_one(add)
 
     async def is_clone_exist(self, user_id):
         clone = await self.bot.find_one({'user_id': int(user_id)})
