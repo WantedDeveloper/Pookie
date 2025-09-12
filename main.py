@@ -9,7 +9,6 @@ from plugins.config import *
 from plugins.script import script
 from owner.owner import restart_bots, set_auto_menu, assistant
 
-# Get logging configurations
 logging.config.fileConfig('logging.conf')
 logging.getLogger().setLevel(logging.INFO)
 logging.getLogger("pyrogram").setLevel(logging.ERROR)
