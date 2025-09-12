@@ -610,8 +610,14 @@ async def show_button_menu(client, message, bot_id):
         buttons = []
 
         for i, btn in enumerate(buttons_data):
+            url = btn.get("url", "").strip()
+            name = btn.get("name", "Unnamed")
+
+            if url and not url.startswith(("http://", "https://")):
+                url = "https://" + url
+
             buttons.append(
-                [InlineKeyboardButton(btn["name"], url=btn["url"]),
+                [InlineKeyboardButton(name, url=url),
                   InlineKeyboardButton("❌", callback_data=f"remove_button_{i}_{bot_id}")]
             )
 
@@ -3022,6 +3028,7 @@ async def message_capture(client: Client, message: Message):
                     ADD_BUTTON[user_id]["step"] = "url"
                     await orig_msg.edit_text(f"✅ Button name saved: **{new_text}**\n\nNow send the URL.")
                 elif step == "url":
+                    new_text = new_text.strip()
                     if not (new_text.startswith("https://") or new_text.startswith("http://")):
                         new_text = "https://" + new_text
                         await orig_msg.edit_text(f"⚠️ URL missing scheme. Automatically added `https://` → `{new_text}`")
