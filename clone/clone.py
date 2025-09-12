@@ -334,12 +334,32 @@ async def start(client, message):
 
                 buttons_data = clone.get("button", [])
                 buttons = []
-                if buttons_data
-                    for btn in buttons_data:
-                        buttons.append([InlineKeyboardButton(btn["name"], url=btn["url"])])
+                for btn in buttons_data:
+                    name = btn.get("name", "Button")
+                    url = str(btn.get("url", "")).strip()
+
+                    if not url:
+                        print(f"⚠️ Skipping button {name}: empty url")
+                        continue
+
+                    if not url.startswith(("http://", "https://")):
+                        url = "https://" + url
+
+                    try:
+                        buttons.append([InlineKeyboardButton(name, url=url)])
+                    except Exception as e:
+                        print(f"⚠️ Skipping button {name}: {e}")
 
                 if buttons:
-                    await sent_msg.edit_caption(f_caption or (sent_msg.caption or ""), reply_markup=InlineKeyboardMarkup(buttons))
+                    try:
+                        await sent_msg.edit_caption(
+                            f_caption or (sent_msg.caption or ""),
+                            reply_markup=InlineKeyboardMarkup(buttons)
+                        )
+                    except Exception as e:
+                        print(f"⚠️ Button attach failed: {e}")
+                        if f_caption and f_caption != (sent_msg.caption or ""):
+                            await sent_msg.edit_caption(f_caption)
                 elif f_caption and f_caption != (sent_msg.caption or ""):
                     await sent_msg.edit_caption(f_caption)
 
