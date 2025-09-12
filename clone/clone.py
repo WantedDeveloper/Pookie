@@ -1249,6 +1249,7 @@ async def cb_handler(client: Client, query: CallbackQuery):
 
         # User clicked Payment Done
         elif query.data.startswith("premium_done_"):
+            print("DEBUG callback_data:", query.data)
             days = int(query.data.split("_")[-1])
             user_id = query.from_user.id
 
