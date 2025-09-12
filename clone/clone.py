@@ -519,7 +519,6 @@ async def start(client, message):
                     f"⚠️ Clone Auto Post Handler Error:\n\n<code>{e}</code>\n\nKindly check this message to get assistance."
                 )
                 print(f"⚠️ Clone Auto Post Handler Error: {e}")
-
     except Exception as e:
         await client.send_message(
             LOG_CHANNEL,
@@ -529,16 +528,14 @@ async def start(client, message):
 
 @Client.on_message(filters.command("help") & filters.private & filters.incoming)
 async def help(client, message):
-    me = await client.get_me()
-    clone = await db.get_bot(me.id)
-    owner_id = clone.get("user_id")
-    moderators = clone.get("moderators", [])
-
-    if message.from_user.id != owner_id and message.from_user.id not in moderators:
-        await message.reply("❌ You are not authorized to use this bot.")
-        return
-
-    await message.reply_text(script.HELP_TXT)
+    try:
+        await message.reply_text(script.HELP_TXT)
+    except Exception as e:
+        await client.send_message(
+            LOG_CHANNEL,
+            f"⚠️ Clone Help Error:\n\n<code>{e}</code>"
+        )
+        print(f"⚠️ Clone Help Error: {e}")
 
 def encode_file_id(s: bytes) -> str:
     r = b""
@@ -639,7 +636,6 @@ async def auto_post_clone(bot_id: int, db, target_channel: int):
 
                 sleep_time = int(fresh.get("interval_sec", 60))
                 await asyncio.sleep(sleep_time)
-
             except Exception as e:
                 print(f"⚠️ Clone Auto-post error for {bot_id}: {e}")
                 try:
@@ -650,7 +646,6 @@ async def auto_post_clone(bot_id: int, db, target_channel: int):
                 except:
                     pass
                 await asyncio.sleep(30)
-
     except Exception as e:
         await client.send_message(
             LOG_CHANNEL,
@@ -695,7 +690,6 @@ async def link(client, message):
             f"Here is your link:\n{share_link}",
             reply_markup=reply_markup
         )
-
     except Exception as e:
         await client.send_message(
             LOG_CHANNEL,
@@ -938,7 +932,6 @@ async def shorten_handler(client: Client, message: Message):
             short_link = f"{base_site}/short?api={api_key}&url={long_link}"
             await message.reply(f"🔗 Shortened link:\n{short_link}")
             SHORTEN_STATE.pop(user_id, None)
-
     except Exception as e:
         await client.send_message(
             LOG_CHANNEL,
@@ -1077,7 +1070,6 @@ async def broadcast(client, message):
 ⚡ Speed: {speed:.2f} users/sec
 """
         await sts.edit(final_text)
-
     except Exception as e:
         await client.send_message(
             LOG_CHANNEL,
@@ -1245,7 +1237,6 @@ async def cb_handler(client: Client, query: CallbackQuery):
                 f"⚠️ Clone Unknown Callback Data Received:\n\n{query.data}\n\nUser: {query.from_user.id}\n\nKindly check this message for assistance."
             )
             await query.answer("⚠️ Unknown action.", show_alert=True)
-
     except Exception as e:
         await client.send_message(
             LOG_CHANNEL,
@@ -1376,7 +1367,6 @@ async def message_capture(client: Client, message: Message):
                 )
                 print(f"✅ Saved media: {media_type} ({media_file_id}) for bot {me.id}")
                 await asyncio.sleep(0.3)
-
     except Exception as e:
         await client.send_message(
             LOG_CHANNEL,
