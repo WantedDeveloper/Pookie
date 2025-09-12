@@ -59,7 +59,7 @@ async def get_verify_shorted_link(client, link):
     shortlink_api = clone.get("shorten_api", None)
 
     if shortlink_url == shortlink_url:
-        url = f'https://{shortlink_url}/easy_api'
+        url = f'https://{shortlink_url}/api'
         params = {
             "key": shortlink_api,
             "link": link,
@@ -1249,7 +1249,6 @@ async def cb_handler(client: Client, query: CallbackQuery):
 
         # User clicked Payment Done
         elif query.data.startswith("premium_done_"):
-            print("DEBUG callback_data:", query.data)
             days = int(query.data.split("_")[-1])
             user_id = query.from_user.id
 
@@ -1259,13 +1258,14 @@ async def cb_handler(client: Client, query: CallbackQuery):
                 parse_mode=enums.ParseMode.MARKDOWN
             )
 
-            if owner_id:
-                buttons = [
-                    [
-                        InlineKeyboardButton("✅ Approve", callback_data=f"approve_{user_id}_{days}"),
-                        InlineKeyboardButton("❌ Reject", callback_data=f"reject_{user_id}_{days}")
-                    ]
+            buttons = [
+                [
+                    InlineKeyboardButton("✅ Approve", callback_data=f"approve_{user_id}_{days}"),
+                    InlineKeyboardButton("❌ Reject", callback_data=f"reject_{user_id}_{days}")
                 ]
+            ]
+
+            if owner_id:
                 await client.send_message(
                     chat_id=owner_id,
                     text=(
@@ -1279,12 +1279,6 @@ async def cb_handler(client: Client, query: CallbackQuery):
                 )
 
             for mod_id in moderators:
-                buttons = [
-                    [
-                        InlineKeyboardButton("✅ Approve", callback_data=f"approve_{user_id}_{days}"),
-                        InlineKeyboardButton("❌ Reject", callback_data=f"reject_{user_id}_{days}")
-                    ]
-                ]
                 await client.send_message(
                     chat_id=mod_id,
                     text=(
