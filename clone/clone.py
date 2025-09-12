@@ -1307,7 +1307,7 @@ async def cb_handler(client: Client, query: CallbackQuery):
                 await query.answer("⚠️ Invalid approve data.", show_alert=True)
                 return
 
-            expiry = datetime.utcnow() + datetime.timedelta(days=days)
+            expiry = datetime.datetime.utcnow() + datetime.timedelta(days=days)
             premium_data = {"user_id": user_id, "expiry": expiry.timestamp()}
 
             premium_users = clone.get("premium_user", [])
