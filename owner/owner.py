@@ -2959,7 +2959,7 @@ async def message_capture(client: Client, message: Message):
                             await orig_msg.edit_text("❌ Empty message. Please send a valid text.")
                             await asyncio.sleep(2)
                             await globals()[menu_func](client, orig_msg, bot_id)
-                            handler_dict.pop(user_id, None)
+                            #handler_dict.pop(user_id, None)
                             return
                     elif input_type == "photo":
                         if not message.photo:
