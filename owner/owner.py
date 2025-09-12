@@ -24,7 +24,7 @@ ACCESS_TOKEN = {}
 ACCESS_TOKEN_VALIDITY = {}
 ACCESS_TOKEN_TUTORIAL = {}
 AUTO_POST = {}
-PREMIUM_USER = {}
+PREMIUM_UPI = {}
 ADD_PREMIUM = {}
 AUTO_DELETE_TIME = {}
 AUTO_DELETE_MESSAGE = {}
@@ -2064,7 +2064,7 @@ async def cb_handler(client: Client, query: CallbackQuery):
                 if not active:
                     return await query.answer("⚠️ This bot is deactivate. Activate first!", show_alert=True)
 
-                PREMIUM_USER[user_id] = (query.message, bot_id)
+                PREMIUM_UPI[user_id] = (query.message, bot_id)
                 buttons = [[InlineKeyboardButton('❌ Cancel', callback_data=f'cancel_pu_{bot_id}')]]
                 await query.message.edit_text(
                     text="🔗 Please provide the updated **Upi I'd**:",
@@ -2079,7 +2079,7 @@ async def cb_handler(client: Client, query: CallbackQuery):
                 if not active:
                     return await query.answer("⚠️ This bot is deactivate. Activate first!", show_alert=True)
 
-                PREMIUM_USER.pop(user_id, None)
+                PREMIUM_UPI.pop(user_id, None)
                 await db.update_clone(bot_id, {"premium_upi": None})
 
                 buttons = [[InlineKeyboardButton('⬅️ Back', callback_data=f'manage_{bot_id}')]]
@@ -3259,8 +3259,8 @@ async def message_capture(client: Client, message: Message):
                 return
 
             # Premium User Handler
-            if user_id in PREMIUM_USER:
-                orig_msg, bot_id = PREMIUM_USER[user_id]
+            if user_id in PREMIUM_UPI:
+                orig_msg, bot_id = PREMIUM_UPI[user_id]
 
                 try:
                     await message.delete()
@@ -3272,7 +3272,7 @@ async def message_capture(client: Client, message: Message):
                     await orig_msg.edit_text("❌ You sent an empty message. Please send a valid text.")
                     await asyncio.sleep(2)
                     await show_premium_menu(client, orig_msg, bot_id)
-                    PREMIUM_USER.pop(user_id, None)
+                    PREMIUM_UPI.pop(user_id, None)
                     return
 
                 await orig_msg.edit_text("✏️ Updating **upi id**, please wait...")
@@ -3281,15 +3281,15 @@ async def message_capture(client: Client, message: Message):
                     await orig_msg.edit_text("✅ Successfully updated upi id!")
                     await asyncio.sleep(2)
                     await show_premium_menu(orig_msg, bot_id)
-                    PREMIUM_USER.pop(user_id, None)
+                    PREMIUM_UPI.pop(user_id, None)
                 except Exception as e:
                     await client.send_message(LOG_CHANNEL, f"⚠️ Update Upi Id Error:\n\n<code>{e}</code>\n\nKindly check this message for assistance.")
                     await orig_msg.edit_text(f"❌ Failed to update upi id: {e}")
                     await asyncio.sleep(2)
                     await show_premium_menu(client, orig_msg, bot_id)
-                    PREMIUM_USER.pop(user_id, None)
+                    PREMIUM_UPI.pop(user_id, None)
                 finally:
-                    PREMIUM_USER.pop(user_id, None)
+                    PREMIUM_UPI.pop(user_id, None)
                 return
     except Exception as e:
         await client.send_message(LOG_CHANNEL, f"⚠️ Unexpected Error in message_capture:\n\n<code>{e}</code>\n\nKindly check this message to get assistance.")
