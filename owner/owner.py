@@ -24,7 +24,6 @@ ACCESS_TOKEN = {}
 ACCESS_TOKEN_VALIDITY = {}
 ACCESS_TOKEN_TUTORIAL = {}
 AUTO_POST = {}
-PREMIUM_UPI = {}
 ADD_PREMIUM = {}
 AUTO_DELETE_TIME = {}
 AUTO_DELETE_MESSAGE = {}
@@ -1081,7 +1080,7 @@ async def cb_handler(client: Client, query: CallbackQuery):
             "force_subscribe_", "add_fsub_", "fsub_mode_", "cancel_addfsub_", "remove_fsub_",
             "access_token_", "at_status_", "cancel_at_", "at_validty_", "edit_atvalidity_", "cancel_editatvalidity_", "see_atvalidity_", "default_atvalidity_", "at_tutorial_", "add_attutorial_", "cancel_addattutorial_", "see_attutorial_", "delete_attutorial_",
             "auto_post_", "ap_status_", "cancel_autopost_",
-            "premium_user_", "cancel_pu_", "add_pu_", "cancel_addpu_", "remove_premium_user_", "remove_pu_",
+            "premium_user_", "add_pu_", "cancel_addpu_", "remove_premium_user_", "remove_pu_",
             "auto_delete_", "ad_status_", "ad_time_", "edit_adtime_", "cancel_editadtime_", "see_adtime_", "default_adtime_", "ad_message_", "edit_admessage_", "cancel_editadmessage_", "see_admessage_", "default_admessage_",
             "forward_protect_", "fp_status_",
             "moderator_", "add_moderator_", "cancel_addmoderator_", "remove_moderator_", "remove_mod_", "transfer_moderator_", "transfer_mod_",
@@ -2033,7 +2032,7 @@ async def cb_handler(client: Client, query: CallbackQuery):
                     text = "❌ Cancel"
                     callback = f"cancel_autopost_{bot_id}"
                 else:
-                    await db.update_clone(bot_id, {"auto_post": False})
+                    await db.update_clone(bot_id, {"auto_post": False, "target_channel": None})
                     status_text = "🔴 Auto Post has been successfully DISABLED!"
                     text = "⬅️ Back"
                     callback = f"auto_post_{bot_id}"
@@ -2064,29 +2063,7 @@ async def cb_handler(client: Client, query: CallbackQuery):
                 if not active:
                     return await query.answer("⚠️ This bot is deactivate. Activate first!", show_alert=True)
 
-                PREMIUM_UPI[user_id] = (query.message, bot_id)
-                buttons = [[InlineKeyboardButton('❌ Cancel', callback_data=f'cancel_pu_{bot_id}')]]
-                await query.message.edit_text(
-                    text="🔗 Please provide the updated **Upi I'd**:",
-                    reply_markup=InlineKeyboardMarkup(buttons)
-                )
-
-            # Cancel Premium User
-            elif action == "cancel_pu":
-                if not clone:
-                    return await query.answer("❌ Clone not found!", show_alert=True)
-
-                if not active:
-                    return await query.answer("⚠️ This bot is deactivate. Activate first!", show_alert=True)
-
-                PREMIUM_UPI.pop(user_id, None)
-                await db.update_clone(bot_id, {"premium_upi": None})
-
-                buttons = [[InlineKeyboardButton('⬅️ Back', callback_data=f'manage_{bot_id}')]]
-                await query.message.edit_text(
-                    text="❌ Premium setup cancelled.\nYou can re-enable it anytime by providing a valid UPI ID.",
-                    reply_markup=InlineKeyboardMarkup(buttons)
-                )
+                await show_premium_menu(client, query.message, bot_id)
 
             # Add Premium User
             elif action == "add_pu":
@@ -3147,6 +3124,7 @@ async def message_capture(client: Client, message: Message):
 
                 new_text = message.text.strip() if message.text else ""
                 if not new_text:
+                    await db.update_clone(bot_id, {"access_token": False})
                     await orig_msg.edit_text("❌ Empty message. Please send valid text.")
                     await asyncio.sleep(2)
                     await show_token_menu(client, orig_msg, bot_id)
@@ -3167,6 +3145,10 @@ async def message_capture(client: Client, message: Message):
                         await show_token_menu(client, orig_msg, bot_id)
                         ACCESS_TOKEN.pop(user_id, None)
                     except Exception as e:
+                        await db.update_clone(
+                            bot_id,
+                            {"access_token": False, "shorten_link": None, "shorten_api": None}
+                        )
                         await client.send_message(LOG_CHANNEL, f"⚠️ Update Access Token Error:\n\n<code>{e}</code>\n\nKindly check this message to get assistance.")
                         await orig_msg.edit_text(f"❌ Failed to update **access token**: {e}")
                         await asyncio.sleep(2)
@@ -3200,7 +3182,7 @@ async def message_capture(client: Client, message: Message):
 
                 clone_client = get_client(bot_id)
                 if not clone_client:
-                    await db.update_clone(bot_id, {"auto_post": False})
+                    await db.update_clone(bot_id, {"auto_post": False, "target_channel": None})
                     await orig_msg.edit_text("❌ Clone bot not running, please restart it.")
                     await asyncio.sleep(2)
                     await show_post_menu(client, orig_msg, bot_id)
@@ -3212,7 +3194,7 @@ async def message_capture(client: Client, message: Message):
                     ch_name = chat.title or "Unknown"
                     ch_link = f"https://t.me/{chat.username}" if chat.username else None
                 except Exception as e:
-                    await db.update_clone(bot_id, {"auto_post": False})
+                    await db.update_clone(bot_id, {"auto_post": False, "target_channel": None})
                     await orig_msg.edit_text(f"❌ Failed to get channel info: {e}")
                     await asyncio.sleep(2)
                     await show_post_menu(client, orig_msg, bot_id)
@@ -3223,14 +3205,14 @@ async def message_capture(client: Client, message: Message):
                     me = await clone_client.get_me()
                     member = await clone_client.get_chat_member(chat.id, me.id)
                     if member.status not in [enums.ChatMemberStatus.ADMINISTRATOR, enums.ChatMemberStatus.OWNER]:
-                        await db.update_clone(bot_id, {"auto_post": False})
+                        await db.update_clone(bot_id, {"auto_post": False, "target_channel": None})
                         await orig_msg.edit_text("❌ The clone bot is NOT an admin in this channel. Add it as admin first.")
                         await asyncio.sleep(2)
                         await show_post_menu(client, orig_msg, bot_id)
                         AUTO_POST.pop(user_id, None)
                         return
                 except Exception as e:
-                    await db.update_clone(bot_id, {"auto_post": False})
+                    await db.update_clone(bot_id, {"auto_post": False, "target_channel": None})
                     await orig_msg.edit_text(f"❌ Failed to check clone bot in channel: {e}")
                     await asyncio.sleep(2)
                     await show_post_menu(client, orig_msg, bot_id)
@@ -3249,6 +3231,7 @@ async def message_capture(client: Client, message: Message):
                     await show_post_menu(client, orig_msg, bot_id)
                     AUTO_POST.pop(user_id, None)
                 except Exception as e:
+                    await db.update_clone(bot_id, {"auto_post": False, "target_channel": None})
                     await client.send_message(LOG_CHANNEL, f"⚠️ Update Auto Post Error:\n\n<code>{e}</code>\n\nKindly check this message to get assistance.")
                     await orig_msg.edit_text(f"❌ Failed to update **auto post**: {e}")
                     await asyncio.sleep(2)
@@ -3256,40 +3239,6 @@ async def message_capture(client: Client, message: Message):
                     AUTO_POST.pop(user_id, None)
                 finally:
                     AUTO_POST.pop(user_id, None)
-                return
-
-            # Premium User Handler
-            if user_id in PREMIUM_UPI:
-                orig_msg, bot_id = PREMIUM_UPI[user_id]
-
-                try:
-                    await message.delete()
-                except:
-                    pass
-
-                new_text = message.text.strip() if message.text else ""
-                if not new_text:
-                    await orig_msg.edit_text("❌ You sent an empty message. Please send a valid text.")
-                    await asyncio.sleep(2)
-                    await show_premium_menu(client, orig_msg, bot_id)
-                    PREMIUM_UPI.pop(user_id, None)
-                    return
-
-                await orig_msg.edit_text("✏️ Updating **upi id**, please wait...")
-                try:
-                    await db.update_clone(bot_id, {"premium_upi": new_text})
-                    await orig_msg.edit_text("✅ Successfully updated upi id!")
-                    await asyncio.sleep(2)
-                    await show_premium_menu(orig_msg, bot_id)
-                    PREMIUM_UPI.pop(user_id, None)
-                except Exception as e:
-                    await client.send_message(LOG_CHANNEL, f"⚠️ Update Upi Id Error:\n\n<code>{e}</code>\n\nKindly check this message for assistance.")
-                    await orig_msg.edit_text(f"❌ Failed to update upi id: {e}")
-                    await asyncio.sleep(2)
-                    await show_premium_menu(client, orig_msg, bot_id)
-                    PREMIUM_UPI.pop(user_id, None)
-                finally:
-                    PREMIUM_UPI.pop(user_id, None)
                 return
     except Exception as e:
         await client.send_message(LOG_CHANNEL, f"⚠️ Unexpected Error in message_capture:\n\n<code>{e}</code>\n\nKindly check this message to get assistance.")
