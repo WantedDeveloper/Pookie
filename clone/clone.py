@@ -334,13 +334,8 @@ async def start(client, message):
 
                 buttons_data = clone.get("button", [])
                 buttons = []
-                for btn in buttons_data:
-                    url = btn.get("url", "").strip()
-                    name = btn.get("name", "Button")
-                    if url.startswith("http://") or url.startswith("https://"):
-                        buttons.append([InlineKeyboardButton(name, url=url)])
-                    else:
-                        print(f"⚠️ Skipping invalid button: {name} -> {url}")
+                for btns in buttons_data:
+                    buttons.append([InlineKeyboardButton(btns["name"], url=btns["url"])])
 
                 if buttons:
                     await sent_msg.edit_caption(f_caption or (sent_msg.caption or ""), reply_markup=InlineKeyboardMarkup(buttons))
