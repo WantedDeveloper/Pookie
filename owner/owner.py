@@ -301,14 +301,17 @@ async def expand_via_redirect(short_url: str) -> str:
             async with session.get(short_url, allow_redirects=True) as resp:
                 return str(resp.url)  # Final destination after redirects
     except Exception as e:
-        return f"⚠️ Error expanding link: {e}"
+        print(f"⚠️ Error expanding link: {e}")
 
 @Client.on_message(filters.command("expand"))
 async def expand_handler(client, message):
-    if len(message.command) < 2:
-        return await message.reply(
-            "⚠️ Please send a shortened link to expand.\n\nUsage: `/expand <short_link>`"
-        )
+    try:
+        if len(message.command) < 2:
+            return await message.reply(
+                "⚠️ Please send a shortened link to expand.\n\nUsage: `/expand <short_link>`"
+            )
+    except Exception as e:
+        print(f"⚠️ Error expand handler: {e}")
 
     short_url = message.command[1]
     expanded = await expand_via_redirect(short_url)
