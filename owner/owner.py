@@ -2938,7 +2938,6 @@ async def message_capture(client: Client, message: Message):
                 ("FOOTER_TEXT", FOOTER_TEXT, "text", "footer", "show_footer_menu"),
                 ("ACCESS_TOKEN_VALIDITY", ACCESS_TOKEN_VALIDITY, "text", "access_token_validity", "show_validity_menu"),
                 ("ACCESS_TOKEN_TUTORIAL", ACCESS_TOKEN_TUTORIAL, "text", "access_token_tutorial", "show_tutorial_menu"),
-                ("PREMIUM_USER", PREMIUM_USER, "text", "premium_upi", "show_premium_menu"),
                 ("ADD_PREMIUM", ADD_PREMIUM, "text", "premium_user", "show_premium_menu"),
                 ("AUTO_DELETE_TIME", AUTO_DELETE_TIME, "text", "auto_delete_time", "show_time_menu"),
                 ("AUTO_DELETE_MESSAGE", AUTO_DELETE_MESSAGE, "text", "auto_delete_msg", "show_message_menu"),
@@ -2959,7 +2958,7 @@ async def message_capture(client: Client, message: Message):
                             await orig_msg.edit_text("❌ Empty message. Please send a valid text.")
                             await asyncio.sleep(2)
                             await globals()[menu_func](client, orig_msg, bot_id)
-                            #handler_dict.pop(user_id, None)
+                            handler_dict.pop(user_id, None)
                             return
                     elif input_type == "photo":
                         if not message.photo:
@@ -2973,9 +2972,7 @@ async def message_capture(client: Client, message: Message):
                     await orig_msg.edit_text(f"✏️ Updating **{db_field.replace('_', ' ')}**, please wait...")
                     try:
                         clone = await db.get_clone_by_id(bot_id)
-                        if db_field == "premium_upi":
-                            await db.update_clone(bot_id, {"premium_upi": content})
-                        elif db_field == "premium_user":
+                        if db_field == "premium_user":
                             premium_user = clone.get("premium_user", [])
                             premium_user.append(content)
                             await db.update_clone(bot_id, {db_field: premium_user})
@@ -3259,6 +3256,40 @@ async def message_capture(client: Client, message: Message):
                     AUTO_POST.pop(user_id, None)
                 finally:
                     AUTO_POST.pop(user_id, None)
+                return
+
+            # Premium User Handler
+            if user_id in PREMIUM_USER:
+                orig_msg, bot_id = PREMIUM_USER[user_id]
+
+                try:
+                    await message.delete()
+                except:
+                    pass
+
+                new_text = message.text.strip() if message.text else ""
+                if not new_text:
+                    await orig_msg.edit_text("❌ You sent an empty message. Please send a valid text.")
+                    await asyncio.sleep(2)
+                    await show_premium_menu(client, orig_msg, bot_id)
+                    PREMIUM_USER.pop(user_id, None)
+                    return
+
+                await orig_msg.edit_text("✏️ Updating **upi id**, please wait...")
+                try:
+                    await db.update_clone(bot_id, {"premium_upi": new_text})
+                    await orig_msg.edit_text("✅ Successfully updated upi id!")
+                    await asyncio.sleep(2)
+                    await show_premium_menu(orig_msg, bot_id)
+                    PREMIUM_USER.pop(user_id, None)
+                except Exception as e:
+                    await client.send_message(LOG_CHANNEL, f"⚠️ Update Upi Id Error:\n\n<code>{e}</code>\n\nKindly check this message for assistance.")
+                    await orig_msg.edit_text(f"❌ Failed to update upi id: {e}")
+                    await asyncio.sleep(2)
+                    await show_premium_menu(client, orig_msg, bot_id)
+                    PREMIUM_USER.pop(user_id, None)
+                finally:
+                    PREMIUM_USER.pop(user_id, None)
                 return
     except Exception as e:
         await client.send_message(LOG_CHANNEL, f"⚠️ Unexpected Error in message_capture:\n\n<code>{e}</code>\n\nKindly check this message to get assistance.")
