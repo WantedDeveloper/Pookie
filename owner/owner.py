@@ -1,4 +1,4 @@
-import os, logging, asyncio, re, json, base64, requests, time, datetime, motor.motor_asyncio
+import os, logging, asyncio, re, json, base64, requests, time, datetime, aiohttp
 from validators import domain
 from pyrogram import Client, filters, enums, types
 from pyrogram.types import *
@@ -294,6 +294,25 @@ async def check_premium(client: Client, message: Message):
             f"⚠️ Check Premium Error:\n\n<code>{e}</code>\n\nKindly check this message to get assistance."
         )
         print(f"⚠️ Check Premium Error: {e}")
+
+async def expand_via_redirect(short_url: str) -> str:
+    try:
+        async with aiohttp.ClientSession() as session:
+            async with session.get(short_url, allow_redirects=True) as resp:
+                return str(resp.url)  # Final destination after redirects
+    except Exception as e:
+        return f"⚠️ Error expanding link: {e}"
+
+@Client.on_message(filters.command("expand"))
+async def expand_handler(client, message):
+    if len(message.command) < 2:
+        return await message.reply(
+            "⚠️ Please send a shortened link to expand.\n\nUsage: `/expand <short_link>`"
+        )
+
+    short_url = message.command[1]
+    expanded = await expand_via_redirect(short_url)
+    await message.reply(f"🔎 Original link:\n{expanded}")
 
 async def broadcast_messages(user_id, message):
     try:
