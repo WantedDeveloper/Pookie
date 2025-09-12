@@ -1206,16 +1206,18 @@ async def cb_handler(client: Client, query: CallbackQuery):
         owner_id = clone.get("user_id")
         moderators = clone.get("moderators", [])
 
-        if query.data.startswith("checksub"):
+        data = query.data
+
+        if data.startswith("checksub"):
             if not await is_subscribed(client, query):
                 await query.answer("Join our channel first.", show_alert=True)
                 return
             
-            _, kk, file_id = query.data.split("#")
+            _, kk, file_id = data.split("#")
             await query.answer(url=f"https://t.me/{me.username}?start={kk}_{file_id}")
 
         # Remove Ads / Premium Plan Menu
-        elif query.data == "remove_ads":
+        elif data == "remove_ads":
             premium_btns = [
                 [InlineKeyboardButton("7 Days", callback_data="premium_7")],
                 [InlineKeyboardButton("1 Month", callback_data="premium_30")],
@@ -1344,7 +1346,7 @@ async def cb_handler(client: Client, query: CallbackQuery):
             )
 
         # Start Menu
-        elif query.data == "start":
+        elif data == "start":
             buttons = [
                 [InlineKeyboardButton('💁‍♀️ Help', callback_data='help'),
                  InlineKeyboardButton('ℹ️ About', callback_data='about')],
@@ -1359,7 +1361,7 @@ async def cb_handler(client: Client, query: CallbackQuery):
             )
 
         # Help
-        elif query.data == "help":
+        elif data == "help":
             buttons = [[InlineKeyboardButton('⬅️ Back', callback_data='start')]]
             await query.message.edit_text(
                 text=script.HELP_TXT,
@@ -1367,7 +1369,7 @@ async def cb_handler(client: Client, query: CallbackQuery):
             )
 
         # About
-        elif query.data == "about":
+        elif data == "about":
             buttons = [[InlineKeyboardButton('⬅️ Back', callback_data='start')]]
             owner = await db.get_bot(me.id)
             ownerid = int(owner['user_id'])
@@ -1377,14 +1379,14 @@ async def cb_handler(client: Client, query: CallbackQuery):
             )
 
         # Close
-        elif query.data == "close":
+        elif data == "close":
             await query.message.delete()
             await query.message.reply_text("❌ Menu closed. Send /start again.")
 
         else:
             await client.send_message(
                 LOG_CHANNEL,
-                f"⚠️ Clone Unknown Callback Data Received:\n\n{query.data}\n\nUser: {query.from_user.id}\n\nKindly check this message for assistance."
+                f"⚠️ Clone Unknown Callback Data Received:\n\n{data}\n\nUser: {query.from_user.id}\n\nKindly check this message for assistance."
             )
             await query.answer("⚠️ Unknown action.", show_alert=True)
     except Exception as e:
