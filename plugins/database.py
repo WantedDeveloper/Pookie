@@ -115,6 +115,7 @@ class Database:
             'auto_post': False,
             'target_channel': None,
             # Premium User
+            'premium_upi': None,
             'premium_user': [],
             # Auto Delete
             'auto_delete': False,
