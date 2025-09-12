@@ -52,76 +52,73 @@ async def is_subscribed(client, user_id: int, bot_id: int):
 
     return True
 
+# --- Generate Shortened Link ---
 async def get_verify_shorted_link(client, link):
     me = await client.get_me()
     clone = await db.get_bot(me.id)
     shortlink_url = clone.get("shorten_link", None)
     shortlink_api = clone.get("shorten_api", None)
 
-    if shortlink_url and shortlink_url:
+    if shortlink_url and shortlink_api:
         url = f'https://{shortlink_url}/api'
-        params = {
-            "api": shortlink_api,
-            "url": link,
-        }
+        params = {"api": shortlink_api, "url": link}
         try:
             async with aiohttp.ClientSession() as session:
-                async with session.get(url, params=params, raise_for_status=True, ssl=False) as response:
-                    data = await response.text()
-                    return data
+                async with session.get(url, params=params, ssl=False) as response:
+                    data = await response.json(content_type=None)
+
+                    # Extract proper URL key
+                    if "shortenedUrl" in data:
+                        return data["shortenedUrl"]
+                    if "shortened" in data:
+                        return data["shortened"]
+                    
+                    print(f"⚠️ Unexpected response: {data}")
+                    return link
         except Exception as e:
-            print(f"⚠️ Error: {e}")
+            print(f"⚠️ Shortener error: {e}")
             return link
-    else:
-        #response = requests.get(f"https://{SHORTLINK_URL}/api?api={SHORTLINK_API}&url={link}")
-        #data = response.json()
-        #if data["status"] == "success" or rget.status_code == 200:
-            #return data["shortenedUrl"]
-        shortzy = Shortzy(api_key=shortlink_api, base_site=shortlink_url)
-        link = await shortzy.convert(link)
-        return link
 
+    return link
+
+
+# --- Token Check ---
 async def check_token(client, userid, token):
-    user = await client.get_users(userid)
-    if user.id in TOKENS.keys():
-        TKN = TOKENS[user.id]
-        if token in TKN.keys():
-            is_used = TKN[token]
-            if is_used == True:
-                return False
-            else:
-                return True
-    else:
-        return False
+    userid = int(userid)
+    if userid in TOKENS:
+        return token in TOKENS[userid] and TOKENS[userid][token] is False
+    return False
 
-async def get_token(client, userid, link):
+
+# --- Generate New Token Link ---
+async def get_token(client, userid, base_link):
     user = await client.get_users(userid)
     token = ''.join(random.choices(string.ascii_letters + string.digits, k=7))
     TOKENS[user.id] = {token: False}
-    link = f"{link}VERIFY-{user.id}-{token}"
-    shortened_verify_url = await get_verify_shorted_link(client, link)
-    return str(shortened_verify_url)
+    link = f"{base_link}VERIFY-{user.id}-{token}"
+    return await get_verify_shorted_link(client, link)
 
+
+# --- Mark Token as Used ---
 async def verify_user(client, userid, token):
-    user = await client.get_users(userid)
-    TOKENS[user.id] = {token: True}
+    userid = int(userid)
+    if userid in TOKENS and token in TOKENS[userid]:
+        TOKENS[userid][token] = True
 
     clone = await db.get_bot((await client.get_me()).id)
     validity_hours = clone.get("access_token_validity", 24)
+    VERIFIED[userid] = datetime.datetime.now() + datetime.timedelta(hours=validity_hours)
 
-    VERIFIED[user.id] = datetime.datetime.now() + datetime.timedelta(hours=validity_hours)
 
+# --- Check Verification Expiry ---
 async def check_verification(client, userid):
-    user = await client.get_users(userid)
-    expiry = VERIFIED.get(user.id, None)
-
+    userid = int(userid)
+    expiry = VERIFIED.get(userid)
     if not expiry:
         return False
-
     if datetime.datetime.now() > expiry:
-        del VERIFIED[user.id]
+        del VERIFIED[userid]
         return False
-
     return True
 
 def get_size(size):
@@ -268,11 +265,15 @@ async def start(client, message):
 
         if data.startswith("VERIFY-"):
             parts = data.split("-", 2)
-            if len(parts) < 3 or str(message.from_user.id) != parts[1]:
+            if len(parts) != 3:
                 return await message.reply_text("❌ Invalid or expired link!", protect_content=True)
 
-            if await check_token(client, parts[1], parts[2]):
-                await verify_user(client, parts[1], parts[2])
+            user_id, token = parts[1], parts[2]
+            if str(message.from_user.id) != user_id:
+                return await message.reply_text("❌ Invalid or expired link!", protect_content=True)
+
+            if await check_token(client, user_id, token):
+                await verify_user(client, user_id, token)
                 return await message.reply_text(
                     f"Hey {message.from_user.mention}, **verification** successful! ✅",
                     protect_content=clone.get("forward_protect", False)
