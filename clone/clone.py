@@ -58,7 +58,7 @@ async def get_verify_shorted_link(client, link):
     shortlink_url = clone.get("shorten_link", None)
     shortlink_api = clone.get("shorten_api", None)
 
-    if shortlink_url or shortlink_url:
+    if shortlink_url and shortlink_url:
         url = f'https://{shortlink_url}/api'
         params = {
             "api": shortlink_api,
@@ -335,31 +335,10 @@ async def start(client, message):
                 buttons_data = clone.get("button", [])
                 buttons = []
                 for btn in buttons_data:
-                    name = btn.get("name", "Button")
-                    url = str(btn.get("url", "")).strip()
-
-                    if not url:
-                        print(f"⚠️ Skipping button {name}: empty url")
-                        continue
-
-                    if not url.startswith(("http://", "https://")):
-                        url = "https://" + url
-
-                    try:
-                        buttons.append([InlineKeyboardButton(name, url=url)])
-                    except Exception as e:
-                        print(f"⚠️ Skipping button {name}: {e}")
+                    buttons.append([InlineKeyboardButton(btn["name"], url=btn["url"])])
 
                 if buttons:
-                    try:
-                        await sent_msg.edit_caption(
-                            f_caption or (sent_msg.caption or ""),
-                            reply_markup=InlineKeyboardMarkup(buttons)
-                        )
-                    except Exception as e:
-                        print(f"⚠️ Button attach failed: {e}")
-                        if f_caption and f_caption != (sent_msg.caption or ""):
-                            await sent_msg.edit_caption(f_caption)
+                    await sent_msg.edit_caption(f_caption or (sent_msg.caption or ""), reply_markup=InlineKeyboardMarkup(buttons))
                 elif f_caption and f_caption != (sent_msg.caption or ""):
                     await sent_msg.edit_caption(f_caption)
 
