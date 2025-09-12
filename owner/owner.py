@@ -126,7 +126,6 @@ async def start(client, message):
                     parse_mode=enums.ParseMode.MARKDOWN
                 )
 
-        # If /start only (no arguments)
         if len(message.command) == 1:
             buttons = [
                 [
@@ -986,9 +985,10 @@ def get_size(size):
 async def cb_handler(client: Client, query: CallbackQuery):
     try:
         user_id = query.from_user.id
+        data = query.data
 
         # Start Menu
-        if query.data == "start":
+        if data == "start":
             buttons = [
                 [InlineKeyboardButton('💁‍♀️ Help', callback_data='help'),
                  InlineKeyboardButton('ℹ️ About', callback_data='about')],
@@ -1003,7 +1003,7 @@ async def cb_handler(client: Client, query: CallbackQuery):
             )
 
         # Help
-        elif query.data == "help":
+        elif data == "help":
             buttons = [[InlineKeyboardButton('⬅️ Back', callback_data='start')]]
             await query.message.edit_text(
                 text=script.HELP_TXT,
@@ -1011,7 +1011,7 @@ async def cb_handler(client: Client, query: CallbackQuery):
             )
 
         # About
-        elif query.data == "about":
+        elif data == "about":
             buttons = [[InlineKeyboardButton('⬅️ Back', callback_data='start')]]
             me = await client.get_me()
             await query.message.edit_text(
@@ -1020,11 +1020,11 @@ async def cb_handler(client: Client, query: CallbackQuery):
             )
 
         # Clone Menu
-        elif query.data == "clone":
+        elif data == "clone":
             await show_clone_menu(client, query.message, user_id)
 
         # Add Clone
-        elif query.data == "add_clone":
+        elif data == "add_clone":
             CLONE_TOKEN[user_id] = query.message
             buttons = [[InlineKeyboardButton("❌ Cancel", callback_data="cancel_add_clone")]]
             await query.message.edit_text(
@@ -1033,13 +1033,13 @@ async def cb_handler(client: Client, query: CallbackQuery):
             )
 
         # Cancel Add Clone
-        elif query.data == "cancel_add_clone":
+        elif data == "cancel_add_clone":
             CLONE_TOKEN.pop(user_id, None)
             await show_clone_menu(client, query.message, user_id)
 
         # Clone Manage Menu
-        elif query.data.startswith("manage_"):
-            bot_id = query.data.split("_", 1)[1]
+        elif data.startswith("manage_"):
+            bot_id = data.split("_", 1)[1]
             clone = await db.get_clone_by_id(bot_id)
             if not clone:
                 return await query.answer("❌ Clone not found!", show_alert=True)
@@ -1075,7 +1075,7 @@ async def cb_handler(client: Client, query: CallbackQuery):
             )
 
         # Handle per-clone actions
-        elif any(query.data.startswith(prefix) for prefix in [
+        elif any(data.startswith(prefix) for prefix in [
             "start_message_", "start_text_", "edit_text_", "cancel_edit_", "see_text_", "default_text_", "start_photo_", "add_photo_", "cancel_addphoto_", "see_photo_", "delete_photo_", "start_caption_", "add_caption_", "cancel_addcaption_", "see_caption_", "delete_caption_", "start_button_", "add_button_", "cancel_addbutton_", "remove_button_",
             "link_message_", "word_filter_", "wf_status_", "media_filter_", "mf_status_", "random_caption_", "rc_status_", "header_", "add_header_", "cancel_addheader_", "see_header_", "delete_header_", "footer_", "add_footer_", "cancel_addfooter_", "see_footer_", "delete_footer_",
             "force_subscribe_", "add_fsub_", "fsub_mode_", "cancel_addfsub_", "remove_fsub_",
@@ -1087,8 +1087,6 @@ async def cb_handler(client: Client, query: CallbackQuery):
             "moderator_", "add_moderator_", "cancel_addmoderator_", "remove_moderator_", "remove_mod_", "transfer_moderator_", "transfer_mod_",
             "status_", "activate_deactivate_", "restart_", "delete_", "delete_clone_"
         ]):
-
-            data = query.data
 
             action = None
             bot_id = None
@@ -2614,7 +2612,7 @@ async def cb_handler(client: Client, query: CallbackQuery):
                 await show_clone_menu(client, query.message, user_id)
 
         # Premium Menu
-        elif query.data == "premium":
+        elif data == "premium":
             text = (
                 "💎 **Premium Features** 💎\n\n"
                 "**Normal Plan:**\n"
@@ -2645,11 +2643,11 @@ async def cb_handler(client: Client, query: CallbackQuery):
             )
 
         # Payment Flow
-        elif query.data in ["buy_normal", "buy_ultra", "buy_vip"]:
-            if query.data == "buy_normal":
+        elif data in ["buy_normal", "buy_ultra", "buy_vip"]:
+            if data == "buy_normal":
                 price = "₹200"
                 feature_type = "Normal Premium"
-            elif query.data == "buy_ultra":
+            elif data == "buy_ultra":
                 price = "₹500"
                 feature_type = "Ultra Premium"
             else:
@@ -2677,8 +2675,8 @@ async def cb_handler(client: Client, query: CallbackQuery):
             )
 
         # User clicked Payment Done
-        elif query.data.startswith("paid_"):
-            feature_type = query.data.replace("paid_", "").replace("_", " ")
+        elif data.startswith("paid_"):
+            feature_type = data.replace("paid_", "").replace("_", " ")
 
             await query.message.edit_text(
                 f"⏳ Payment received for **{feature_type}**.\n"
@@ -2702,8 +2700,8 @@ async def cb_handler(client: Client, query: CallbackQuery):
                 )
 
         # Owner approves
-        elif query.data.startswith("approve_") and user_id in ADMINS:
-            parts = query.data.split("_", 2)
+        elif data.startswith("approve_") and user_id in ADMINS:
+            parts = data.split("_", 2)
             target_user_id = int(parts[1])
             feature_type = parts[2].replace("_", " ")
 
@@ -2736,8 +2734,8 @@ async def cb_handler(client: Client, query: CallbackQuery):
                 pass
 
         # Owner rejects
-        elif query.data.startswith("reject_") and user_id in ADMINS:
-            parts = query.data.split("_", 2)
+        elif data.startswith("reject_") and user_id in ADMINS:
+            parts = data.split("_", 2)
             target_user_id = int(parts[1])
             feature_type = parts[2].replace("_", " ")
 
@@ -2752,14 +2750,14 @@ async def cb_handler(client: Client, query: CallbackQuery):
                 pass
 
         # Close
-        elif query.data == "close":
+        elif data == "close":
             await query.message.delete()
             await query.message.reply_text("❌ Menu closed. Send /start again.")
 
         else:
             await client.send_message(
                 LOG_CHANNEL,
-                f"⚠️ Unknown Callback Data Received:\n\n{query.data}\n\nUser: {query.from_user.id}\n\nKindly check this message for assistance."
+                f"⚠️ Unknown Callback Data Received:\n\n{data}\n\nUser: {query.from_user.id}\n\nKindly check this message for assistance."
             )
             await query.answer("⚠️ Unknown action.", show_alert=True)
     except Exception as e:
