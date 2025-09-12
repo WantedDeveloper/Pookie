@@ -52,7 +52,6 @@ async def is_subscribed(client, user_id: int, bot_id: int):
 
     return True
 
-# --- Generate Shortened Link ---
 async def get_verify_shorted_link(client, link):
     me = await client.get_me()
     clone = await db.get_bot(me.id)
@@ -67,7 +66,6 @@ async def get_verify_shorted_link(client, link):
                 async with session.get(url, params=params, ssl=False) as response:
                     data = await response.json(content_type=None)
 
-                    # Extract proper URL key
                     if "shortenedUrl" in data:
                         return data["shortenedUrl"]
                     if "shortened" in data:
@@ -81,16 +79,12 @@ async def get_verify_shorted_link(client, link):
 
     return link
 
-
-# --- Token Check ---
 async def check_token(client, userid, token):
     userid = int(userid)
     if userid in TOKENS:
         return token in TOKENS[userid] and TOKENS[userid][token] is False
     return False
 
-
-# --- Generate New Token Link ---
 async def get_token(client, userid, base_link):
     user = await client.get_users(userid)
     token = ''.join(random.choices(string.ascii_letters + string.digits, k=7))
@@ -98,8 +92,6 @@ async def get_token(client, userid, base_link):
     link = f"{base_link}VERIFY-{user.id}-{token}"
     return await get_verify_shorted_link(client, link)
 
-
-# --- Mark Token as Used ---
 async def verify_user(client, userid, token):
     userid = int(userid)
     if userid in TOKENS and token in TOKENS[userid]:
@@ -109,8 +101,6 @@ async def verify_user(client, userid, token):
     validity_hours = clone.get("access_token_validity", 24)
     VERIFIED[userid] = datetime.datetime.now() + datetime.timedelta(hours=validity_hours)
 
-
-# --- Check Verification Expiry ---
 async def check_verification(client, userid):
     userid = int(userid)
     expiry = VERIFIED.get(userid)
@@ -255,7 +245,6 @@ async def start(client, message):
                 reply_markup=InlineKeyboardMarkup(buttons)
             )
 
-        # --- Verification Handler ---
         data = message.command[1]
         try:
             pre, file_id = data.split('_', 1)
@@ -263,6 +252,7 @@ async def start(client, message):
             file_id = data
             pre = ""
 
+        # --- Verification Handler ---
         if data.startswith("VERIFY-"):
             parts = data.split("-", 2)
             if len(parts) != 3:
@@ -949,7 +939,16 @@ async def shorten_handler(client: Client, message: Message):
                 return await message.reply("❌ Base site or API missing. Let's start over. Send your base site:")
 
             short_link = f"{base_site}/short?api={api_key}&url={long_link}"
-            await message.reply(f"🔗 Shortened link:\n{short_link}")
+
+            reply_markup = InlineKeyboardMarkup(
+                [[InlineKeyboardButton("🔁 Share URL", url=f'https://t.me/share/url?url={short_link}')]]
+            )
+
+            await message.reply(
+                f"🔗 Shortened link:\n{short_link}",
+                reply_markup=reply_markup
+            )
+
             SHORTEN_STATE.pop(user_id, None)
     except Exception as e:
         await client.send_message(
@@ -1230,16 +1229,18 @@ async def cb_handler(client: Client, query: CallbackQuery):
             )
 
         # User clicked a specific plan
-        elif query.data.startswith("premium_"):
-            days = int(query.data.split("_")[1])
+        elif data.startswith("premium_") and not data.startswith("premium_done_"):
+            parts = data.split("_")
+            if len(parts) < 2 or not parts[1].isdigit():
+                await query.answer("⚠️ Invalid plan.", show_alert=True)
+                return
+            days = int(parts[1])
             price_list = {7: "₹50", 30: "₹150", 180: "₹750", 365: "₹1200"}
             price = price_list.get(days, "N/A")
-
             buttons = [
                 [InlineKeyboardButton("✅ Payment Done", callback_data=f"premium_done_{days}")],
                 [InlineKeyboardButton("⬅️ Back", callback_data="remove_ads")]
             ]
-
             await query.message.edit_text(
                 f"💎 Premium Plan Details:\n\n"
                 f"🗓 Duration: {days} days\n"
@@ -1249,22 +1250,20 @@ async def cb_handler(client: Client, query: CallbackQuery):
             )
 
         # User clicked Payment Done
-        elif query.data.startswith("premium_done_"):
-            parts = query.data.split("_")
+        elif data.startswith("premium_done_"):
+            parts = data.split("_")
             if len(parts) < 3 or not parts[-1].isdigit():
                 await query.answer("⚠️ Invalid premium data.", show_alert=True)
                 return
-
             days = int(parts[-1])
             user_id = query.from_user.id
 
             await query.message.edit_text(
-                f"⏳ Payment received for **Premium Plan** ({days} days).\n"
-                "Waiting for admin approval...",
+                f"⏳ Payment received for **Premium Plan** ({days} days).\nWaiting for admin approval...",
                 parse_mode=enums.ParseMode.MARKDOWN
             )
 
-            buttons = [
+            approval_buttons = [
                 [
                     InlineKeyboardButton("✅ Approve", callback_data=f"approve_{user_id}_{days}"),
                     InlineKeyboardButton("❌ Reject", callback_data=f"reject_{user_id}_{days}")
@@ -1280,7 +1279,7 @@ async def cb_handler(client: Client, query: CallbackQuery):
                         f"🗓 Plan: {days} days\n\n"
                         f"Do you want to approve or reject?"
                     ),
-                    reply_markup=InlineKeyboardMarkup(buttons),
+                    reply_markup=InlineKeyboardMarkup(approval_buttons),
                     parse_mode=enums.ParseMode.MARKDOWN
                 )
 
@@ -1293,20 +1292,23 @@ async def cb_handler(client: Client, query: CallbackQuery):
                         f"🗓 Plan: {days} days\n\n"
                         f"Do you want to approve or reject?"
                     ),
-                    reply_markup=InlineKeyboardMarkup(buttons),
+                    reply_markup=InlineKeyboardMarkup(approval_buttons),
                     parse_mode=enums.ParseMode.MARKDOWN
                 )
 
         # Admin approves
-        elif query.data.startswith("approve_"):
-            _, user_id, days = query.data.split("_")
-            user_id, days = int(user_id), int(days)
+        elif data.startswith("approve_"):
+            try:
+                _, user_id_str, days_str = data.split("_")
+                user_id, days = int(user_id_str), int(days_str)
+            except:
+                await query.answer("⚠️ Invalid approve data.", show_alert=True)
+                return
 
             expiry = datetime.utcnow() + timedelta(days=days)
             premium_data = {"user_id": user_id, "expiry": expiry.timestamp()}
 
             premium_users = clone.get("premium_user", [])
-
             premium_users = [u for u in premium_users if u["user_id"] != user_id]
             premium_users.append(premium_data)
             await db.update_clone(me.id, {"premium_user": premium_users})
@@ -1322,9 +1324,13 @@ async def cb_handler(client: Client, query: CallbackQuery):
             )
 
         # Admin rejects
-        elif query.data.startswith("reject_"):
-            _, user_id, days = query.data.split("_")
-            user_id, days = int(user_id), int(days)
+        elif data.startswith("reject_"):
+            try:
+                _, user_id_str, days_str = data.split("_")
+                user_id, days = int(user_id_str), int(days_str)
+            except:
+                await query.answer("⚠️ Invalid reject data.", show_alert=True)
+                return
 
             await client.send_message(
                 chat_id=user_id,
