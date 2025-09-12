@@ -70,8 +70,6 @@ async def start(client, message):
         except:
             pass
 
-        username = client.me.username
-
         # --- Save user in DB ---
         if not await db.is_user_exist(message.from_user.id):
             await db.add_user(message.from_user.id, message.from_user.first_name)
@@ -131,7 +129,6 @@ async def add_premium(client: Client, message: Message):
             chat_id=message.chat.id,
             text="👤 Send the User ID to add as premium:",
             filters=filters.text,
-            timeout=60
         )
         user_id = int(ask_id.text.strip())
 
@@ -139,7 +136,6 @@ async def add_premium(client: Client, message: Message):
             chat_id=message.chat.id,
             text="📅 Send number of days for premium:",
             filters=filters.text,
-            timeout=60
         )
         days = int(ask_days.text.strip())
 
@@ -147,7 +143,6 @@ async def add_premium(client: Client, message: Message):
             chat_id=message.chat.id,
             text="💎 Send plan type:\n\n- `normal`\n- `ultra`",
             filters=filters.text,
-            timeout=60
         )
         plan = ask_plan.text.lower().strip()
         if plan not in ["normal", "ultra"]:
@@ -177,7 +172,6 @@ async def remove_premium(client: Client, message: Message):
             chat_id=message.chat.id,
             text="👤 Send the User ID to remove from premium:",
             filters=filters.text,
-            timeout=60
         )
         
         user_id = int(ask_id.text.strip())
@@ -412,16 +406,84 @@ async def broadcast(client, message):
 
 @Client.on_message(filters.command("stats") & filters.user(ADMINS) & filters.private & filters.incoming)
 async def stats(client, message):
-    username = client.me.username
-    users_count = await db.total_users_count()
+    try:
+        username = client.me.username
+        users_count = await db.total_users_count()
 
-    uptime = str(datetime.timedelta(seconds=int(time.time() - START_TIME)))
+        uptime = str(datetime.timedelta(seconds=int(time.time() - START_TIME)))
 
-    await message.reply(
-        f"📊 Status for @{username}\n\n"
-        f"👤 Users: {users_count}\n"
-        f"⏱ Uptime: {uptime}\n",
-    )
+        await message.reply(
+            f"📊 Status for @{username}\n\n"
+            f"👤 Users: {users_count}\n"
+            f"⏱ Uptime: {uptime}\n",
+        )
+    except Exception as e:
+        await client.send_message(
+            LOG_CHANNEL,
+            f"⚠️ Stats Error:\n\n<code>{e}</code>\n\nKindly check this message for assistance."
+        )
+        print(f"⚠️ Stats Error: {e}")
+
+@Client.on_message(filters.command("contact") & filters.private & filters.incoming)
+async def contact(client, message):
+    try:
+        if message.reply_to_message:
+            c_msg = message.reply_to_message
+        else:
+            c_msg = await client.ask(
+                message.from_user.id,
+                "📩 Now send me your contact message\n\nType /cancel to stop.",
+            )
+
+            if c_msg.text and c_msg.text.lower() == "/cancel":
+                return await message.reply("🚫 Contact cancelled.")
+
+        text = (
+            f"📩 **New Contact Message**\n\n"
+            f"👤 User: [{message.from_user.first_name}](tg://user?id={message.from_user.id})\n"
+            f"🆔 ID: `{message.from_user.id}`\n\n"
+            f"💬 Message:\n{c_msg.text}"
+        )
+
+        for admin_id in ADMINS:
+            await client.send_message(admin_id, text)
+
+        await message.reply_text("✅ Your message has been sent to the admin!")
+    except Exception as e:
+        await client.send_message(
+            LOG_CHANNEL,
+            f"⚠️ Contact Error:\n\n<code>{e}</code>\n\nKindly check this message for assistance."
+        )
+        print(f"⚠️ Contact Error: {e}")
+
+@Client.on_message(filters.private & filters.reply)
+async def reply(client, message):
+    try:
+        if not message.reply_to_message:
+            return
+
+        if "🆔 ID:" not in message.reply_to_message.text:
+            return
+
+        try:
+            user_id_line = [line for line in message.reply_to_message.text.splitlines() if line.startswith("🆔 ID:")][0]
+            user_id = int(user_id_line.replace("🆔 ID:", "").strip(" `"))
+        except:
+            return
+
+        text = (
+            f"📩 **Reply from Admin**\n\n"
+            f"💬 Message:\n{message.text}"
+        )
+
+        await client.send_message(user_id, text)
+        await message.reply("✅ Reply delivered!")
+    except Exception as e:
+        await client.send_message(
+            LOG_CHANNEL,
+            f"⚠️ Reply Error:\n\n<code>{e}</code>\n\nKindly check this message for assistance."
+        )
+        print(f"⚠️ Reply Error: {e}")
 
 async def show_clone_menu(client, message, user_id):
     try:
