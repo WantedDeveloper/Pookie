@@ -333,9 +333,22 @@ async def start(client, message):
                     buttons.append([InlineKeyboardButton(btn["name"], url=btn["url"])])
 
                 if buttons:
-                    await sent_msg.edit_caption(f_caption or (sent_msg.caption or ""), reply_markup=InlineKeyboardMarkup(buttons))
+                    current_caption = sent_msg.caption or ""
+                    if (f_caption and f_caption != current_caption) or not sent_msg.reply_markup:
+                        try:
+                            await sent_msg.edit_caption(
+                                f_caption or current_caption,
+                                reply_markup=InlineKeyboardMarkup(buttons)
+                            )
+                        except Exception as e:
+                            if "MESSAGE_NOT_MODIFIED" not in str(e):
+                                raise
                 elif f_caption and f_caption != (sent_msg.caption or ""):
-                    await sent_msg.edit_caption(f_caption)
+                    try:
+                        await sent_msg.edit_caption(f_caption)
+                    except Exception as e:
+                        if "MESSAGE_NOT_MODIFIED" not in str(e):
+                            raise
 
                 if clone.get("auto_delete", False):
                     auto_delete_time = clone.get("auto_delete_time", 1)
@@ -434,10 +447,24 @@ async def start(client, message):
                     for btn in buttons_data:
                         buttons.append([InlineKeyboardButton(btn["name"], url=btn["url"])])
 
+                    current_caption = sent_msg.caption or ""
+
                     if buttons:
-                        await sent_msg.edit_caption(f_caption or (sent_msg.caption or ""), reply_markup=InlineKeyboardMarkup(buttons))
-                    elif f_caption and f_caption != (sent_msg.caption or ""):
-                        await sent_msg.edit_caption(f_caption)
+                        if (f_caption and f_caption != current_caption) or not sent_msg.reply_markup:
+                            try:
+                                await sent_msg.edit_caption(
+                                    f_caption or current_caption,
+                                    reply_markup=InlineKeyboardMarkup(buttons)
+                                )
+                            except Exception as e:
+                                if "MESSAGE_NOT_MODIFIED" not in str(e):
+                                    raise
+                    elif f_caption and f_caption != current_caption:
+                        try:
+                            await sent_msg.edit_caption(f_caption)
+                        except Exception as e:
+                            if "MESSAGE_NOT_MODIFIED" not in str(e):
+                                raise
 
                 if clone.get("auto_delete", False):
                     auto_delete_time = clone.get("auto_delete_time", 1)
@@ -542,6 +569,11 @@ async def start(client, message):
 @Client.on_message(filters.command("help") & filters.private & filters.incoming)
 async def help(client, message):
     try:
+        me = await client.get_me()
+        clone = await db.get_bot(me.id)
+        if not clone:
+            return
+
         await message.reply_text(script.HELP_TXT)
     except Exception as e:
         await client.send_message(
@@ -1194,6 +1226,11 @@ async def contact(client, message):
 @Client.on_message(filters.private & filters.reply)
 async def reply(client, message):
     try:
+        me = await client.get_me()
+        clone = await db.get_bot(me.id)
+        if not clone:
+            return
+
         if not message.reply_to_message:
             return
 
