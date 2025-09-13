@@ -298,6 +298,7 @@ async def check_premium(client: Client, message: Message):
         print(f"⚠️ Check Premium Error: {e}")
 
 async def broadcast_messages(user_id, message):
+    print("DEBUG inside broadcast_messages: type(message) =", type(message))
     try:
         await message.copy(chat_id=user_id)
         return True, "Success"
@@ -362,7 +363,6 @@ async def broadcast(client, message):
         async for user in users:
             try:
                 if "id" in user:
-                    print("DEBUG broadcast_messages:", broadcast_messages, type(broadcast_messages))
                     pti, sh = await broadcast_messages(int(user["id"]), b_msg)
                     if pti:
                         success += 1
