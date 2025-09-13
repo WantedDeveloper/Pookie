@@ -380,13 +380,8 @@ async def broadcast(client, message):
                         elapsed = time.time() - start_time
                         speed = done / elapsed if elapsed > 0 else 0
                         remaining = total_users - done
-                        print("DEBUG done:", done, "total:", total_users)
-                        print("DEBUG elapsed:", elapsed, "speed:", speed, "remaining:", remaining)
-                        print("DEBUG datetime:", datetime, type(datetime))
-                        print("DEBUG timedelta:", timedelta, type(timedelta))
-                        eta = timedelta(
-                            seconds=int(remaining / speed)
-                        ) if speed > 0 else "∞"
+                        eta = timedelta(seconds=int(remaining / speed)) if speed > 0 else "∞"
+                        print(f"DEBUG Progress: done={done}, total={total_users}, eta={eta}, speed={speed:.2f}")
 
                         try:
                             await sts.edit(f"""
@@ -403,18 +398,18 @@ async def broadcast(client, message):
 ⏳ ETA: {eta}
 ⚡ Speed: {speed:.2f} users/sec
 """)
-                        except:
-                            print("DEBUG ERROR during sts.edit:", e)
+                        except Exception as e:
+                            print("DEBUG sts.edit failed:", e)
                             pass
                 else:
                     done += 1
                     failed += 1
-            except Exception:
+            except Exception as e:
+                print("DEBUG user loop exception:", e)
                 failed += 1
                 done += 1
                 continue
 
-        print("DEBUG before time_taken:", datetime, type(datetime), timedelta, type(timedelta))
         time_taken = timedelta(seconds=int(time.time() - start_time))
         #speed = round(done / (time.time()-start_time), 2) if done > 0 else 0
         final_progress = broadcast_progress_bar(total_users, total_users)
@@ -436,12 +431,18 @@ async def broadcast(client, message):
 
 ⚡ Speed: {speed:.2f} users/sec
 """
+        print("DEBUG Final broadcast text generated OK")
         await sts.edit(final_text)
     except Exception as e:
-        await client.send_message(
-            LOG_CHANNEL,
-            f"⚠️ Broadcast Error:\n\n<code>{e}</code>\n\nKindly check this message for assistance."
-        )
+        print("DEBUG Broadcast crashed with:", e)
+        print("DEBUG LOG_CHANNEL type:", type(LOG_CHANNEL), LOG_CHANNEL)
+        try:
+            await client.send_message(
+                LOG_CHANNEL,
+                f"⚠️ Broadcast Error:\n\n<code>{e}</code>\n\nKindly check this message for assistance."
+            )
+        except Exception as log_e:
+            print("DEBUG Failed to send error log:", log_e)
         print(f"⚠️ Broadcast Error: {e}")
 
 @Client.on_message(filters.command("stats") & filters.user(ADMINS) & filters.private & filters.incoming)
