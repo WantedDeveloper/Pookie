@@ -380,6 +380,8 @@ async def broadcast(client, message):
                         elapsed = time.time() - start_time
                         speed = done / elapsed if elapsed > 0 else 0
                         remaining = total_users - done
+                        print("DEBUG datetime:", datetime, type(datetime))
+                        print("DEBUG timedelta:", timedelta, type(timedelta))
                         eta = timedelta(
                             seconds=int(remaining / speed)
                         ) if speed > 0 else "∞"
