@@ -7,7 +7,7 @@ from datetime import date, datetime
 from aiohttp import web
 from plugins.config import *
 from plugins.script import script
-from owner.owner import restart_bots, assistant
+from owner.owner import restart_bots, set_auto_menu, assistant
 
 logging.config.fileConfig('logging.conf')
 logging.getLogger().setLevel(logging.INFO)
@@ -104,7 +104,8 @@ async def initialize_clients():
             if client_id == len(all_tokens):
                 await asyncio.sleep(2)
                 print("This will take some time, please wait...")
-            client = await Client(
+
+            client = Client(
                 name=str(client_id),
                 api_id=API_ID,
                 api_hash=API_HASH,
@@ -112,7 +113,8 @@ async def initialize_clients():
                 sleep_threshold=60,
                 no_updates=True,
                 in_memory=True
-            ).start()
+            )
+            await client.start()   # ✅ start it
             work_loads[client_id] = 0
             return client_id, client
         except Exception:
@@ -183,7 +185,7 @@ async def start():
     bot_info = await StreamBot.get_me()
     StreamBot.username = bot_info.username
 
-    #await set_auto_menu(StreamBot)
+    await set_auto_menu(StreamBot)
 
     await assistant.start()
     print(f"✅ Assistant { (await assistant.get_me()).username } started")
