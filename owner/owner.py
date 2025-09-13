@@ -314,60 +314,127 @@ async def broadcast_messages(user_id, message):
         await db.delete_user(int(user_id))
         return False, "Error"
     except Exception as e:
-        return False, "Error"
+        return False, f"Error: {str(e)}"
 
-# Don't Remove Credit Tg - @VJ_Botz
-# Subscribe YouTube Channel For Amazing Bot https://youtube.com/@Tech_VJ
-# Ask Doubt on telegram @KingVJ01
-
-
-@Client.on_message(filters.command("broadcast") & filters.user(ADMINS) & filters.reply)
-async def verupikkals(bot, message):
-    users = await db.get_all_users()
-    b_msg = message.reply_to_message
-    sts = await message.reply_text(text='**Broadcasting your messages...**')
-    start_time = time.time()
-    total_users = await db.total_users_count()
-    done = 0
-    blocked = 0
-    deleted = 0
-    failed = 0
-    success = 0
-
-# Don't Remove Credit Tg - @VJ_Botz
-# Subscribe YouTube Channel For Amazing Bot https://youtube.com/@Tech_VJ
-# Ask Doubt on telegram @KingVJ01
-
-    async for user in users:
-        if 'id' in user:
-            pti, sh = await broadcast_messages(int(user['id']), b_msg)
-            if pti:
-                success += 1
-            elif pti == False:
-                if sh == "Blocked":
-                    blocked += 1
-                elif sh == "Deleted":
-                    deleted += 1
-                elif sh == "Error":
-                    failed += 1
-            done += 1
-            if not done % 20:
-                try:
-                    await sts.edit(f"Broadcast in progress:\n\nTotal Users {total_users}\nCompleted: {done} / {total_users}\nSuccess: {success}\nBlocked: {blocked}\nDeleted: {deleted}")
-                except:
-                    pass
-        else:
-            # Handle the case where 'id' key is missing in the user dictionary
-            done += 1
-            failed += 1
-            if not done % 20:
-                try:
-                    await sts.edit(f"Broadcast in progress:\n\nTotal Users {total_users}\nCompleted: {done} / {total_users}\nSuccess: {success}\nBlocked: {blocked}\nDeleted: {deleted}")
-                except:
-                    pass
+def broadcast_progress_bar(done, total, length=20):
+    if total == 0:
+        return "[░" * length + "] 0%"
     
-    time_taken = datetime.timedelta(seconds=int(time.time()-start_time))
-    await sts.edit(f"Broadcast Completed:\nCompleted in {time_taken} seconds.\n\nTotal Users {total_users}\nCompleted: {done} / {total_users}\nSuccess: {success}\nBlocked: {blocked}\nDeleted: {deleted}")
+    percent = int((done / total) * 100)
+    filled = int((done / total) * length)
+    empty = length - filled
+    bar = "▓" * filled + "░" * empty
+
+    percent_str = f"{percent}%"
+    bar_list = list(bar)
+    start_pos = max((length - len(percent_str)) // 2, 0)
+    for i, c in enumerate(percent_str):
+        if start_pos + i < length:
+            bar_list[start_pos + i] = c
+    return f"[{''.join(bar_list)}]"
+
+@Client.on_message(filters.command("broadcast") & filters.user(ADMINS) & filters.private)
+async def broadcast(client, message):
+    try:
+        try:
+            await message.delete()
+        except:
+            pass
+
+        if message.reply_to_message:
+            b_msg = message.reply_to_message
+        else:
+            b_msg = await client.ask(
+                message.chat.id,
+                "📩 Send the message to broadcast\n\n/cancel to stop.",
+            )
+
+            if b_msg.text and b_msg.text.lower() == '/cancel':
+                return await message.reply('🚫 Broadcast cancelled.')
+
+        sts = await message.reply_text("⏳ Broadcast starting...")
+        start_time = time.time()
+        total_users = await db.total_users_count()
+
+        done = blocked = deleted = failed = success = 0
+
+        users = await db.get_all_users()
+        async for user in users:
+            try:
+                if "id" in user:
+                    pti, sh = await broadcast_messages(int(user["id"]), b_msg)
+                    if pti:
+                        success += 1
+                    else:
+                        if sh == "Blocked":
+                            blocked += 1
+                        elif sh == "Deleted":
+                            deleted += 1
+                        else:
+                            failed += 1
+                    done += 1
+
+                    if done % 10 == 0 or done == total_users:
+                        progress = broadcast_progress_bar(done, total_users)
+                        percent = (done / total_users) * 100
+                        elapsed = time.time() - start_time
+                        speed = done / elapsed if elapsed > 0 else 0
+                        remaining = total_users - done
+                        eta = timedelta(seconds=int(remaining / speed)) if speed > 0 else "∞"
+
+                        try:
+                            await sts.edit(f"""
+📢 <b>Broadcast in Progress...</b>
+
+{progress}
+
+👥 Total Users: {total_users}
+✅ Success: {success}
+🚫 Blocked: {blocked}
+❌ Deleted: {deleted}
+⚠️ Failed: {failed}
+
+⏳ ETA: {eta}
+⚡ Speed: {speed:.2f} users/sec
+""")
+                        except:
+                            pass
+                else:
+                    done += 1
+                    failed += 1
+            except Exception:
+                failed += 1
+                done += 1
+                continue
+
+        time_taken = timedelta(seconds=int(time.time() - start_time))
+        #speed = round(done / (time.time()-start_time), 2) if done > 0 else 0
+        final_progress = broadcast_progress_bar(total_users, total_users)
+        final_text = f"""
+✅ <b>Broadcast Completed</b> ✅
+
+⏱ Duration: {time_taken}
+👥 Total Users: {total_users}
+
+📊 Results:
+✅ Success: {success} ({(success/total_users)*100:.1f}%)
+🚫 Blocked: {blocked} ({(blocked/total_users)*100:.1f}%)
+❌ Deleted: {deleted} ({(deleted/total_users)*100:.1f}%)
+⚠️ Failed: {failed} ({(failed/total_users)*100:.1f}%)
+
+━━━━━━━━━━━━━━━━━━━━━━
+{final_progress} 100%
+━━━━━━━━━━━━━━━━━━━━━━
+
+⚡ Speed: {speed:.2f} users/sec
+"""
+        await sts.edit(final_text)
+    except Exception as e:
+        await client.send_message(
+            LOG_CHANNEL,
+            f"⚠️ Broadcast Error:\n\n<code>{e}</code>\n\nKindly check this message for assistance."
+        )
+        print(f"⚠️ Broadcast Error: {e}")
 
 @Client.on_message(filters.command("stats") & filters.user(ADMINS) & filters.private & filters.incoming)
 async def stats(client, message):
