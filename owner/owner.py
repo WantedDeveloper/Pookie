@@ -1,6 +1,7 @@
 import os, logging, asyncio, re, json, base64, requests, time
 from datetime import datetime, timedelta
 from validators import domain
+from urllib.parse import urlparse
 from pyrogram import Client, filters, enums, types
 from pyrogram.types import *
 from pyrogram.errors import InputUserDeactivated, UserNotParticipant, FloodWait, UserIsBlocked, PeerIdInvalid
@@ -10,7 +11,7 @@ from plugins.database import db, JoinReqs
 from plugins.clone_instance import set_client, get_client
 from plugins.script import script
 from clone.clone import auto_post_clone
-
+        
 logger = logging.getLogger(__name__)
 
 CLONE_TOKEN = {}
@@ -603,6 +604,13 @@ async def show_caption_menu(client, message, bot_id):
         )
         print(f"⚠️ Show Caption Menu Error: {e}")
 
+def is_valid_url(url: str) -> bool:
+    try:
+        parsed = urlparse(url)
+        return parsed.scheme in ["http", "https"] and parsed.netloc != ""
+    except:
+        return False
+
 async def show_button_menu(client, message, bot_id):
     try:
         clone = await db.get_clone_by_id(bot_id)
@@ -615,6 +623,9 @@ async def show_button_menu(client, message, bot_id):
 
             if url and not url.startswith(("http://", "https://")):
                 url = "https://" + url
+
+            if not is_valid_url(url):
+                continue
 
             buttons.append(
                 [InlineKeyboardButton(name, url=url),
@@ -3040,7 +3051,14 @@ async def message_capture(client: Client, message: Message):
                     new_text = new_text.strip()
                     if not (new_text.startswith("https://") or new_text.startswith("http://")):
                         new_text = "https://" + new_text
-                        await orig_msg.edit_text(f"⚠️ URL missing scheme. Automatically added `https://` → `{new_text}`")
+
+                    if not is_valid_url(new_text):
+                        await orig_msg.edit_text("❌ Invalid URL. Please send a valid URL (e.g., https://example.com).")
+                        await asyncio.sleep(2)
+                        await show_button_menu(client, orig_msg, bot_id)
+                        ADD_BUTTON.pop(user_id, None)
+                        return
+
                     btn_name = data["btn_name"]
                     btn_url = new_text
                     await orig_msg.edit_text("✏️ Updating **start button**, please wait...")
