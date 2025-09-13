@@ -380,6 +380,8 @@ async def broadcast(client, message):
                         elapsed = time.time() - start_time
                         speed = done / elapsed if elapsed > 0 else 0
                         remaining = total_users - done
+                        print("DEBUG done:", done, "total:", total_users)
+                        print("DEBUG elapsed:", elapsed, "speed:", speed, "remaining:", remaining)
                         print("DEBUG datetime:", datetime, type(datetime))
                         print("DEBUG timedelta:", timedelta, type(timedelta))
                         eta = timedelta(
@@ -402,6 +404,7 @@ async def broadcast(client, message):
 ⚡ Speed: {speed:.2f} users/sec
 """)
                         except:
+                            print("DEBUG ERROR during sts.edit:", e)
                             pass
                 else:
                     done += 1
@@ -411,6 +414,7 @@ async def broadcast(client, message):
                 done += 1
                 continue
 
+        print("DEBUG before time_taken:", datetime, type(datetime), timedelta, type(timedelta))
         time_taken = timedelta(seconds=int(time.time() - start_time))
         #speed = round(done / (time.time()-start_time), 2) if done > 0 else 0
         final_progress = broadcast_progress_bar(total_users, total_users)
