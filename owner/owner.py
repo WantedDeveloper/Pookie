@@ -362,6 +362,7 @@ async def broadcast(client, message):
         async for user in users:
             try:
                 if "id" in user:
+                    print("DEBUG broadcast_messages:", broadcast_messages, type(broadcast_messages))
                     pti, sh = await broadcast_messages(int(user["id"]), b_msg)
                     if pti:
                         success += 1
@@ -381,7 +382,6 @@ async def broadcast(client, message):
                         speed = done / elapsed if elapsed > 0 else 0
                         remaining = total_users - done
                         eta = timedelta(seconds=int(remaining / speed)) if speed > 0 else "∞"
-                        print(f"DEBUG Progress: done={done}, total={total_users}, eta={eta}, speed={speed:.2f}")
 
                         try:
                             await sts.edit(f"""
@@ -398,14 +398,12 @@ async def broadcast(client, message):
 ⏳ ETA: {eta}
 ⚡ Speed: {speed:.2f} users/sec
 """)
-                        except Exception as e:
-                            print("DEBUG sts.edit failed:", e)
+                        except:
                             pass
                 else:
                     done += 1
                     failed += 1
-            except Exception as e:
-                print("DEBUG user loop exception:", e)
+            except Exception:
                 failed += 1
                 done += 1
                 continue
@@ -431,18 +429,12 @@ async def broadcast(client, message):
 
 ⚡ Speed: {speed:.2f} users/sec
 """
-        print("DEBUG Final broadcast text generated OK")
         await sts.edit(final_text)
     except Exception as e:
-        print("DEBUG Broadcast crashed with:", e)
-        print("DEBUG LOG_CHANNEL type:", type(LOG_CHANNEL), LOG_CHANNEL)
-        try:
-            await client.send_message(
-                LOG_CHANNEL,
-                f"⚠️ Broadcast Error:\n\n<code>{e}</code>\n\nKindly check this message for assistance."
-            )
-        except Exception as log_e:
-            print("DEBUG Failed to send error log:", log_e)
+        await client.send_message(
+            LOG_CHANNEL,
+            f"⚠️ Broadcast Error:\n\n<code>{e}</code>\n\nKindly check this message for assistance."
+        )
         print(f"⚠️ Broadcast Error: {e}")
 
 @Client.on_message(filters.command("stats") & filters.user(ADMINS) & filters.private & filters.incoming)
