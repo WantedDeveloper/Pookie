@@ -104,8 +104,7 @@ async def initialize_clients():
             if client_id == len(all_tokens):
                 await asyncio.sleep(2)
                 print("This will take some time, please wait...")
-
-            client = Client(
+            client = await Client(
                 name=str(client_id),
                 api_id=API_ID,
                 api_hash=API_HASH,
@@ -113,8 +112,7 @@ async def initialize_clients():
                 sleep_threshold=60,
                 no_updates=True,
                 in_memory=True
-            )
-            await client.start()   # ✅ start it
+            ).start()
             work_loads[client_id] = 0
             return client_id, client
         except Exception:
