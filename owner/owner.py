@@ -299,6 +299,7 @@ async def check_premium(client: Client, message: Message):
 
 async def broadcast_messages(user_id, message):
     print("DEBUG inside broadcast_messages: type(message) =", type(message))
+    print("DEBUG message._client =", message._client, type(message._client))
     try:
         await message.copy(chat_id=user_id)
         return True, "Success"
