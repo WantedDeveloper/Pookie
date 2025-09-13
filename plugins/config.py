@@ -45,7 +45,6 @@ try:
     # This Is Force Subscribe Channel, also known as Auth Channel 
     auth_channel = os.environ.get('AUTH_CHANNEL', '-1002912952165') # give your force subscribe channel id here else leave it blank
     AUTH_CHANNEL = int(auth_channel) if auth_channel and id_pattern.search(auth_channel) else None
-
 except Exception as e:
     print("⚠️ Error loading config.py:", e)
     traceback.print_exc()
