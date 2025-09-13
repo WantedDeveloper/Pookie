@@ -1,4 +1,5 @@
-import os, logging, asyncio, re, json, base64, requests, time, datetime
+import os, logging, asyncio, re, json, base64, requests, time
+from datetime import datetime, timedelta
 from validators import domain
 from pyrogram import Client, filters, enums, types
 from pyrogram.types import *
@@ -187,7 +188,7 @@ async def add_premium(client: Client, message: Message):
 
         await db.add_premium_user(user_id, days, plan)
 
-        expiry = (datetime.datetime.utcnow() + datetime.timedelta(days=days)).strftime("%Y-%m-%d %H:%M")
+        expiry = (datetime.utcnow() + timedelta(days=days)).strftime("%Y-%m-%d %H:%M")
         await message.reply_text(
             f"✅ Added **{plan.title()} Premium**\n\n"
             f"👤 User ID: `{user_id}`\n"
@@ -238,7 +239,7 @@ async def list_premium(client: Client, message: Message):
             expiry = u.get("expiry_time")
             if expiry:
                 exp_str = expiry.strftime("%Y-%m-%d %H:%M")
-                remaining = expiry - datetime.datetime.utcnow()
+                remaining = expiry - datetime.utcnow()
                 days_left = remaining.days
                 text += f"• `{user_id}` | {plan} | Expires: {exp_str} ({days_left} days left)\n"
             else:
@@ -273,8 +274,8 @@ async def check_premium(client: Client, message: Message):
         plan = user.get("plan_type", "normal").title()
         expiry = user.get("expiry_time")
 
-        if expiry and expiry > datetime.datetime.utcnow():
-            remaining = expiry - datetime.datetime.utcnow()
+        if expiry and expiry > datetime.utcnow():
+            remaining = expiry - datetime.utcnow()
             days_left = remaining.days
             exp_str = expiry.strftime("%Y-%m-%d %H:%M")
             await message.reply_text(
@@ -379,7 +380,7 @@ async def broadcast(client, message):
                         elapsed = time.time() - start_time
                         speed = done / elapsed if elapsed > 0 else 0
                         remaining = total_users - done
-                        eta = datetime.timedelta(
+                        eta = timedelta(
                             seconds=int(remaining / speed)
                         ) if speed > 0 else "∞"
 
@@ -408,7 +409,7 @@ async def broadcast(client, message):
                 done += 1
                 continue
 
-        time_taken = datetime.timedelta(seconds=int(time.time() - start_time))
+        time_taken = timedelta(seconds=int(time.time() - start_time))
         #speed = round(done / (time.time()-start_time), 2) if done > 0 else 0
         final_progress = broadcast_progress_bar(total_users, total_users)
         final_text = f"""
@@ -443,7 +444,7 @@ async def stats(client, message):
         username = client.me.username
         users_count = await db.total_users_count()
 
-        uptime = str(datetime.timedelta(seconds=int(time.time() - START_TIME)))
+        uptime = str(timedelta(seconds=int(time.time() - START_TIME)))
 
         await message.reply(
             f"📊 Status for @{username}\n\n"
@@ -763,7 +764,7 @@ async def show_token_menu(client, message, bot_id):
         tutorial = clone.get("access_token_tutorial", None)
         renew_log = clone.get("access_token_renew_log", {})
 
-        today = datetime.datetime.now().strftime("%Y-%m-%d")
+        today = datetime.now().strftime("%Y-%m-%d")
         today_count = renew_log.get(today, 0)
 
         if current:
@@ -2536,7 +2537,7 @@ async def cb_handler(client: Client, query: CallbackQuery):
                 storage_free = storage_limit - storage_used
                 banned_users = len(clone.get("banned_users", []))
 
-                uptime = str(datetime.timedelta(seconds=int(time.time() - START_TIME)))
+                uptime = str(timedelta(seconds=int(time.time() - START_TIME)))
 
                 await query.answer(
                     f"📊 Status for @{clone.get('username')}\n\n"
@@ -2725,7 +2726,7 @@ async def cb_handler(client: Client, query: CallbackQuery):
                 plan_type = "normal"
                 days = 30
 
-            expiry_date = datetime.datetime.utcnow() + datetime.timedelta(days=days)
+            expiry_date = datetime.utcnow() + timedelta(days=days)
             await db.add_premium_user(target_user_id, days, plan_type)
 
             await query.message.edit_text(f"✅ Payment approved for user `{target_user_id}` ({feature_type})")
