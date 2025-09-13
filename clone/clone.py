@@ -448,13 +448,13 @@ async def start(client, message):
                     for btn in buttons_data:
                         buttons.append([InlineKeyboardButton(btn["name"], url=btn["url"])])
 
-                    current_caption = sent_msg.caption or ""
+                    caption_to_edit = f_caption or current_caption or " "
 
                     if buttons:
                         if (f_caption and f_caption != current_caption) or not sent_msg.reply_markup:
                             try:
                                 await sent_msg.edit_caption(
-                                    f_caption or current_caption,
+                                    caption_to_edit,
                                     reply_markup=InlineKeyboardMarkup(buttons)
                                 )
                             except Exception as e:
@@ -462,7 +462,7 @@ async def start(client, message):
                                     raise
                     elif f_caption and f_caption != current_caption:
                         try:
-                            await sent_msg.edit_caption(f_caption)
+                            await sent_msg.edit_caption(caption_to_edit)
                         except Exception as e:
                             if "MESSAGE_NOT_MODIFIED" not in str(e):
                                 raise
