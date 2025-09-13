@@ -1,4 +1,5 @@
-import motor.motor_asyncio
+import motor.motor_asyncio, time
+from datetime import datetime, timedelta
 from plugins.config import *
 from plugins.script import script
 
@@ -40,7 +41,7 @@ class Database:
 
     # ---------------- PREMIUM USERS ----------------
     async def add_premium_user(self, user_id: int, days: int, plan_type: str = "normal"):
-        expiry_time = datetime.datetime.utcnow() + datetime.timedelta(days=days)
+        expiry_time = datetime.utcnow() + timedelta(days=days)
         await self.premium.update_one(
             {"id": int(user_id)},
             {"$set": {
@@ -63,7 +64,7 @@ class Database:
             return False
 
         expiry = user.get("expiry_time")
-        if not expiry or expiry < datetime.datetime.utcnow():
+        if not expiry or expiry < datetime.utcnow():
             return False
 
         if required_plan == "ultra":
@@ -75,7 +76,7 @@ class Database:
 
     async def list_premium_users(self):
         cursor = self.premium.find({
-            "expiry_time": {"$gt": datetime.datetime.utcnow()}
+            "expiry_time": {"$gt": datetime.utcnow()}
         })
         users = []
         async for user in cursor:
