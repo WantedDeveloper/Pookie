@@ -1,4 +1,5 @@
-import os, logging, asyncio, re, json, base64, random, aiohttp, requests, string, time, datetime
+import os, logging, asyncio, re, json, base64, random, aiohttp, requests, string, time
+from datetime import datetime, timedelta
 from shortzy import Shortzy
 from validators import domain
 from pyrogram import Client, filters, enums
@@ -105,14 +106,14 @@ async def verify_user(client, userid, token):
         return
 
     validity_hours = clone.get("access_token_validity", 24)
-    VERIFIED[userid] = datetime.datetime.now() + datetime.timedelta(hours=validity_hours)
+    VERIFIED[userid] = datetime.now() + timedelta(hours=validity_hours)
 
 async def check_verification(client, userid):
     userid = int(userid)
     expiry = VERIFIED.get(userid)
     if not expiry:
         return False
-    if datetime.datetime.now() > expiry:
+    if datetime.now() > expiry:
         del VERIFIED[userid]
         return False
     return True
@@ -1092,7 +1093,7 @@ async def broadcast(client, message):
                     elapsed = time.time() - start_time
                     speed = done / elapsed if elapsed > 0 else 0
                     remaining = total_users - done
-                    eta = datetime.timedelta(seconds=int(remaining / speed)) if speed > 0 else "∞"
+                    eta = timedelta(seconds=int(remaining / speed)) if speed > 0 else "∞"
 
                     try:
                         await sts.edit(f"""
@@ -1115,7 +1116,7 @@ async def broadcast(client, message):
                 done += 1
                 failed += 1
 
-        time_taken = datetime.timedelta(seconds=int(time.time() - start_time))
+        time_taken = timedelta(seconds=int(time.time() - start_time))
         final_progress = broadcast_progress_bar(total_users, total_users)
         final_text = f"""
 ✅ <b>Broadcast Completed</b> ✅
@@ -1164,7 +1165,7 @@ async def stats(client, message):
         storage_free = storage_limit - storage_used
         banned_users = len(clone.get("banned_users", []))
 
-        uptime = str(datetime.timedelta(seconds=int(time.time() - START_TIME)))
+        uptime = str(timedelta(seconds=int(time.time() - START_TIME)))
 
         await message.reply(
             f"📊 Status for @{clone.get('username')}\n\n"
@@ -1369,7 +1370,7 @@ async def cb_handler(client: Client, query: CallbackQuery):
                 await query.answer("⚠️ Invalid approve data.", show_alert=True)
                 return
 
-            expiry = datetime.datetime.utcnow() + datetime.timedelta(days=days)
+            expiry = datetime.utcnow() + timedelta(days=days)
             premium_data = {"user_id": user_id, "expiry": expiry.timestamp()}
 
             premium_users = clone.get("premium_user", [])
